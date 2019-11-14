@@ -4,8 +4,12 @@
 typedef Suite * (*mk_geo_test_suite_t)(void);
 
 extern Suite * mk_vector_classification_suite(void);
+extern Suite * mk_triangle_classification_suite(void);
 
-mk_geo_test_suite_t all_suites[] = {mk_vector_classification_suite};
+mk_geo_test_suite_t all_suites[] = {
+    mk_vector_classification_suite,
+    mk_triangle_classification_suite,
+};
 
 int main(void){
     int n_suites = sizeof(all_suites) / sizeof(all_suites[0]);

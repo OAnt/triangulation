@@ -21,10 +21,10 @@ $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	cc $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 $(SOOUT): $(OBJECTS)
-	cc -shared $< -o $@
+	cc -shared $(OBJECTS) -o $@
 
 $(TESTOUT): $(TESTSRC)
-	cc $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ $(TESTS)
+	cc $(TESTS) $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ 
 
 tests_: build $(SOOUT) $(TESTOUT)
 	./$(TESTOUT)
