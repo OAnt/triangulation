@@ -1,5 +1,5 @@
-INCLUDES=-Iinclude
-CFLAGS=-Wall -g -fPIC
+INCLUDES=-I include
+CFLAGS=-Wall -g -fPIC -x c
 SRCDIR=src
 OBJDIR=build/objects
 SODIR=build/lib
@@ -26,9 +26,8 @@ $(SOOUT): $(OBJECTS)
 $(TESTOUT): $(TESTSRC)
 	cc $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ $(TESTS)
 
-tests_: $(SOOUT) $(TESTOUT)
+tests_: build $(SOOUT) $(TESTOUT)
 	./$(TESTOUT)
 
 clean:
-	rm $(OBJECTS)
-	rmdir build
+	rm -rf build
