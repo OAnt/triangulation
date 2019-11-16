@@ -4,42 +4,29 @@
 #include <string.h>
 #include <private/common.h>
 
-struct array_st {
-    char * ptr;
-    size_t n_elem;
-    size_t m_elem;
-    size_t type_size;
-};
-
-void _array_init(
-        struct array_st * ar,
-        size_t type_size);
-
-#define array_init(array, type) _array_init((array), (sizeof(type)))
-
-#define array_ptr(array) (array)->ptr
-
-size_t array_size(
-        struct array_st * ar);
-
-enum error_code_e array_extend(
-        struct array_st * ar,
-        void * ptr,
-        size_t n_elem);
-
-enum error_code_e array_retract(
-        struct array_st * ar,
+enum error_code_e array_new_(
+        size_t type,
         size_t n_elem,
-        void ** ptr,
-        size_t * n_removed_elem);
+        void ** ptr);
 
-enum error_code_e array_set(
-        struct array_st * ar,
-        void * ptr,
-        size_t index,
+#define array_new(type, n_elem, ptr) array_new_(sizeof(type), (n_elem), (void **)(ptr))
+
+size_t array_length(void * ptr);
+
+enum error_code_e array_resize_(
+        void ** ptr,
         size_t n_elem);
 
-void array_cleanup(
-        struct array_st * ar);
+#define array_resize(ptr, n_elem) array_resize_((void**)(ptr), (n_elem))
+
+enum error_code_e array_delete_(
+        void ** ptr);
+
+#define array_delete(ptr) array_delete_((void**)(ptr))
+
+enum error_code_e array_shrink_(
+        void ** ptr);
+
+#define array_shrink(ptr) array_shrink_((void**)(ptr))
 
 #endif

@@ -3,100 +3,89 @@
 #include <private/common.h>
 #include <private/array.h>
 
-static struct array_st _empty_array = {NULL, 0, 0, 0};
+struct array_header_st {
+    size_t n_elem;
+    size_t m_elem;
+    size_t type_size;
+};
 
-void _array_init(
-        struct array_st * ar,
-        size_t type_size)
-{
-    *ar = _empty_array;
-    ar->type_size = type_size;
-}
+#define ARRAY_HEADER(ptr) (((struct array_header_st*)(ptr)) - 1);
+#define ARRAY_PTR(ptr) (((struct array_header_st*)(ptr)) + 1);
 
-size_t array_size(
-        struct array_st * ar)
-{
-    return ar->n_elem;
-}
-
-#define array_mem_size(ar, n) (ar)->type_size * (n)
-
-#define array_offset(ar, n) (ar)->ptr + array_mem_size(ar, n)
-
-static inline enum error_code_e _array_realloc(
-        struct array_st * ar,
-        size_t new_n_elem)
-{
-    if(new_n_elem > ar->m_elem){
-        size_t new_m_elem = 2*ar->m_elem;
-        new_m_elem = MAX(new_n_elem, new_m_elem);
-        char * new_ptr = realloc(ar->ptr,
-                array_mem_size(ar, new_m_elem));
-        if(!new_ptr) return ec_memory_error;
-        ar->ptr = new_ptr;
-        ar->m_elem = new_m_elem;
-    }
-    return ec_no_error;
-}
-
-#define array_realloc(ar, new_n_elem) do{ \
-    enum error_code_e err = _array_realloc(ar, new_n_elem);\
-    if(err != ec_no_error) return ec_no_error;}while(0)
-
-enum error_code_e array_extend(
-        struct array_st * ar,
-        void * ptr,
-        size_t n_elem)
-{
-    size_t new_n_elem = ar->n_elem + n_elem;
-    array_realloc(ar, new_n_elem);
-    memmove(array_offset(ar, ar->n_elem),
-            ptr, array_mem_size(ar, n_elem));
-    ar->n_elem = new_n_elem;
-    return ec_no_error;
-}
-
-enum error_code_e array_retract(
-        struct array_st * ar,
+enum error_code_e array_new_(
+        size_t type,
         size_t n_elem,
-        void ** ptr,
-        size_t * n_removed_elem)
+        void ** ptr)
 {
-    size_t previous_n_elem = ar->n_elem;
-    if(ar->n_elem < n_elem){
-        ar->n_elem = 0;
-    }else{
-        ar->n_elem -= n_elem;
-    }
-    size_t _n_removed_elem = previous_n_elem - ar->n_elem;
-    if(n_removed_elem)
-        *n_removed_elem = _n_removed_elem;
-    if(ptr){
-        *ptr = array_offset(ar, ar->n_elem);
-    }
+    struct array_header_st * header = malloc(n_elem * type + \
+            sizeof(struct array_header_st));
+    if(!header) return ec_memory_error;
+    header->m_elem = n_elem;
+    header->n_elem = n_elem;
+    header->type_size = type;
+    *ptr = ARRAY_PTR(header);
     return ec_no_error;
 }
 
-enum error_code_e array_set(
-        struct array_st * ar,
-        void * ptr,
-        size_t index,
+void array_debug_header(void * ptr, 
+        size_t * n,
+        size_t * m,
+        size_t * size,
+        size_t * offset)
+{
+    struct array_header_st * header = ARRAY_HEADER(ptr);
+    *n = header->n_elem;
+    *m = header->m_elem;
+    *size = header->type_size;
+    *offset = (char*)ptr - (char*)header;
+}
+
+size_t array_length(void * ptr){
+    struct array_header_st * header = ARRAY_HEADER(ptr);
+    return header->n_elem;
+}
+
+enum error_code_e array_resize_(
+        void ** ptr,
         size_t n_elem)
 {
-    size_t new_n_elem = index + n_elem;
-    new_n_elem = MAX(new_n_elem, ar->n_elem);
-    array_realloc(ar, new_n_elem);
-    memmove(array_offset(ar, index),
-                ptr, array_mem_size(ar, n_elem));
-    ar->n_elem = new_n_elem;
+    struct array_header_st * header = ARRAY_HEADER(*ptr);
+    if(n_elem > header->m_elem){
+        size_t new_m_elem = 2*header->m_elem;
+        new_m_elem = MAX(n_elem, new_m_elem);
+        struct array_header_st * new_header = realloc(
+                header,
+                sizeof(struct array_header_st) + \
+                new_m_elem * header->type_size);
+        if(!new_header) return ec_memory_error;
+        header = new_header;
+        header->m_elem = new_m_elem;
+        *ptr = ARRAY_PTR(header)
+    }
+    header->n_elem = n_elem;
     return ec_no_error;
 }
 
-void array_cleanup(
-        struct array_st * ar)
+enum error_code_e array_shrink_(
+        void ** ptr)
 {
-    if(ar->ptr)
-        free(ar->ptr);
-    *ar = _empty_array;
+    struct array_header_st * header = ARRAY_HEADER(*ptr);
+    struct array_header_st * new_header = realloc(
+            header,
+            sizeof(struct array_header_st) + \
+            header->n_elem * header->type_size);
+    if(!new_header) return ec_memory_error;
+    new_header->m_elem = new_header->n_elem;
+    *ptr = ARRAY_PTR(new_header);
+    return ec_no_error;
+}
+
+enum error_code_e array_delete_(
+        void ** ptr)
+{
+    struct array_header_st * header = ARRAY_HEADER(*ptr);
+    free(header);
+    *ptr = NULL;
+    return ec_no_error;
 }
 
