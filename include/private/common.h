@@ -2,11 +2,11 @@
 #define GEOMETRY_SIGN_H
 
 /**
- * Marks an input variabale as input
+ * Marks an input variable as input
  */
 #define _IN
 /**
- * Marks an input variabale as ouput
+ * Marks an input variable as output
  */
 #define _OUT
 
