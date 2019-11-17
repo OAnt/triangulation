@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <private/vector.h>
-#include <private/common.h>
+#include <public/mesh.h>
 
 #define FACE_SIZE 3
 
