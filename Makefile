@@ -1,5 +1,6 @@
+EXTRA_CFLAGS:=""
 INCLUDES=-I include
-CFLAGS=-Wall -g -fPIC -x c
+CFLAGS=-Wall -g -fPIC -x c $(EXTRA_CFLAGS)
 SRCDIR=src
 OBJDIR=build/objects
 SODIR=build/lib
@@ -21,7 +22,7 @@ $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	cc $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 $(SOOUT): $(OBJECTS)
-	cc -shared $(OBJECTS) -o $@
+	cc -shared $(OBJECTS) -o $@ $(EXTRA_CFLAGS)
 
 $(TESTOUT): $(TESTSRC)
 	cc $(TESTS) $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ 
