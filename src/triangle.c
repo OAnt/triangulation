@@ -1,6 +1,8 @@
 #include <private/triangle.h>
 #include <private/common.h>
 
+// computes the position of all 3 points composing the triangle 
+// relative to the plane
 struct vector_st _triangle_plane_classify(
         struct triangle_st * tr,
         struct plane_st * pl)
@@ -12,6 +14,9 @@ struct vector_st _triangle_plane_classify(
     return clses;
 }
 
+// computes the classification of the triangle
+// whose point positions regarding to plane are
+// defined by the vector v
 enum triangle_classification_e _vector_classify(
         struct vector_st * v)
 {
