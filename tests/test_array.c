@@ -28,10 +28,10 @@ START_TEST(test_manipulation)
 }
 END_TEST
 
-Suite * mk_array_classification_suite(void){
-    Suite * s = suite_create("Array Classification");
+Suite * mk_array_suite(void){
+    Suite * s = suite_create("Array");
     TCase * array_tc = tcase_create(
-            "Array Classification");
+            "Array");
     tcase_add_test(array_tc, test_manipulation);
     suite_add_tcase(s, array_tc);
     return s;

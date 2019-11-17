@@ -18,6 +18,7 @@ enum error_code_e {
     ec_error = 1, /** The function encountered an unknown error */
     ec_io_error = 2, /** The function encountered an error during io operation */
     ec_memory_error, /** An allocation failed */
+    ec_out_of_bound_error, /** An index was found to be out of the required range */
 };
 
 #define SIGN(x) ((x) > 0) - ((x) < 0)
