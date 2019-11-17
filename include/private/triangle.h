@@ -29,7 +29,7 @@ enum triangle_classification_e {
  * return The position of tr relative to pl.
  */
 enum triangle_classification_e triangle_plane_classify(
-        struct triangle_st * tr,
-        struct plane_st * pl);
+        _IN struct triangle_st * tr,
+        _IN struct plane_st * pl);
 
 #endif
