@@ -17,6 +17,7 @@ START_TEST(test_mesh_add_features){
     struct face_st face = {0, 1, 2};
     ck_assert(mesh_add_face(&mesh, face, &index) == ec_no_error);
     ck_assert(index == 0);
+    ck_assert(mesh_cleanup(&mesh) == ec_no_error);
 }
 END_TEST
 
@@ -27,6 +28,7 @@ START_TEST(test_mesh_add_face_fails){
     struct face_st face = {0, 1, 2};
     ck_assert(mesh_add_face(
                 &mesh, face, &index) == ec_out_of_bound_error);
+    ck_assert(mesh_cleanup(&mesh) == ec_no_error);
 }
 END_TEST
 
