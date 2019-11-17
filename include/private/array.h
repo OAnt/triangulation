@@ -18,7 +18,7 @@ enum error_code_e array_new_(
         void ** ptr);
 
 /**
- * Convinience macro transforms the type to its size
+ * Convenience macro transforms the type to its size
  */
 #define array_new(type, n_elem, ptr) array_new_(sizeof(type), (n_elem), (void **)(ptr))
 
@@ -40,7 +40,7 @@ enum error_code_e array_resize_(
         size_t n_elem);
 
 /**
- * Convinience macro to avoid having to recast the pointer
+ * Convenience macro to avoid having to recast the pointer
  */
 #define array_resize(ptr, n_elem) array_resize_((void**)(ptr), (n_elem))
 
@@ -67,7 +67,7 @@ enum error_code_e array_shrink_(
         void ** ptr);
 
 /**
- * Convinience macro transforms the type to its size
+ * Convenience macro transforms the type to its size
  */
 #define array_shrink(ptr) array_shrink_((void**)(ptr))
 
