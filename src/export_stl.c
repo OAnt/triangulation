@@ -33,18 +33,18 @@ enum error_code_e _mesh_export_stlb_face(
 {
     // Writing a dummy normal I don't know them
     struct vector_st dummy_normal = {0.0, 0.0, 0.0};
-    if(vector_write(&dummy_normal, file) != VECTOR_SIZE)
+    if(vector_write(&dummy_normal, file) != 1)
         return ec_io_error;
     // Write face vertices one by one
     struct face_st face = mesh->faces[face_index];
     for(int32_t i = 0; i < FACE_SIZE; i++){
         size_t v_index = face.f[i];
-        if(vector_write(&mesh->vertices[v_index], file) != VECTOR_SIZE)
+        if(vector_write(&mesh->vertices[v_index], file) != 1)
             return ec_io_error;
     }
     // Writing the last 16 bits
     uint16_t ctrl = 12;
-    if(fwrite(&ctrl, sizeof(uint16_t), 1, file) != sizeof(uint16_t))
+    if(fwrite(&ctrl, sizeof(uint16_t), 1, file) != 1)
         return ec_io_error;
     return ec_no_error;
 }
