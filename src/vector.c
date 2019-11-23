@@ -19,3 +19,13 @@ double vector_dot_product(
         in_a->v[2] * in_b->v[2];
 }
 
+void vector_scale_by_scalar(
+        _IN struct vector_st * in_a,
+        _IN double scalar,
+        _OUT struct vector_st * out)
+{
+    out->v[0] = in_a->v[0] * scalar;
+    out->v[1] = in_a->v[1] * scalar;
+    out->v[2] = in_a->v[2] * scalar;
+}
+
