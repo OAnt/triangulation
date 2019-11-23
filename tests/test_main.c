@@ -7,12 +7,14 @@ extern Suite * mk_vector_classification_suite(void);
 extern Suite * mk_triangle_classification_suite(void);
 extern Suite * mk_array_suite(void);
 extern Suite * mk_mesh_suite(void);
+extern Suite * mk_vector_suite(void);
 
 mk_geo_test_suite_t all_suites[] = {
     mk_vector_classification_suite,
     mk_triangle_classification_suite,
     mk_array_suite,
     mk_mesh_suite,
+    mk_vector_suite,
 };
 
 int main(void){
