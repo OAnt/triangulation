@@ -6,5 +6,6 @@
 #define SIGN(x) ((x) > 0) - ((x) < 0)
 #define MAX(x, y) (x) > (y) ? x : y
 #define MIN(x, y) (x) < (y) ? x : y
+#define EPSILON 1e-10
 
 #endif

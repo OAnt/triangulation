@@ -1,3 +1,4 @@
+#include "private/common.h"
 #include "private/plane.h"
 #include <check.h>
 #include <stdio.h>
@@ -55,8 +56,8 @@ START_TEST(triangle_compute_circumcenter_test)
     double sq_dist_2 = vector_dot_product(
            &cc_center_to_corner_2,
            &cc_center_to_corner_2);
-    ck_assert_double_eq(sq_dist_0, sq_dist_1);
-    ck_assert_double_eq(sq_dist_2, sq_dist_1);
+    ck_assert_double_eq_tol(sq_dist_0, sq_dist_1, EPSILON);
+    ck_assert_double_eq_tol(sq_dist_2, sq_dist_1, EPSILON);
 }
 END_TEST
 

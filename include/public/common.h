@@ -19,6 +19,7 @@ enum error_code_e {
     ec_io_error = 2, /** The function encountered an error during io operation */
     ec_memory_error, /** An allocation failed */
     ec_out_of_bound_error, /** An index was found to be out of the required range */
+    ec_div_by_zero_error, /** A division by zero was attempted */
 };
 
 #endif
