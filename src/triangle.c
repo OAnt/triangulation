@@ -87,6 +87,7 @@ enum error_code_e triangle_compute_circumcircle_center(
         struct vector_st * cc_center)
 {
     // tr is considered the ABC triangle
+    // offset by - C
     //compute a = A - C;
     struct vector_st a;
     vector_subtraction(tr->t, tr->t + 2, &a);
@@ -119,6 +120,7 @@ enum error_code_e triangle_compute_circumcircle_center(
     struct vector_st relative_cc_center;
     vector_scale_by_scalar(
             &unscaled_direction, 1 / denom, &relative_cc_center);
+    // offsetting by C we all computations had an offset of -C
     vector_addition(&relative_cc_center, tr->t + 2, cc_center);
     return ec_no_error;
 }
