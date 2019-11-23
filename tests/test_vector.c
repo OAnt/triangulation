@@ -52,6 +52,21 @@ START_TEST(vector_test_addition)
 }
 END_TEST
 
+START_TEST(vector_test_position)
+{
+    struct segment_st seg = {{{1, 0, 0}, {0, 1, 0}}};
+    struct vector_st vec = {{0.1, 0.1, 0.0}};
+    enum point_position_e pp = vector_position_relative_to_segment(&vec, &seg, pp_xy); 
+    ck_assert(pp == pt_left);
+    struct vector_st vec_ = {{1.1, 1.1, 0.0}};
+    pp = vector_position_relative_to_segment(&vec_, &seg, pp_xy); 
+    ck_assert(pp == pt_right);
+    struct vector_st vec_on = {{0.5, 0.5, 0.0}};
+    pp = vector_position_relative_to_segment(&vec_on, &seg, pp_xy); 
+    ck_assert(pp == pt_on);
+}
+END_TEST
+
 Suite * mk_vector_suite(void){
     Suite * s = suite_create("Vector");
     TCase * tc = tcase_create(
@@ -61,6 +76,7 @@ Suite * mk_vector_suite(void){
     tcase_add_test(tc, vector_test_subtraction);
     tcase_add_test(tc, vector_test_scaling);
     tcase_add_test(tc, vector_test_addition);
+    tcase_add_test(tc, vector_test_position);
     suite_add_tcase(s, tc);
     return s;
 }

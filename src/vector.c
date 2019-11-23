@@ -39,3 +39,24 @@ void vector_scale_by_scalar(
     out->v[2] = in_a->v[2] * scalar;
 }
 
+enum point_position_e vector_position_relative_to_segment(
+        _IN struct vector_st * point, 
+        _IN struct segment_st * segment,
+        _IN enum projection_plane_e d0)
+{
+    /* pp is the first dimension the next one is pp + 1, 
+     * %3 is to convert (Z + 1) = 4 into 1 = X*/
+    int d1 = (d0 + 1) % 3;
+    double position = (segment->s[1].v[d0] - segment->s[0].v[d0]) *
+        (point->v[d1] - segment->s[0].v[d1]) -
+        (point->v[d0] - segment->s[0].v[d0]) *
+        (segment->s[1].v[d1] - segment->s[0].v[d1]);
+    if(position < 0){
+        return pt_right;
+    }else if(position > 0){
+        return pt_left;
+    }else{
+        return pt_on;
+    }
+}
+

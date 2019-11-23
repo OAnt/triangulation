@@ -60,4 +60,41 @@ void vector_scale_by_scalar(
         _IN double scalar,
         _OUT struct vector_st * out);
 
+/**
+ * Line segment
+ */
+struct segment_st{
+    struct vector_st s[2]; /** line segment extremities*/
+};
+
+/**
+ * Plane to project on for planar polygon.
+ */
+enum projection_plane_e {
+    pp_xy = 0, /** Projection plane is xy */ 
+    pp_yz = 1, /** Projection plane is yz */
+    pp_zx = 2, /** Projection plane is zx */
+};
+
+/**
+ * Position of a point relative to a segment.
+ */
+enum point_position_e {
+    pt_left, /** Point is on the left of the segment */
+    pt_right, /** Point is on the right of the segment */
+    pt_on /** Point is on the line supported by the segment */
+};
+
+/**
+ * Computes the position of a point relative to a segment.
+ * param point Point for which the position is to be computed.
+ * param segment Segment relative to which the point is to be positioned.
+ * param projection_plane Projection plane to use.
+ * return The point position.
+ */
+enum point_position_e vector_position_relative_to_segment(
+        _IN struct vector_st * point, 
+        _IN struct segment_st * segment,
+        _IN enum projection_plane_e projection_plane);
+
 #endif
