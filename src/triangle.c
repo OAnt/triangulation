@@ -1,5 +1,4 @@
 #include <private/triangle.h>
-#include <private/common.h>
 
 // computes the position of all 3 points composing the triangle 
 // relative to the plane
@@ -47,4 +46,12 @@ enum triangle_classification_e triangle_plane_classify(
     struct vector_st clses = _triangle_plane_classify(tr, pl);
     return _vector_classify(&clses);
 }
+
+enum error_code_e triangle_compute_circumcircle_center(
+        struct triangle_st * tr,
+        struct vector_st * cc_center)
+{
+    return ec_no_error;
+}
+
 
