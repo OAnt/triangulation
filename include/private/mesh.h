@@ -64,4 +64,27 @@ enum error_code_e mesh_add_vertex(
         _IN struct vector_st v,
         _OUT size_t * index);
 
+/**
+ * Position of a point relative to a polygon
+ */
+enum point_polygon_position_e {
+    ppol_in, /** point is inside the polygon */
+    ppol_out /** point is outside of polygon */
+};
+
+/**
+ * Computes the position of a point relative to a polygon
+ * param polygon The polygon is defined by a list of vertices indexes
+ * [polygon[i], polygon[i+1]] is an edge, the polygon is closed, its
+ * last edge is [polygon[n_vertices - 1], polygon[0]]
+ * param n_vertices number of vertices in the polygon
+ * param vertices coordinates of the polygon vertices
+ * param point coordinates of the point to classify
+ */
+enum point_polygon_position_e polygon_point_position(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _IN struct vector_st * point);
+
 #endif
