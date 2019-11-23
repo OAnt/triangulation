@@ -42,6 +42,16 @@ START_TEST(vector_test_scaling)
     ck_assert_double_eq(a.v[2], -6.8);
 }
 
+START_TEST(vector_test_addition)
+{
+    struct vector_st a = {2, 3, 4.2};
+    vector_addition(&a, &a, &a);
+    ck_assert_double_eq(a.v[0], 4.0);
+    ck_assert_double_eq(a.v[1], 6.0);
+    ck_assert_double_eq(a.v[2], 8.4);
+}
+END_TEST
+
 Suite * mk_vector_suite(void){
     Suite * s = suite_create("Vector");
     TCase * tc = tcase_create(
@@ -50,6 +60,7 @@ Suite * mk_vector_suite(void){
     tcase_add_test(tc, vector_test_colinear_dot_product);
     tcase_add_test(tc, vector_test_subtraction);
     tcase_add_test(tc, vector_test_scaling);
+    tcase_add_test(tc, vector_test_addition);
     suite_add_tcase(s, tc);
     return s;
 }

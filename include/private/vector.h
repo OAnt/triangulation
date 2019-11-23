@@ -11,6 +11,8 @@ struct vector_st {
 };
 
 /** Computes the subtraction in_a - in_b.
+ * Works even if out points to either in_a or in_b,
+ * or both.
  * param in_a Vector to subtract b to.
  * param in_b Vector subtracted from a.
  * param out Vector a - b
@@ -21,10 +23,22 @@ void vector_subtraction(
         _IN struct vector_st * in_b,
         _OUT struct vector_st * out);
 
-/** 
- * Computes the dot product between in_a and in_b.
+/**
+ * Sums in_a and in_b into out.
  * Works even if out points to either in_a or in_b,
  * or both.
+ * param in_a Vector to add to in_b
+ * param in_b Vector to add to in_&
+ * param out Addition result
+ * return nothing, does not fail.
+ */
+void vector_addition(
+        _IN struct vector_st * in_a,
+        _IN struct vector_st * in_b,
+        _OUT struct vector_st * out);
+
+/** 
+ * Computes the dot product between in_a and in_b.
  * param in_a Vector.
  * param in_b Vector.
  * return The dot product between in_a and in_b
