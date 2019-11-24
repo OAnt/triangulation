@@ -77,6 +77,12 @@ enum point_polygon_position_e {
  * param polygon The polygon is defined by a list of vertices indexes
  * [polygon[i], polygon[i+1]] is an edge, the polygon is closed, its
  * last edge is [polygon[n_vertices - 1], polygon[0]]
+ * The test will work on 2D polygon with a point in the same plane.
+ * In case of a point outside not lying on the polygon plane,
+ * the test is not guaranteed to work if it is too far. The
+ * Test works by projecting the plane and point on the best 
+ * xy, yz or zx plane and using a winding number check on the projected
+ * point in the projected polygon.
  * param n_vertices number of vertices in the polygon
  * param vertices coordinates of the polygon vertices
  * param point coordinates of the point to classify
