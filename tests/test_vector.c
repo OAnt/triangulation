@@ -98,6 +98,22 @@ START_TEST(vector_test_cross_product)
 }
 END_TEST
 
+START_TEST(test_axis_system)
+{
+    int32_t x = 3;
+    int32_t y = 3;
+    get_axis_system_from_projection_plane(pp_xy, &x, &y);
+    ck_assert_int_eq(x, 0);
+    ck_assert_int_eq(y, 1);
+    get_axis_system_from_projection_plane(pp_yz, &x, &y);
+    ck_assert_int_eq(x, 1);
+    ck_assert_int_eq(y, 2);
+    get_axis_system_from_projection_plane(pp_zx, &x, &y);
+    ck_assert_int_eq(x, 0);
+    ck_assert_int_eq(y, 2);
+}
+END_TEST
+
 Suite * mk_vector_suite(void){
     Suite * s = suite_create("Vector");
     TCase * tc = tcase_create(
@@ -109,6 +125,7 @@ Suite * mk_vector_suite(void){
     tcase_add_test(tc, vector_test_addition);
     tcase_add_test(tc, vector_test_position);
     tcase_add_test(tc, vector_test_cross_product);
+    tcase_add_test(tc, test_axis_system);
     suite_add_tcase(s, tc);
     return s;
 }
