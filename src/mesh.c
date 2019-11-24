@@ -188,6 +188,9 @@ enum point_polygon_position_e polygon_point_position(
     // three vertices
     if(n_vertices <= 2) return ppol_out;
     bool degenerate_polygon = true;
+    // Computing the normal iterating over
+    // groups of three points until we
+    // find a group where they are not aligned
     struct vector_st normal;
     for(size_t i = 0; i < n_vertices; i++){
         size_t next = (i + 1) % n_vertices;
@@ -203,7 +206,14 @@ enum point_polygon_position_e polygon_point_position(
             break;
         }
     }
+    // All the points are aligned, this is a degenerate polygon (a line)
     if(degenerate_polygon) return ppol_out;
+    // Finding which of xy, yz ans zx is the best plane
+    // to project the polygon on. The higher the absolute
+    // dot product of the normal and unit vector is the 
+    // better the plane fits. I think it is impossible
+    // to find a plane that is orthogonal to all three
+    // xy, yz ans zx planes
     enum projection_plane_e pp = pp_xy;
     double x_dot = fabs(vector_dot_product(&normal, &x));
     double y_dot = fabs(vector_dot_product(&normal, &y));
