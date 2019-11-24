@@ -39,14 +39,36 @@ void vector_scale_by_scalar(
     out->v[2] = in_a->v[2] * scalar;
 }
 
+void get_axis_system_from_projection_plane(
+        enum projection_plane_e pp,
+        int32_t * x,
+        int32_t * y)
+{
+    switch(pp){
+    case pp_xy:
+        *x = 0;
+        *y = 1;
+        break;
+    case pp_yz:
+        *x = 1;
+        *y = 2;
+        break;
+    case pp_zx:
+        *x = 0;
+        *y = 2;
+        break;
+    }
+}
+
 enum point_position_e vector_position_relative_to_segment(
         _IN struct vector_st * point, 
         _IN struct segment_st * segment,
-        _IN enum projection_plane_e d0)
+        _IN enum projection_plane_e pp)
 {
     /* pp is the first dimension the next one is pp + 1, 
      * %3 is to convert (Z + 1) = 4 into 1 = X*/
-    int d1 = (d0 + 1) % 3;
+    int32_t d0, d1;
+    get_axis_system_from_projection_plane(pp, &d0, &d1);
     double position = (segment->s[1].v[d0] - segment->s[0].v[d0]) *
         (point->v[d1] - segment->s[0].v[d1]) -
         (point->v[d0] - segment->s[0].v[d0]) *

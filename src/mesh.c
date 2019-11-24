@@ -1,5 +1,5 @@
+#include <math.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <private/common.h>
 #include <private/vector.h>
 #include <private/array.h>
@@ -85,9 +85,9 @@ enum error_code_e mesh_add_vertex(
  * horizontal axis and an edge.
  */
 enum intersection_type_e{
-    it_upward, /** Edge is intersected and going upward. */
-    it_downward, /** Edge is intersected and going downward. */
-    it_no, /** Edge is not intersected. */
+    it_upward = 0, /** Edge is intersected and going upward. */
+    it_downward = 1, /** Edge is intersected and going downward. */
+    it_no = 2, /** Edge is not intersected. */
 };
 
 /** 
@@ -146,7 +146,8 @@ void winding_number_modify(
 {
     // determines what is the vertical axis 
     // for a given projection plane
-    int32_t y = (pp + 1) % 3;
+    int32_t x, y;
+    get_axis_system_from_projection_plane(pp, &x, &y);
     // determines if there is an intersection and what kind
     // of intersection it is
     enum intersection_type_e it = edge_determine_intersection_type(
@@ -162,7 +163,19 @@ void winding_number_modify(
     }else if(it == it_downward && point_is_right_of(point, seg, pp)){
         (*winding_number)--;
     }
+    /*printf("%d, %d, %d -> [%f, %f], [[%f, %f], [%f, %f]], %d, %d, %d -> %d\n",*/
+            /*x, y, pp,*/
+            /*point->v[x], point->v[y],*/
+            /*seg->s[0].v[x], seg->s[0].v[y],*/
+            /*seg->s[1].v[x], seg->s[1].v[y], it,*/
+            /*point_is_left_of(point, seg, pp),*/
+            /*point_is_right_of(point, seg, pp),*/
+            /**winding_number);*/
 }
+
+static struct vector_st x = {1.0, 0.0, 0.0};
+static struct vector_st y = {0.0, 1.0, 0.0};
+static struct vector_st z = {0.0, 0.0, 1.0};
 
 enum point_polygon_position_e polygon_point_position(
         _IN size_t * polygon,
@@ -170,8 +183,46 @@ enum point_polygon_position_e polygon_point_position(
         _IN struct vector_st * vertices,
         _IN struct vector_st * point)
 {
-    int32_t winding_number = 0;
+    // this functions assumes the polygon is plane
+    // it computes its normal by taking the first
+    // three vertices
+    if(n_vertices <= 2) return ppol_out;
+    bool degenerate_polygon = true;
+    struct vector_st normal;
+    for(size_t i = 0; i < n_vertices; i++){
+        size_t next = (i + 1) % n_vertices;
+        size_t next_over = (i + 2) % n_vertices;
+        struct vector_st edge_a, edge_b;
+        vector_subtraction(&vertices[next], &vertices[i], &edge_a);
+        vector_subtraction(&vertices[next_over], &vertices[i], &edge_b);
+        vector_cross_product(&edge_a, &edge_b, &normal);
+        double sq_norm = vector_dot_product(&normal, &normal);
+        // found a normal with non zero norm, non collinear edges
+        if(sq_norm > EPSILON) {
+            degenerate_polygon = false;
+            break;
+        }
+    }
+    if(degenerate_polygon) return ppol_out;
     enum projection_plane_e pp = pp_xy;
+    double x_dot = fabs(vector_dot_product(&normal, &x));
+    double y_dot = fabs(vector_dot_product(&normal, &y));
+    double z_dot = fabs(vector_dot_product(&normal, &z));
+    if(x_dot > y_dot){
+        if(z_dot > x_dot){
+            pp = pp_xy;
+        }else{
+            pp = pp_yz;
+        }
+    }else{
+        if(z_dot > y_dot){
+            pp = pp_xy;
+        }else{
+            pp = pp_zx;
+        }
+    }
+    /*printf("%f, %f, %f, %d\n", x_dot, y_dot, z_dot, pp);*/
+    int32_t winding_number = 0;
     for(size_t i = 0; i < n_vertices; i++){
         struct segment_st seg = {
             vertices[i], vertices[(i+1) % n_vertices]};

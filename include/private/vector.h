@@ -1,6 +1,7 @@
 #ifndef GEOMETRY_VECTOR_H
 #define GEOMETRY_VECTOR_H
 
+#include <stdint.h>
 #include <private/common.h>
 
 /**
@@ -108,5 +109,17 @@ void vector_cross_product(
         _IN struct vector_st * in_a,
         _IN struct vector_st * in_b,
         _OUT struct vector_st * out);
+
+/** Determines the axis system for a given projection plane.
+ * param pp Desired projection plane.
+ * param x Storage for the index of the first axis in the new system.
+ * param y Storage for the index of the second axis in the new
+ * system.
+ * return nothing
+ */
+void get_axis_system_from_projection_plane(
+        _IN enum projection_plane_e pp,
+        _IN int32_t * x,
+        _OUT int32_t * y);
 
 #endif

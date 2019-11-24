@@ -68,6 +68,21 @@ START_TEST(test_point_in_polygon)
 }
 END_TEST
 
+START_TEST(test_point_in_non_convex_polygon)
+{
+    size_t polygon[] = {0, 1, 2, 3, 4, 5};
+    struct vector_st vertices[] = {
+        {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},
+        {1.5, 0.0, 0.9}, {2.0, 0.0, 0.0},
+        {2.5, 0.0, 1.0}, {0.0, 0.0, 1.0}
+    };
+    struct vector_st in_point = {0.5, 0.0, 0.5};
+    struct vector_st out_point = {3.5, 0.0, 0.5};
+    ck_assert(polygon_point_position(polygon, 6, vertices, &in_point) == ppol_in);
+    ck_assert(polygon_point_position(polygon, 6, vertices, &out_point) == ppol_out);
+}
+END_TEST
+
 Suite * mk_mesh_suite(void){
     Suite * s = suite_create("Mesh");
     TCase * tc = tcase_create(
@@ -76,6 +91,7 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tc, test_mesh_add_face_fails);
     tcase_add_test(tc, test_stl_export_stlb);
     tcase_add_test(tc, test_point_in_polygon);
+    tcase_add_test(tc, test_point_in_non_convex_polygon);
     suite_add_tcase(s, tc);
     return s;
 }
