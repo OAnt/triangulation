@@ -67,6 +67,37 @@ START_TEST(vector_test_position)
 }
 END_TEST
 
+START_TEST(vector_test_cross_product)
+{
+    struct vector_st x = {1.0, 0.0, 0.0};
+    struct vector_st y = {0.0, 1.0, 0.0};
+    struct vector_st z = {0.0, 0.0, 1.0};
+    struct vector_st _x = {-1.0, 0.0, 0.0};
+    struct vector_st _y = {0.0, -1.0, 0.0};
+    struct vector_st _z = {0.0, 0.0, -1.0};
+    struct vector_st zero = {0.0, 0.0, 0.0};
+    struct vector_st tmp = {0.0, 0.0, 0.0};
+    vector_cross_product(&x, &y, &tmp);
+    ck_assert_mem_eq(&tmp, &z, sizeof(struct vector_st));
+    vector_cross_product(&y, &z, &tmp);
+    ck_assert_mem_eq(&tmp, &x, sizeof(struct vector_st));
+    vector_cross_product(&z, &x, &tmp);
+    ck_assert_mem_eq(&tmp, &y, sizeof(struct vector_st));
+    vector_cross_product(&x, &x, &tmp);
+    ck_assert_mem_eq(&tmp, &zero, sizeof(struct vector_st));
+    vector_cross_product(&y, &y, &tmp);
+    ck_assert_mem_eq(&tmp, &zero, sizeof(struct vector_st));
+    vector_cross_product(&z, &z, &tmp);
+    ck_assert_mem_eq(&tmp, &zero, sizeof(struct vector_st));
+    vector_cross_product(&y, &x, &tmp);
+    ck_assert_mem_eq(&tmp, &_z, sizeof(struct vector_st));
+    vector_cross_product(&z, &y, &tmp);
+    ck_assert_mem_eq(&tmp, &_x, sizeof(struct vector_st));
+    vector_cross_product(&x, &z, &tmp);
+    ck_assert_mem_eq(&tmp, &_y, sizeof(struct vector_st));
+}
+END_TEST
+
 Suite * mk_vector_suite(void){
     Suite * s = suite_create("Vector");
     TCase * tc = tcase_create(
@@ -77,6 +108,7 @@ Suite * mk_vector_suite(void){
     tcase_add_test(tc, vector_test_scaling);
     tcase_add_test(tc, vector_test_addition);
     tcase_add_test(tc, vector_test_position);
+    tcase_add_test(tc, vector_test_cross_product);
     suite_add_tcase(s, tc);
     return s;
 }

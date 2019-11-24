@@ -60,3 +60,15 @@ enum point_position_e vector_position_relative_to_segment(
     }
 }
 
+void vector_cross_product(
+        _IN struct vector_st * in_a,
+        _IN struct vector_st * in_b,
+        _OUT struct vector_st * out)
+{
+    struct vector_st tmp;
+    tmp.v[0] = in_a->v[1] * in_b->v[2] - in_a->v[2] * in_b->v[1];
+    tmp.v[1] = in_a->v[2] * in_b->v[0] - in_a->v[0] * in_b->v[2];
+    tmp.v[2] = in_a->v[0] * in_b->v[1] - in_a->v[1] * in_b->v[0];
+    (*out) = tmp;
+}
+

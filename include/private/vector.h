@@ -97,4 +97,16 @@ enum point_position_e vector_position_relative_to_segment(
         _IN struct segment_st * segment,
         _IN enum projection_plane_e projection_plane);
 
+/**
+ * Computes the cross product between to vectors.
+ * param in_a First member of the cross product.
+ * param in_b Second member of the cross product.
+ * param out Result of the cross product.
+ * return Nothing.
+ */
+void vector_cross_product(
+        _IN struct vector_st * in_a,
+        _IN struct vector_st * in_b,
+        _OUT struct vector_st * out);
+
 #endif
