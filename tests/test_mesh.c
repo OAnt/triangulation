@@ -55,6 +55,19 @@ START_TEST(test_stl_export_stlb)
 }
 END_TEST
 
+START_TEST(test_point_in_polygon)
+{
+    size_t polygon[] = {0, 1, 2, 3};
+    struct vector_st vertices[] = {
+        {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
+        {1.0, 1.0, 0.0}, {1.0, 0.0, 0.0}};
+    struct vector_st in_point = {0.5, 0.5, 0.0};
+    struct vector_st out_point = {1.5, 0.5, 0.0};
+    ck_assert(polygon_point_position(polygon, 4, vertices, &in_point) == ppol_in);
+    ck_assert(polygon_point_position(polygon, 4, vertices, &out_point) == ppol_out);
+}
+END_TEST
+
 Suite * mk_mesh_suite(void){
     Suite * s = suite_create("Mesh");
     TCase * tc = tcase_create(
@@ -62,6 +75,7 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tc, test_mesh_add_features);
     tcase_add_test(tc, test_mesh_add_face_fails);
     tcase_add_test(tc, test_stl_export_stlb);
+    tcase_add_test(tc, test_point_in_polygon);
     suite_add_tcase(s, tc);
     return s;
 }

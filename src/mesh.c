@@ -77,3 +77,13 @@ enum error_code_e mesh_add_vertex(
     return ec_no_error;
 }
 
+enum point_polygon_position_e polygon_point_position(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _IN struct vector_st * point)
+{
+
+    return ppol_in;
+}
+
