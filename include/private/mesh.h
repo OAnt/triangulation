@@ -82,7 +82,8 @@ enum point_polygon_position_e {
  * the test is not guaranteed to work if it is too far. The
  * Test works by projecting the plane and point on the best 
  * xy, yz or zx plane and using a winding number check on the projected
- * point in the projected polygon.
+ * point in the projected polygon. The idea is to be resilient 
+ * to slight misalignment in various points.
  * param n_vertices number of vertices in the polygon
  * param vertices coordinates of the polygon vertices
  * param point coordinates of the point to classify

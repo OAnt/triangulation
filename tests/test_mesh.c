@@ -59,8 +59,8 @@ START_TEST(test_point_in_polygon)
 {
     size_t polygon[] = {0, 1, 2, 3};
     struct vector_st vertices[] = {
-        {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0},
-        {1.0, 1.0, 0.0}, {1.0, 0.0, 0.0}};
+        {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},
+        {1.0, 1.0, 0.0}, {0.0, 1.0, 0.0}};
     struct vector_st in_point = {0.5, 0.5, 0.0};
     struct vector_st out_point = {1.5, 0.5, 0.0};
     ck_assert(polygon_point_position(polygon, 4, vertices, &in_point) == ppol_in);
