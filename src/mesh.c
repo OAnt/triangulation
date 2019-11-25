@@ -5,6 +5,8 @@
 #include <private/array.h>
 #include <private/mesh.h>
 
+#define INVALID_INDEX (size_t)-1
+
 enum error_code_e mesh_cleanup(
         struct mesh_st * mesh)
 {
@@ -32,7 +34,12 @@ enum error_code_e mesh_init(
         goto fail_no_faces;
     if(array_new(struct vertex_st, 0, &mesh->vertices) != ec_no_error)
         goto fail_no_vec;
+    if(array_new(struct face_st, 0, &mesh->neighbors) != ec_no_error)
+        goto fail_no_neighbors;
     return ec_no_error;
+    // Faces and vertices were allocated
+fail_no_neighbors:
+    array_delete(&mesh->vertices);
     // Only the faces were allocated
 fail_no_vec:
     array_delete(&mesh->faces);
@@ -54,12 +61,17 @@ enum error_code_e mesh_add_face(
     for(size_t i = 0; i < FACE_SIZE; i++){
         if(face.f[i] >= n_vertices) return ec_out_of_bound_error;
     }
-    // Resizing the array, now it can holds the correct number of
+    // Resizing both the array, now they can hold the correct number of
     // features
+    if(array_resize(&mesh->faces, n_faces + 1) != ec_no_error)
+        return ec_memory_error;
     if(array_resize(&mesh->faces, n_faces + 1) != ec_no_error)
         return ec_memory_error;
     // appending the face and returns its index
     mesh->faces[n_faces] = face;
+    for(size_t i = 0; i < FACE_SIZE; i++){
+        mesh->vertices[i].face = n_faces;
+    }
     if(index) *index = n_faces;
     return ec_no_error;
 }
@@ -76,6 +88,7 @@ enum error_code_e mesh_add_vertex(
         return ec_memory_error;
     // appending the vertex and returns its index
     mesh->vertices[n_vertices].point = v;
+    mesh->vertices[n_vertices].face = INVALID_INDEX;
     if(index) *index = n_vertices;
     return ec_no_error;
 }
