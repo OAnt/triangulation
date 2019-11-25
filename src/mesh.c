@@ -36,7 +36,13 @@ enum error_code_e mesh_init(
         goto fail_no_vec;
     if(array_new(struct face_st, 0, &mesh->neighbors) != ec_no_error)
         goto fail_no_neighbors;
+    if(array_new(struct vertex_adjacent_face_st,
+                0, &mesh->vertex_adjacent_faces) != ec_no_error)
+        goto fail_no_adj;
     return ec_no_error;
+    // Faces, vertices and neighbors were allocated
+fail_no_adj:
+    array_delete(&mesh->vertex_adjacent_faces);
     // Faces and vertices were allocated
 fail_no_neighbors:
     array_delete(&mesh->vertices);
@@ -46,6 +52,27 @@ fail_no_vec:
     // Nothing was allocated yet
 fail_no_faces:
     return ec_memory_error;
+}
+
+enum error_code_e mesh_add_adjacent_face(
+        struct mesh_st * mesh,
+        size_t face_index,
+        size_t vertex_offset)
+{
+    size_t n_adj = array_length(mesh->vertex_adjacent_faces);
+    enum error_code_e err = array_resize(
+            &mesh->vertex_adjacent_faces, n_adj + 1);
+    if(err != ec_no_error) return err;
+    size_t vertex_index = mesh->faces[face_index].f[vertex_offset];
+    size_t opposite_vertex_index =
+         mesh->faces[face_index].f[(vertex_offset + 1) % FACE_SIZE];
+    mesh->vertex_adjacent_faces[n_adj].face = face_index;
+    mesh->vertex_adjacent_faces[n_adj].opposite_vertex = 
+        opposite_vertex_index;
+    mesh->vertex_adjacent_faces[n_adj].next_adjacent_faces = 
+        mesh->vertices[vertex_index].adjacent_faces;
+    mesh->vertices[vertex_index].adjacent_faces = n_adj;
+    return ec_no_error;
 }
 
 enum error_code_e mesh_add_face(
@@ -70,7 +97,9 @@ enum error_code_e mesh_add_face(
     // appending the face and returns its index
     mesh->faces[n_faces] = face;
     for(size_t i = 0; i < FACE_SIZE; i++){
-        mesh->vertices[i].face = n_faces;
+        enum error_code_e err = mesh_add_adjacent_face(
+                mesh, n_faces, i);
+        if(err != ec_no_error) return err;
     }
     if(index) *index = n_faces;
     return ec_no_error;
@@ -88,7 +117,7 @@ enum error_code_e mesh_add_vertex(
         return ec_memory_error;
     // appending the vertex and returns its index
     mesh->vertices[n_vertices].point = v;
-    mesh->vertices[n_vertices].face = INVALID_INDEX;
+    mesh->vertices[n_vertices].adjacent_faces = INVALID_INDEX;
     if(index) *index = n_vertices;
     return ec_no_error;
 }

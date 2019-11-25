@@ -21,7 +21,17 @@ struct face_st {
  */
 struct vertex_st {
     struct vector_st point; /** Supporting point. */
-    size_t face; /** Face the vertex belongs to. */
+    size_t adjacent_faces; /** Face the vertex belongs to. */
+};
+
+/**
+ * Structure representing a member of a list of faces adjacent to
+ * a vertex.
+ */
+struct vertex_adjacent_face_st{
+    size_t face; /** Face adjacent to the vertex. */
+    size_t opposite_vertex; /** Second vertex of the edge. */
+    size_t next_adjacent_faces; /** Index of the next in list. */
 };
 
 /**
@@ -32,6 +42,8 @@ struct mesh_st {
     struct vertex_st * vertices; /** vertices of the mesh */
     struct face_st * neighbors; /** neighboring faces for a given
                                   face index */
+    /** Lists of faces neighboring vertices */
+    struct vertex_adjacent_face_st * vertex_adjacent_faces; 
 };
 
 /**
