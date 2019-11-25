@@ -39,7 +39,7 @@ enum error_code_e _mesh_export_stlb_face(
     struct face_st face = mesh->faces[face_index];
     for(int32_t i = 0; i < FACE_SIZE; i++){
         size_t v_index = face.f[i];
-        if(vector_write(&mesh->vertices[v_index], file) != 1)
+        if(vector_write(&mesh->vertices[v_index].point, file) != 1)
             return ec_io_error;
     }
     // Writing the last 16 bits

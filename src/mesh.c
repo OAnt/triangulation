@@ -30,7 +30,7 @@ enum error_code_e mesh_init(
     // This assumes that array_new does the same.
     if(array_new(struct face_st, 0, &mesh->faces) != ec_no_error)
         goto fail_no_faces;
-    if(array_new(struct vector_st, 0, &mesh->vertices) != ec_no_error)
+    if(array_new(struct vertex_st, 0, &mesh->vertices) != ec_no_error)
         goto fail_no_vec;
     return ec_no_error;
     // Only the faces were allocated
@@ -75,7 +75,7 @@ enum error_code_e mesh_add_vertex(
     if(array_resize(&mesh->vertices, n_vertices + 1) != ec_no_error)
         return ec_memory_error;
     // appending the vertex and returns its index
-    mesh->vertices[n_vertices] = v;
+    mesh->vertices[n_vertices].point = v;
     if(index) *index = n_vertices;
     return ec_no_error;
 }

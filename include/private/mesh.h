@@ -15,12 +15,23 @@ struct face_st {
     size_t f[FACE_SIZE];/** vertices composing the face. */
 };
 
+/** 
+ * Structure representing a vertex. It is defined and one
+ * of the face it belongs to.
+ */
+struct vertex_st {
+    struct vector_st point; /** Supporting point. */
+    size_t face; /** Face the vertex belongs to. */
+};
+
 /**
  * Structure representing a 3D mesh.
  */
 struct mesh_st {
     struct face_st * faces; /** faces of the mesh */
-    struct vector_st * vertices; /** vertices of the mesh */
+    struct vertex_st * vertices; /** vertices of the mesh */
+    struct face_st * neighbors; /** neighboring faces for a given
+                                  face index */
 };
 
 /**
