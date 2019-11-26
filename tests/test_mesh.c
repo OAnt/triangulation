@@ -1,5 +1,6 @@
 #include <check.h>
 #include <private/mesh.h>
+#include <private/array.h>
 
 struct vector_st vertices[] = {
     {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
@@ -35,6 +36,7 @@ START_TEST(test_mesh_add_face_fails){
         ck_assert(index == i);
     }
     ck_assert(mesh_add_face(&mesh, face, &index) == ec_no_error);
+    ck_assert(index == 0);
     struct vector_st another_vertex = {1.0, 1.0, 1.0};
     ck_assert(mesh_add_vertex(
                 &mesh, another_vertex, &index) == ec_no_error);
@@ -44,9 +46,16 @@ START_TEST(test_mesh_add_face_fails){
     struct face_st another_face = {1, 3, 2};
     ck_assert(mesh_add_face(
                 &mesh, another_face, &index) == ec_no_error);
+    ck_assert(index == 1);
     struct face_st yet_another_face = {1, 4, 2};
     ck_assert(mesh_add_face(
                 &mesh, yet_another_face, &index) == ec_topology_error);
+    struct face_st still_another_face = {0, 3, 2};
+    ck_assert(mesh_add_face(
+                &mesh, still_another_face, &index) == ec_no_error);
+    ck_assert(index == 2);
+    ck_assert(array_length(mesh.faces) == 3);
+    ck_assert(array_length(mesh.neighbors) == 3);
     ck_assert(mesh_cleanup(&mesh) == ec_no_error);
 }
 END_TEST
