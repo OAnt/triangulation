@@ -1,3 +1,4 @@
+#include "public/common.h"
 #include <math.h>
 #include <stdbool.h>
 #include <private/common.h>
@@ -80,8 +81,51 @@ enum error_code_e mesh_face_add_adajcent_face(
         size_t face_index,
         size_t vertex_offset)
 {
+    size_t vertex_index = mesh->faces[face_index].f[vertex_offset];
+    // Each faces (this one and the adjacent one) are
+    // turning in counter clockwise order. Edge X to Y
+    // was added to X's adjacent linked list. Now This face is
+    // adjacent to the previous one and as the to should be
+    // turning counter clockwise the X to Y edge will appear
+    // as Y to X. 
+    size_t opposite_vertex_offset = (vertex_offset + 2) % FACE_SIZE;
+    size_t opposite_vertex_index = 
+        mesh->faces[face_index].f[opposite_vertex_offset];
+    size_t next_adjacent_faces = 
+        mesh->vertices[vertex_index].adjacent_faces;
+    size_t neighbor_face = INVALID_INDEX;
+    while(next_adjacent_faces != INVALID_INDEX){
+        struct vertex_adjacent_face_st * vadj = 
+            mesh->vertex_adjacent_faces + next_adjacent_faces;
+        next_adjacent_faces = vadj->next_adjacent_faces;
+        if(vadj->opposite_vertex == opposite_vertex_index){
+            neighbor_face = vadj->face;
+        }
+    }
+    if(neighbor_face == INVALID_INDEX)
+        return ec_no_error;
+    mesh->neighbors[face_index].f[opposite_vertex_offset] = 
+        neighbor_face;
+    size_t neighbor_face_offset = INVALID_INDEX;
+    for(size_t i = 0; i < FACE_SIZE; i++){
+        if(mesh->faces[neighbor_face].f[i] == vertex_index){
+            neighbor_face_offset = i;
+        }
+    }
+    if(neighbor_face_offset == INVALID_INDEX)
+        return ec_no_error;
+    if(mesh->neighbors[neighbor_face].f[neighbor_face_offset] !=
+            INVALID_INDEX){
+        return ec_topology_error;
+    }else{
+        mesh->neighbors[neighbor_face].f[neighbor_face_offset] =
+            face_index;
+    }
     return ec_no_error;
 }
+
+struct face_st invalid_face = {
+    INVALID_INDEX, INVALID_INDEX, INVALID_INDEX};
 
 enum error_code_e mesh_add_face(
         struct mesh_st * mesh,
@@ -106,8 +150,12 @@ enum error_code_e mesh_add_face(
         goto fail_no_neighbors;
     // appending the face and returns its index
     mesh->faces[n_faces] = face;
+    mesh->neighbors[n_faces] = invalid_face;
     size_t n_adj = array_length(mesh->vertex_adjacent_faces);
     for(size_t i = 0; i < FACE_SIZE; i++){
+        err = mesh_face_add_adajcent_face(
+                mesh, n_faces, i);
+        if(err != ec_no_error) goto fail_no_adj;
         err = mesh_vertex_add_adjacent_face(
                 mesh, n_faces, i);
         if(err != ec_no_error) goto fail_no_adj;

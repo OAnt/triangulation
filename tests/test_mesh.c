@@ -28,6 +28,25 @@ START_TEST(test_mesh_add_face_fails){
     struct face_st face = {0, 1, 2};
     ck_assert(mesh_add_face(
                 &mesh, face, &index) == ec_out_of_bound_error);
+    for(size_t i = 0; i < FACE_SIZE; i++){
+        size_t index;
+        ck_assert(mesh_add_vertex(
+                    &mesh, vertices[i], &index) == ec_no_error);
+        ck_assert(index == i);
+    }
+    ck_assert(mesh_add_face(&mesh, face, &index) == ec_no_error);
+    struct vector_st another_vertex = {1.0, 1.0, 1.0};
+    ck_assert(mesh_add_vertex(
+                &mesh, another_vertex, &index) == ec_no_error);
+    struct vector_st yet_another_vertex = {-1.0, -1.0, -1.0};
+    ck_assert(mesh_add_vertex(
+                &mesh, yet_another_vertex, &index) == ec_no_error);
+    struct face_st another_face = {1, 3, 2};
+    ck_assert(mesh_add_face(
+                &mesh, another_face, &index) == ec_no_error);
+    struct face_st yet_another_face = {1, 4, 2};
+    ck_assert(mesh_add_face(
+                &mesh, yet_another_face, &index) == ec_topology_error);
     ck_assert(mesh_cleanup(&mesh) == ec_no_error);
 }
 END_TEST
@@ -45,10 +64,14 @@ START_TEST(test_stl_export_stlb)
     struct mesh_st mesh;
     ck_assert(mesh_init(&mesh) == ec_no_error);
     for(size_t i = 0; i < 8; i++){
-        mesh_add_vertex(&mesh, cube_vertices[i], NULL);
+        ck_assert(
+                mesh_add_vertex(&mesh, cube_vertices[i], NULL) ==
+                ec_no_error);
     }
     for(size_t i = 0; i < 12; i++){
-        mesh_add_face(&mesh, cube_faces[i], NULL);
+        ck_assert(
+                mesh_add_face(&mesh, cube_faces[i], NULL) ==
+                ec_no_error);
     }
     ck_assert(mesh_export_stlb(&mesh, "build/cube.stl") == ec_no_error);
     mesh_cleanup(&mesh);

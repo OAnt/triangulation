@@ -20,6 +20,7 @@ enum error_code_e {
     ec_memory_error, /** An allocation failed */
     ec_out_of_bound_error, /** An index was found to be out of the required range */
     ec_div_by_zero_error, /** A division by zero was attempted */
+    ec_topology_error, /** Adding face would create a non manifold mesh */
 };
 
 #endif
