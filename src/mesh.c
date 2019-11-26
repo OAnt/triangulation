@@ -94,6 +94,8 @@ enum error_code_e mesh_face_add_adajcent_face(
     size_t next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
     size_t neighbor_face = INVALID_INDEX;
+    // Iterating over the list of adjacent faces until
+    // we find the corresponding one
     while(next_adjacent_faces != INVALID_INDEX){
         struct vertex_adjacent_face_st * vadj = 
             mesh->vertex_adjacent_faces + next_adjacent_faces;
@@ -102,10 +104,14 @@ enum error_code_e mesh_face_add_adajcent_face(
             neighbor_face = vadj->face;
         }
     }
+    // No neighbors found, the face is 1-manifold, stop here
     if(neighbor_face == INVALID_INDEX)
         return ec_no_error;
+    // Neighbor found, setting it accordingly
     mesh->neighbors[face_index].f[opposite_vertex_offset] = 
         neighbor_face;
+    // Iterating over the neighbors vertices to find where
+    // is face_index in the list of neighboring faces
     size_t neighbor_face_offset = INVALID_INDEX;
     for(size_t i = 0; i < FACE_SIZE; i++){
         if(mesh->faces[neighbor_face].f[i] == vertex_index){
@@ -114,6 +120,9 @@ enum error_code_e mesh_face_add_adajcent_face(
     }
     if(neighbor_face_offset == INVALID_INDEX)
         return ec_no_error;
+    // Trying to add a neighbor to a face that already have one
+    // at the same place, this is creating a 3-manifold edge,
+    // this is not supported, preventing it
     if(mesh->neighbors[neighbor_face].f[neighbor_face_offset] !=
             INVALID_INDEX){
         return ec_topology_error;
