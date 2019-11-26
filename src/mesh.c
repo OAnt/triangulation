@@ -54,7 +54,7 @@ fail_no_faces:
     return ec_memory_error;
 }
 
-enum error_code_e mesh_add_adjacent_face(
+enum error_code_e mesh_vertex_add_adjacent_face(
         struct mesh_st * mesh,
         size_t face_index,
         size_t vertex_offset)
@@ -75,6 +75,14 @@ enum error_code_e mesh_add_adjacent_face(
     return ec_no_error;
 }
 
+enum error_code_e mesh_face_add_adajcent_face(
+        struct mesh_st * mesh,
+        size_t face_index,
+        size_t vertex_offset)
+{
+    return ec_no_error;
+}
+
 enum error_code_e mesh_add_face(
         struct mesh_st * mesh,
         struct face_st face,
@@ -90,19 +98,29 @@ enum error_code_e mesh_add_face(
     }
     // Resizing both the array, now they can hold the correct number of
     // features
-    if(array_resize(&mesh->faces, n_faces + 1) != ec_no_error)
-        return ec_memory_error;
-    if(array_resize(&mesh->faces, n_faces + 1) != ec_no_error)
-        return ec_memory_error;
+    enum error_code_e err;
+    if((err = array_resize(&mesh->faces, n_faces + 1)) != ec_no_error)
+        goto fail_no_face;
+    if((err = array_resize(&mesh->neighbors, n_faces + 1)) != 
+            ec_no_error)
+        goto fail_no_neighbors;
     // appending the face and returns its index
     mesh->faces[n_faces] = face;
+    size_t n_adj = array_length(mesh->vertex_adjacent_faces);
     for(size_t i = 0; i < FACE_SIZE; i++){
-        enum error_code_e err = mesh_add_adjacent_face(
+        err = mesh_vertex_add_adjacent_face(
                 mesh, n_faces, i);
-        if(err != ec_no_error) return err;
+        if(err != ec_no_error) goto fail_no_adj;
     }
     if(index) *index = n_faces;
     return ec_no_error;
+fail_no_adj:
+    array_resize(&mesh->vertex_adjacent_faces, n_adj);
+    array_resize(&mesh->neighbors, n_faces);
+fail_no_neighbors:
+    array_resize(&mesh->faces, n_faces);
+fail_no_face:
+    return err;
 }
 
 enum error_code_e mesh_add_vertex(
