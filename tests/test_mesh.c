@@ -58,6 +58,9 @@ struct face_st cube_faces[] = {
     {0, 1, 2}, {2, 3, 0}, {0, 5, 1}, {0, 4, 5},
     {2, 1, 5}, {5, 6, 2}, {3, 2, 7}, {2, 6, 7},
     {6, 5, 4}, {7, 6, 4}, {3, 4, 0}, {3, 7, 4}};
+struct face_st neighbors[] = {
+    {2, 4, 1}, {6, 10, 0}, {3, 4, 0}, {10, 8, 2}
+};
 
 START_TEST(test_stl_export_stlb)
 {
@@ -72,6 +75,11 @@ START_TEST(test_stl_export_stlb)
         ck_assert(
                 mesh_add_face(&mesh, cube_faces[i], NULL) ==
                 ec_no_error);
+    }
+    int s = sizeof(neighbors) / sizeof(struct face_st);
+    for(int i = 0; i < s; i++){
+        ck_assert_mem_eq(mesh.neighbors + i, neighbors + i,
+                sizeof(struct face_st));
     }
     ck_assert(mesh_export_stlb(&mesh, "build/cube.stl") == ec_no_error);
     mesh_cleanup(&mesh);
