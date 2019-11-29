@@ -56,21 +56,18 @@ fail_no_faces:
 }
 
 struct mesh_collector_st{
-    /** First element of the removed faces (linked) list */
-    size_t removed_faces;
-    size_t n_removed_faces; /** number of removed faces */
-    /** First element of the removed vertices (linked) list */
-    size_t removed_vertices;
-    size_t n_removed_vertices; /** number of removed vertices */
+    /** Index of the removed face */
+    size_t removed_face;
     /** First element of the removed adjacent faces (linked) list */
     size_t removed_adjacent_faces;
-    size_t n_removed_adjacent_faces; /** number of removed adjacent faces */
 };
 
 static struct mesh_collector_st empty_collector = {
-    INVALID_INDEX, 0, INVALID_INDEX, 0, INVALID_INDEX, 0};
+    INVALID_INDEX, INVALID_INDEX};
 
-void mesh_collector_init(struct mesh_collector_st * col){
+void mesh_collector_init(
+        struct mesh_collector_st * col)
+{
     *col = empty_collector;
 }
 
@@ -80,19 +77,27 @@ enum error_code_e mesh_vertex_add_adjacent_face(
         size_t vertex_offset,
         struct mesh_collector_st * col)
 {
-    size_t n_adj = array_length(mesh->vertex_adjacent_faces);
-    enum error_code_e err = array_resize(
-            &mesh->vertex_adjacent_faces, n_adj + 1);
-    if(err != ec_no_error) return err;
+    size_t adj_index;
+    // There something in the linked list, pop it
+    if(col && col->removed_adjacent_faces != INVALID_INDEX){
+        adj_index = col->removed_adjacent_faces;
+        col->removed_adjacent_faces = mesh->vertex_adjacent_faces[adj_index].next_adjacent_faces;
+    }else{
+        size_t n_adj = array_length(mesh->vertex_adjacent_faces);
+        enum error_code_e err = array_resize(
+                &mesh->vertex_adjacent_faces, n_adj + 1);
+        if(err != ec_no_error) return err;
+        adj_index = n_adj;
+    }
     size_t vertex_index = mesh->faces[face_index].f[vertex_offset];
     size_t opposite_vertex_index =
          mesh->faces[face_index].f[(vertex_offset + 1) % FACE_SIZE];
-    mesh->vertex_adjacent_faces[n_adj].face = face_index;
-    mesh->vertex_adjacent_faces[n_adj].opposite_vertex = 
+    mesh->vertex_adjacent_faces[adj_index].face = face_index;
+    mesh->vertex_adjacent_faces[adj_index].opposite_vertex = 
         opposite_vertex_index;
-    mesh->vertex_adjacent_faces[n_adj].next_adjacent_faces = 
+    mesh->vertex_adjacent_faces[adj_index].next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
-    mesh->vertices[vertex_index].adjacent_faces = n_adj;
+    mesh->vertices[vertex_index].adjacent_faces = adj_index;
     return ec_no_error;
 }
 
@@ -173,29 +178,40 @@ static inline enum error_code_e _mesh_add_face(
     // Resizing both the array, now they can hold the correct number of
     // features
     enum error_code_e err;
-    if((err = array_resize(&mesh->faces, n_faces + 1)) != ec_no_error)
-        goto fail_no_face;
-    if((err = array_resize(&mesh->neighbors, n_faces + 1)) != 
-            ec_no_error)
-        goto fail_no_neighbors;
+    size_t face_index;
+    // there is a collector and it contains a removed face, using it
+    if(col && col->removed_face != INVALID_INDEX){
+        face_index = col->removed_face;
+    }else{
+        if((err = array_resize(&mesh->faces, n_faces + 1)) != ec_no_error)
+            goto fail_no_face;
+        if((err = array_resize(&mesh->neighbors, n_faces + 1)) != 
+                ec_no_error)
+            goto fail_no_neighbors;
+        face_index = n_faces;
+    }
     // appending the face and returns its index
-    mesh->faces[n_faces] = face;
-    mesh->neighbors[n_faces] = invalid_face;
+    mesh->faces[face_index] = face;
+    mesh->neighbors[face_index] = invalid_face;
     size_t n_adj = array_length(mesh->vertex_adjacent_faces);
     for(size_t i = 0; i < FACE_SIZE; i++){
         err = mesh_face_add_adajcent_face(
-                mesh, n_faces, i);
+                mesh, face_index, i);
         if(err != ec_no_error) goto fail_no_adj;
         err = mesh_vertex_add_adjacent_face(
-                mesh, n_faces, i, col);
+                mesh, face_index, i, col);
         if(err != ec_no_error) goto fail_no_adj;
     }
-    if(index) *index = n_faces;
+    if(index) *index = face_index;
     return ec_no_error;
 fail_no_adj:
     array_resize(&mesh->vertex_adjacent_faces, n_adj);
+    // If something fails and face was not allocated
+    // (reused from collector) this does nothing
     array_resize(&mesh->neighbors, n_faces);
 fail_no_neighbors:
+    // If something fails and face was not allocated
+    // (reused from collector) this does nothing
     array_resize(&mesh->faces, n_faces);
 fail_no_face:
     return err;
@@ -265,7 +281,6 @@ void mesh_face_remove_from_vertex_adjacent_faces(
             // inserting the adjacent face to list of available ones
             vadj->next_adjacent_faces = col->removed_adjacent_faces;
             col->removed_adjacent_faces = next_adjacent_faces;
-            col->n_removed_adjacent_faces++;
             // resetting the values
             vadj->face = INVALID_INDEX;
             vadj->opposite_vertex = INVALID_INDEX;
@@ -294,14 +309,14 @@ void mesh_face_remove_from_vertex_adjacent_faces(
  * the removed items are added to those linked list
  * return nothing
  */
-void mesh_remove_face(
+struct mesh_collector_st mesh_remove_face(
         struct mesh_st * mesh,
-        size_t face_index,
-        struct mesh_collector_st * col)
+        size_t face_index)
 {
+    struct mesh_collector_st col = empty_collector;
     // checking if the face is already removed (also check if it
     // is out of bounds)
-    if(mesh_face_is_removed(mesh, face_index)) return;
+    if(mesh_face_is_removed(mesh, face_index)) return col;
     for(int32_t i = 0; i < FACE_SIZE; i++){
         // Removing face from its ith neighbors
         mesh_face_remove_from_neigbhors(
@@ -310,7 +325,7 @@ void mesh_remove_face(
         // Removing face from its ith vertex adjacent faces list
         mesh_face_remove_from_vertex_adjacent_faces(
                 mesh, face_index,
-                mesh->faces[face_index].f[i], col);
+                mesh->faces[face_index].f[i], &col);
     }
     // Removing the face's neighbors, no linked list needed,
     // neighbors index follows face index
@@ -319,9 +334,10 @@ void mesh_remove_face(
     // erasing the vertices + two INVALID_INDEX marks invalid face
     mesh->neighbors[face_index] = invalid_face;
     // Updating the linked list
-    mesh->neighbors[face_index].f[2] = col->removed_faces;
-    col->removed_faces = face_index;
-    col->n_removed_faces++;
+    mesh->neighbors[face_index].f[2] = col.removed_face;
+    mesh->faces[face_index].f[2] = col.removed_face;
+    col.removed_face = face_index;
+    return col;
 }
 
 enum error_code_e mesh_add_vertex(
