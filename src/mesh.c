@@ -1,6 +1,6 @@
-#include "public/common.h"
 #include <math.h>
 #include <stdbool.h>
+#include "public/common.h"
 #include <private/common.h>
 #include <private/vector.h>
 #include <private/array.h>
@@ -55,10 +55,30 @@ fail_no_faces:
     return ec_memory_error;
 }
 
+struct mesh_collector_st{
+    /** First element of the removed faces (linked) list */
+    size_t removed_faces;
+    size_t n_removed_faces; /** number of removed faces */
+    /** First element of the removed vertices (linked) list */
+    size_t removed_vertices;
+    size_t n_removed_vertices; /** number of removed vertices */
+    /** First element of the removed adjacent faces (linked) list */
+    size_t removed_adjacent_faces;
+    size_t n_removed_adjacent_faces; /** number of removed adjacent faces */
+};
+
+static struct mesh_collector_st empty_collector = {
+    INVALID_INDEX, 0, INVALID_INDEX, 0, INVALID_INDEX, 0};
+
+void mesh_collector_init(struct mesh_collector_st * col){
+    *col = empty_collector;
+}
+
 enum error_code_e mesh_vertex_add_adjacent_face(
         struct mesh_st * mesh,
         size_t face_index,
-        size_t vertex_offset)
+        size_t vertex_offset,
+        struct mesh_collector_st * col)
 {
     size_t n_adj = array_length(mesh->vertex_adjacent_faces);
     enum error_code_e err = array_resize(
@@ -136,10 +156,11 @@ enum error_code_e mesh_face_add_adajcent_face(
 struct face_st invalid_face = {
     INVALID_INDEX, INVALID_INDEX, INVALID_INDEX};
 
-enum error_code_e mesh_add_face(
+static inline enum error_code_e _mesh_add_face(
         struct mesh_st * mesh,
         struct face_st face,
-        size_t * index)
+        size_t * index,
+        struct mesh_collector_st * col)
 {
     // getting lengths of arrays until now
     size_t n_faces = array_length(mesh->faces);
@@ -166,7 +187,7 @@ enum error_code_e mesh_add_face(
                 mesh, n_faces, i);
         if(err != ec_no_error) goto fail_no_adj;
         err = mesh_vertex_add_adjacent_face(
-                mesh, n_faces, i);
+                mesh, n_faces, i, col);
         if(err != ec_no_error) goto fail_no_adj;
     }
     if(index) *index = n_faces;
@@ -178,6 +199,129 @@ fail_no_neighbors:
     array_resize(&mesh->faces, n_faces);
 fail_no_face:
     return err;
+}
+
+enum error_code_e mesh_add_face(
+        struct mesh_st * mesh,
+        struct face_st face,
+        size_t * index)
+{
+    return _mesh_add_face(mesh, face, index, NULL);
+}
+
+/**
+ * Tells if a given face has been removed
+ * param mesh Mesh the face is supposed to have been removed from.
+ * param face_index Index of the face to check.
+ * return True if the face was removed (or not present) false otherwise.
+ */
+bool mesh_face_is_removed(
+        const struct mesh_st * mesh,
+        size_t face_index)
+{
+    // A face is considered removed if is first two vertices
+    // are INVALID_INDEX, the last one is the index of the
+    // next removed face.
+    size_t n_faces = array_length(mesh->faces);
+    return face_index >= n_faces || (
+            mesh->faces[face_index].f[0] == INVALID_INDEX &&
+            mesh->faces[face_index].f[1] == INVALID_INDEX);
+}
+
+/**
+ * Convenience macro to determine is face can be used.
+ */
+#define mesh_face_is_valid(mesh, face_index) !mesh_face_is_removed(\
+        (mesh), (face_index))
+
+void mesh_face_remove_from_neigbhors(
+        mesh_st * mesh,
+        size_t face_index,
+        size_t neighbor_index)
+{
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        if(mesh->neighbors[neighbor_index].f[i] == face_index){
+            mesh->neighbors[neighbor_index].f[i] = INVALID_INDEX;
+        }
+    }
+}
+
+void mesh_face_remove_from_vertex_adjacent_faces(
+        mesh_st * mesh,
+        size_t face_index,
+        size_t vertex_index,
+        struct mesh_collector_st * col)
+{
+    size_t next_adjacent_faces = 
+        mesh->vertices[vertex_index].adjacent_faces;
+    size_t * previous_adj_index = 
+        &mesh->vertices[vertex_index].adjacent_faces;
+    while(next_adjacent_faces != INVALID_INDEX){
+        struct vertex_adjacent_face_st * vadj = 
+            mesh->vertex_adjacent_faces + next_adjacent_faces;
+        // this list element is the one to be removed, bypassing it
+        if(vadj->face == face_index){
+            *previous_adj_index = vadj->next_adjacent_faces;
+            // inserting the adjacent face to list of available ones
+            vadj->next_adjacent_faces = col->removed_adjacent_faces;
+            col->removed_adjacent_faces = next_adjacent_faces;
+            col->n_removed_adjacent_faces++;
+            // resetting the values
+            vadj->face = INVALID_INDEX;
+            vadj->opposite_vertex = INVALID_INDEX;
+            break;
+        }
+        // next element in list
+        next_adjacent_faces = vadj->next_adjacent_faces;
+        // keeping link to previous link element, to replace
+        // its next element if it happens to be the one to remove
+        previous_adj_index = &vadj->next_adjacent_faces;
+    }
+    
+}
+
+/**
+ * Removes a face from a mesh. This does not free any memory,
+ * instead, faces are marked as available for reuse.
+ * This is not even of the private api. The reason is,
+ * I want the faces and vertices to be contiguous.
+ * This function breaks this behavior. A face
+ * should not be removed unless it is replaced in the
+ * same public function call.
+ * param mesh Mesh from which a face will be removed.
+ * param face_index Index of the face to remove.
+ * param col Contains the heads of the various linked list of removed objects
+ * the removed items are added to those linked list
+ * return nothing
+ */
+void mesh_remove_face(
+        struct mesh_st * mesh,
+        size_t face_index,
+        struct mesh_collector_st * col)
+{
+    // checking if the face is already removed (also check if it
+    // is out of bounds)
+    if(mesh_face_is_removed(mesh, face_index)) return;
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        // Removing face from its ith neighbors
+        mesh_face_remove_from_neigbhors(
+                mesh, face_index, 
+                mesh->neighbors[face_index].f[i]);
+        // Removing face from its ith vertex adjacent faces list
+        mesh_face_remove_from_vertex_adjacent_faces(
+                mesh, face_index,
+                mesh->faces[face_index].f[i], col);
+    }
+    // Removing the face's neighbors, no linked list needed,
+    // neighbors index follows face index
+    mesh->neighbors[face_index] = invalid_face;
+    // Removing the face (marking it as re-usable)
+    // erasing the vertices + two INVALID_INDEX marks invalid face
+    mesh->neighbors[face_index] = invalid_face;
+    // Updating the linked list
+    mesh->neighbors[face_index].f[2] = col->removed_faces;
+    col->removed_faces = face_index;
+    col->n_removed_faces++;
 }
 
 enum error_code_e mesh_add_vertex(
