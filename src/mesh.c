@@ -17,6 +17,8 @@ enum error_code_e mesh_cleanup(
     // Deleting dynamically allocated arrays
     array_delete(&mesh->faces);
     array_delete(&mesh->vertices);
+    array_delete(&mesh->neighbors);
+    array_delete(&mesh->vertex_adjacent_faces);
     // Setting everything to zero for good measure
     memset(mesh, 0, sizeof(struct mesh_st));
     return ec_no_error;
