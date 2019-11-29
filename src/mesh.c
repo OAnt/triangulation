@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdbool.h>
-#include "public/common.h"
+#include <assert.h>
+#include <public/common.h>
 #include <private/common.h>
 #include <private/vector.h>
 #include <private/array.h>
@@ -161,23 +162,30 @@ enum error_code_e mesh_face_add_adajcent_face(
 struct face_st invalid_face = {
     INVALID_INDEX, INVALID_INDEX, INVALID_INDEX};
 
-static inline enum error_code_e _mesh_add_face(
+static inline enum error_code_e mesh_face_check(
         struct mesh_st * mesh,
-        struct face_st face,
-        size_t * index,
-        struct mesh_collector_st * col)
+        struct face_st face)
 {
-    // getting lengths of arrays until now
-    size_t n_faces = array_length(mesh->faces);
     size_t n_vertices = array_length(mesh->vertices);
     // Ensuring we are not adding a face that references
     // unknown vertices
     for(size_t i = 0; i < FACE_SIZE; i++){
         if(face.f[i] >= n_vertices) return ec_out_of_bound_error;
     }
+    return ec_no_error;
+}
+
+static inline enum error_code_e _mesh_add_or_replace_face(
+        struct mesh_st * mesh,
+        struct face_st face,
+        struct mesh_collector_st * col,
+        size_t * index)
+{
+    // getting lengths of arrays until now
+    size_t n_faces = array_length(mesh->faces);
+    enum error_code_e err;
     // Resizing both the array, now they can hold the correct number of
     // features
-    enum error_code_e err;
     size_t face_index;
     // there is a collector and it contains a removed face, using it
     if(col && col->removed_face != INVALID_INDEX){
@@ -222,7 +230,9 @@ enum error_code_e mesh_add_face(
         struct face_st face,
         size_t * index)
 {
-    return _mesh_add_face(mesh, face, index, NULL);
+    if(mesh_face_check(mesh, face) != ec_no_error)
+        return ec_out_of_bound_error;
+    return _mesh_add_or_replace_face(mesh, face, NULL, index);
 }
 
 /**
@@ -338,6 +348,22 @@ struct mesh_collector_st mesh_remove_face(
     mesh->faces[face_index].f[2] = col.removed_face;
     col.removed_face = face_index;
     return col;
+}
+
+enum error_code_e mesh_replace_face(
+        struct mesh_st * mesh,
+        struct face_st face,
+        size_t index)
+{
+    if(mesh_face_check(mesh, face) != ec_no_error)
+        return ec_out_of_bound_error;
+    size_t _index;
+    struct mesh_collector_st col = mesh_remove_face(mesh, index);
+    if(col.removed_face == INVALID_INDEX) return ec_out_of_bound_error;
+    else{
+        enum error_code_e err = _mesh_add_or_replace_face(mesh, face, &col, &_index);
+        return err;
+    }
 }
 
 enum error_code_e mesh_add_vertex(

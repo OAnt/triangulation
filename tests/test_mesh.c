@@ -95,6 +95,32 @@ START_TEST(test_stl_export_stlb)
 }
 END_TEST
 
+START_TEST(test_mesh_replace_face)
+{
+    struct mesh_st mesh;
+    ck_assert(mesh_init(&mesh) == ec_no_error);
+    for(size_t i = 0; i < 5; i++){
+        ck_assert(
+                mesh_add_vertex(&mesh, cube_vertices[i], NULL) ==
+                ec_no_error);
+    }
+    struct face_st face = {0, 1, 2};
+    ck_assert(mesh_add_face(
+                &mesh, face, NULL) == ec_no_error);
+    struct face_st other_face = {0, 4, 1};
+    ck_assert(mesh_add_face(
+                &mesh, other_face, NULL) == ec_no_error);
+    struct face_st replacement_face = {0, 1, 3};
+    ck_assert(mesh_replace_face(
+                &mesh, replacement_face, 0) == ec_no_error);
+    struct face_st other_neighbors = {(size_t)-1, (size_t)-1, 0};
+    ck_assert_mem_eq(mesh.neighbors + 1, &other_neighbors, sizeof(struct face_st));
+    struct face_st replacement_neighbors = {1, (size_t)-1, (size_t)-1};
+    ck_assert_mem_eq(mesh.neighbors, &replacement_neighbors, sizeof(struct face_st));
+    ck_assert_mem_eq(mesh.faces, &replacement_face, sizeof(struct face_st));
+}
+END_TEST
+
 START_TEST(test_point_in_polygon)
 {
     size_t polygon[] = {0, 1, 2, 3};
@@ -129,6 +155,7 @@ Suite * mk_mesh_suite(void){
             "Mesh");
     tcase_add_test(tc, test_mesh_add_features);
     tcase_add_test(tc, test_mesh_add_face_fails);
+    tcase_add_test(tc, test_mesh_replace_face);
     tcase_add_test(tc, test_stl_export_stlb);
     tcase_add_test(tc, test_point_in_polygon);
     tcase_add_test(tc, test_point_in_non_convex_polygon);

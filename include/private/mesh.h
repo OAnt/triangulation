@@ -64,7 +64,7 @@ enum error_code_e mesh_cleanup(
 
 /**
  * Adds a face to the mesh, vertices that compose the face
- * must inserted beforehand.
+ * must be inserted beforehand.
  * param mesh Pointer to the mesh to add the face to
  * param face Face to add the mesh
  * param index Position of the face in the array
@@ -74,6 +74,22 @@ enum error_code_e mesh_add_face(
         _IN struct mesh_st * mesh,
         _IN struct face_st face,
         _OUT size_t * index);
+
+
+/**
+ * Replaces the face at index by the given one. Vertices must
+ * be inserted beforehand.
+ * param mesh Pointer to the mesh containing the replaced face.
+ * param face Replacement face.
+ * param index Position of the face to replace
+ * return ec_no_error upon success. In case of memory error
+ * the mesh vertex face adjacency will be incomplete. Repeating
+ * the operation after freeing some enough may fix the issue.
+ */
+enum error_code_e mesh_replace_face(
+        struct mesh_st * mesh,
+        struct face_st face,
+        size_t index);
 
 /**
  * Adds a vertex to the mesh.
