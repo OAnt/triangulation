@@ -71,7 +71,7 @@ struct face_st neighbors[] = {
     {2, 4, 1}, {6, 10, 0}, {3, 4, 0}, {10, 8, 2}
 };
 
-START_TEST(test_stl_export_stlb)
+struct mesh_st create_cube_mesh(void)
 {
     struct mesh_st mesh;
     ck_assert(mesh_init(&mesh) == ec_no_error);
@@ -85,6 +85,12 @@ START_TEST(test_stl_export_stlb)
                 mesh_add_face(&mesh, cube_faces[i], NULL) ==
                 ec_no_error);
     }
+    return mesh;
+}
+
+START_TEST(test_stl_export_stlb)
+{
+    struct mesh_st mesh = create_cube_mesh();
     int s = sizeof(neighbors) / sizeof(struct face_st);
     for(int i = 0; i < s; i++){
         ck_assert_mem_eq(mesh.neighbors + i, neighbors + i,
@@ -118,6 +124,36 @@ START_TEST(test_mesh_replace_face)
     struct face_st replacement_neighbors = {1, (size_t)-1, (size_t)-1};
     ck_assert_mem_eq(mesh.neighbors, &replacement_neighbors, sizeof(struct face_st));
     ck_assert_mem_eq(mesh.faces, &replacement_face, sizeof(struct face_st));
+    mesh_cleanup(&mesh);
+}
+END_TEST
+
+void validate_mesh(struct mesh_st mesh){
+    struct mesh_st unchanged_mesh = create_cube_mesh();
+    ck_assert_mem_eq(mesh.faces, unchanged_mesh.faces ,
+            array_length(unchanged_mesh.faces) * sizeof(struct face_st)); 
+    ck_assert_mem_eq(mesh.faces, unchanged_mesh.faces ,
+            array_length(unchanged_mesh.faces) * sizeof(struct face_st)); 
+    ck_assert(array_length(mesh.vertex_adjacent_faces) == array_length(unchanged_mesh.vertex_adjacent_faces));
+    mesh_cleanup(&unchanged_mesh);
+}
+
+START_TEST(test_mesh_replace_no_border_effects)
+{
+    struct mesh_st mesh = create_cube_mesh();
+    ck_assert_int_eq(mesh_replace_face(&mesh, cube_faces[0], 3), ec_topology_error);
+    validate_mesh(mesh);
+    mesh_cleanup(&mesh);
+}
+END_TEST
+
+START_TEST(test_mesh_replace_no_border_effects2)
+{
+    struct mesh_st mesh = create_cube_mesh();
+    struct face_st invalid_face = {100, 101, 102};
+    ck_assert_int_eq(mesh_replace_face(&mesh, invalid_face, 2), ec_out_of_bound_error);
+    validate_mesh(mesh);
+    mesh_cleanup(&mesh);
 }
 END_TEST
 
@@ -156,6 +192,8 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tc, test_mesh_add_features);
     tcase_add_test(tc, test_mesh_add_face_fails);
     tcase_add_test(tc, test_mesh_replace_face);
+    tcase_add_test(tc, test_mesh_replace_no_border_effects);
+    tcase_add_test(tc, test_mesh_replace_no_border_effects2);
     tcase_add_test(tc, test_stl_export_stlb);
     tcase_add_test(tc, test_point_in_polygon);
     tcase_add_test(tc, test_point_in_non_convex_polygon);

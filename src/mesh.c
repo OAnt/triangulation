@@ -184,6 +184,8 @@ static inline enum error_code_e _mesh_add_or_replace_face(
     // getting lengths of arrays until now
     size_t n_faces = array_length(mesh->faces);
     enum error_code_e err;
+    if((err = mesh_face_check(mesh, face)) != ec_no_error)
+        return err;
     // Resizing both the array, now they can hold the correct number of
     // features
     size_t face_index;
@@ -230,8 +232,6 @@ enum error_code_e mesh_add_face(
         struct face_st face,
         size_t * index)
 {
-    if(mesh_face_check(mesh, face) != ec_no_error)
-        return ec_out_of_bound_error;
     return _mesh_add_or_replace_face(mesh, face, NULL, index);
 }
 
@@ -305,6 +305,23 @@ void mesh_face_remove_from_vertex_adjacent_faces(
     
 }
 
+void mesh_face_remove_topology(
+        mesh_st * mesh,
+        size_t face_index,
+        struct mesh_collector_st * col)
+{
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        // Removing face from its ith neighbors
+        mesh_face_remove_from_neigbhors(
+                mesh, face_index, 
+                mesh->neighbors[face_index].f[i]);
+        // Removing face from its ith vertex adjacent faces list
+        mesh_face_remove_from_vertex_adjacent_faces(
+                mesh, face_index,
+                mesh->faces[face_index].f[i], col);
+    }
+}
+
 /**
  * Removes a face from a mesh. This does not free any memory,
  * instead, faces are marked as available for reuse.
@@ -327,16 +344,7 @@ struct mesh_collector_st mesh_remove_face(
     // checking if the face is already removed (also check if it
     // is out of bounds)
     if(mesh_face_is_removed(mesh, face_index)) return col;
-    for(int32_t i = 0; i < FACE_SIZE; i++){
-        // Removing face from its ith neighbors
-        mesh_face_remove_from_neigbhors(
-                mesh, face_index, 
-                mesh->neighbors[face_index].f[i]);
-        // Removing face from its ith vertex adjacent faces list
-        mesh_face_remove_from_vertex_adjacent_faces(
-                mesh, face_index,
-                mesh->faces[face_index].f[i], &col);
-    }
+    mesh_face_remove_topology(mesh, face_index, &col);
     // Removing the face's neighbors, no linked list needed,
     // neighbors index follows face index
     mesh->neighbors[face_index] = invalid_face;
@@ -355,13 +363,19 @@ enum error_code_e mesh_replace_face(
         struct face_st face,
         size_t index)
 {
-    if(mesh_face_check(mesh, face) != ec_no_error)
-        return ec_out_of_bound_error;
     size_t _index;
+    struct face_st old_face = mesh->faces[index];
     struct mesh_collector_st col = mesh_remove_face(mesh, index);
     if(col.removed_face == INVALID_INDEX) return ec_out_of_bound_error;
     else{
         enum error_code_e err = _mesh_add_or_replace_face(mesh, face, &col, &_index);
+        // Putting back the previous face if something failed to ensure there
+        // are no border effects. Not doing it in case of memory error because
+        // some vertex_face_adjacency objects may not have been collected
+        if(err != ec_no_error && err != ec_memory_error){
+            mesh_face_remove_topology(mesh, index, &col);
+            _mesh_add_or_replace_face(mesh, old_face, &col, &_index);
+        }
         return err;
     }
 }
