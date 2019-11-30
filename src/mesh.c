@@ -496,29 +496,27 @@ static struct vector_st x = {{1.0, 0.0, 0.0}};
 static struct vector_st y = {{0.0, 1.0, 0.0}};
 static struct vector_st z = {{0.0, 0.0, 1.0}};
 
-enum point_polygon_position_e polygon_point_position(
+// computes the normal of a polygon assuming it is planar
+// if the polygon is degenerate (cannot compute normal),
+// returns an error
+enum error_code_e planar_polygon_normal(
         _IN size_t * polygon,
         _IN size_t n_vertices,
         _IN struct vector_st * vertices,
-        _IN struct vector_st * point)
+        _OUT struct vector_st * normal)
 {
-    // this functions assumes the polygon is plane
-    // it computes its normal by taking the first
-    // three vertices
-    if(n_vertices <= 2) return ppol_out;
     bool degenerate_polygon = true;
     // Computing the normal iterating over
     // groups of three points until we
     // find a group where they are not aligned
-    struct vector_st normal;
     for(size_t i = 0; i < n_vertices; i++){
         size_t next = (i + 1) % n_vertices;
         size_t next_over = (i + 2) % n_vertices;
         struct vector_st edge_a, edge_b;
         vector_subtraction(&vertices[next], &vertices[i], &edge_a);
         vector_subtraction(&vertices[next_over], &vertices[i], &edge_b);
-        vector_cross_product(&edge_a, &edge_b, &normal);
-        double sq_norm = vector_dot_product(&normal, &normal);
+        vector_cross_product(&edge_a, &edge_b, normal);
+        double sq_norm = vector_dot_product(normal, normal);
         // found a normal with non zero norm, non collinear edges
         if(sq_norm > EPSILON) {
             degenerate_polygon = false;
@@ -526,7 +524,20 @@ enum point_polygon_position_e polygon_point_position(
         }
     }
     // All the points are aligned, this is a degenerate polygon (a line)
-    if(degenerate_polygon) return ppol_out;
+    if(degenerate_polygon) return ec_error;
+    return ec_no_error;
+}
+
+enum error_code_e planar_polygon_best_projection(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _OUT enum projection_plane_e * _pp)
+{
+    struct vector_st normal;
+    enum error_code_e err = planar_polygon_normal(
+            polygon, n_vertices, vertices, &normal);
+    if(err != ec_no_error) return err;
     // Finding which of xy, yz ans zx is the best plane
     // to project the polygon on. The higher the absolute
     // dot product of the normal and unit vector is the 
@@ -550,6 +561,24 @@ enum point_polygon_position_e polygon_point_position(
             pp = pp_zx;
         }
     }
+    *_pp = pp;
+    return ec_no_error;
+}
+
+enum point_polygon_position_e polygon_point_position(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _IN struct vector_st * point)
+{
+    // this functions assumes the polygon is plane
+    // it computes its normal by taking the first
+    // three vertices
+    if(n_vertices <= 2) return ppol_out;
+    enum projection_plane_e pp;
+    if(planar_polygon_best_projection(
+                polygon, n_vertices, vertices, &pp) != ec_no_error)
+        return ppol_out;
     /*printf("%f, %f, %f, %d\n", x_dot, y_dot, z_dot, pp);*/
     int32_t winding_number = 0;
     for(size_t i = 0; i < n_vertices; i++){
