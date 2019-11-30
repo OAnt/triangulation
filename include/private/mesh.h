@@ -34,6 +34,8 @@ struct vertex_adjacent_face_st{
     size_t next_adjacent_faces; /** Index of the next in list. */
 };
 
+struct mesh_private_st;
+
 /**
  * Structure representing a 3D mesh.
  */
@@ -44,6 +46,7 @@ struct mesh_st {
                                   face index */
     /** Lists of faces neighboring vertices */
     struct vertex_adjacent_face_st * vertex_adjacent_faces; 
+    struct mesh_private_st * private;
 };
 
 /**
@@ -92,11 +95,20 @@ enum error_code_e mesh_replace_face(
         size_t index);
 
 /**
+ * Removes the last face from the list and returns it.
+ * param mesh Pointer to the mesh containing from which the face will be
+ * removed.
+ * return The list of vertices of the removed face
+ */
+struct face_st mesh_pop_face(
+        _IN struct mesh_st * mesh);
+
+/**
  * Adds a vertex to the mesh.
- * param mesh Pointer to the mesh to add the vertex to
- * param v Vertex to add the mesh
- * param index Position of the vertex in the array
- * return ec_no_error upon success
+ * param mesh Pointer to the mesh to add the vertex to.
+ * param v Vertex to add the mesh.
+ * param index Position of the vertex in the array.
+ * return ec_no_error upon success.
  */
 enum error_code_e mesh_add_vertex(
         _IN struct mesh_st * mesh,
@@ -104,15 +116,15 @@ enum error_code_e mesh_add_vertex(
         _OUT size_t * index);
 
 /**
- * Position of a point relative to a polygon
+ * Position of a point relative to a polygon.
  */
 enum point_polygon_position_e {
-    ppol_in, /** point is inside the polygon */
-    ppol_out /** point is outside of polygon */
+    ppol_in, /** Point is inside the polygon. */
+    ppol_out /** Point is outside of polygon. */
 };
 
 /**
- * Computes the position of a point relative to a polygon
+ * Computes the position of a point relative to a polygon.
  * param polygon The polygon is defined by a list of vertices indexes
  * [polygon[i], polygon[i+1]] is an edge, the polygon is closed, its
  * last edge is [polygon[n_vertices - 1], polygon[0]]
@@ -123,14 +135,49 @@ enum point_polygon_position_e {
  * xy, yz or zx plane and using a winding number check on the projected
  * point in the projected polygon. The idea is to be resilient 
  * to slight misalignment in various points.
- * param n_vertices number of vertices in the polygon
- * param vertices coordinates of the polygon vertices
- * param point coordinates of the point to classify
+ * param n_vertices number of vertices in the polygon.
+ * param vertices coordinates of the polygon vertices.
+ * param point coordinates of the point to classify.
+ * returns whether the point is in the polygon or not.
  */
 enum point_polygon_position_e polygon_point_position(
         _IN size_t * polygon,
         _IN size_t n_vertices,
         _IN struct vector_st * vertices,
         _IN struct vector_st * point);
+
+/** 
+ * Same as polygon_point_position but lets the user specify
+ * the projection plane, avoid useless computation if it is
+ * already known.
+ * param polygon see polygon_point_position.
+ * param n_vertices number of vertices in the polygon.
+ * param vertices coordinates of the polygon vertice.s
+ * param point coordinates of the point to classify.
+ * param pp Projection plane to use. 
+ * returns whether the point is in the polygon or not.
+ */
+enum point_polygon_position_e projected_polygon_point_position(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _IN struct vector_st * point,
+        _IN enum projection_plane_e pp);
+
+/**
+ * Iterates over all the faces in the mesh to find a face
+ * that contains the given point. Stops when a matching faces
+ * if found.
+ * param mesh Mesh containing the faces.
+ * param point Coordinates of the point.
+ * param pp Projection plane to use.
+ * param face_index If a face is found the pointed variable will be updated
+ * return ec_no_error if a face is found otherwise ec_error.
+ */
+enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
+        _IN const struct mesh_st * mesh,
+        _IN struct vector_st point,
+        _IN enum projection_plane_e pp,
+        _OUT size_t * face_index);
 
 #endif

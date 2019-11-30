@@ -174,6 +174,17 @@ START_TEST(test_mesh_enclosing_triangular_face)
     struct vector_st yet_another_point = {{100.0, 40.0, 0.0}};
     ck_assert_int_eq(unindexed_mesh_find_first_enclosing_triangular_face(
                 &mesh, yet_another_point, pp_xy, &face_index), ec_error);
+    mesh_cleanup(&mesh);
+}
+
+START_TEST(test_pop_face)
+{
+    struct mesh_st mesh = create_cube_mesh();
+    struct face_st popped = mesh_pop_face(&mesh);
+    ck_assert_mem_eq(&popped, cube_faces + 11, sizeof(struct face_st));
+    ck_assert_int_eq(array_length(mesh.faces), 11);
+    ck_assert_int_eq(array_length(mesh.neighbors), 11);
+    mesh_cleanup(&mesh);
 }
 
 START_TEST(test_point_in_polygon)
@@ -214,6 +225,7 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tc, test_mesh_add_features);
     tcase_add_test(tc, test_mesh_add_face_fails);
     tcase_add_test(tc, test_mesh_replace_face);
+    tcase_add_test(tc, test_pop_face);
     tcase_add_test(tc, test_mesh_replace_no_border_effects);
     tcase_add_test(tc, test_mesh_replace_no_border_effects2);
     tcase_add_test(tc, test_mesh_enclosing_triangular_face);

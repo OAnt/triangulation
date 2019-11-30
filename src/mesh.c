@@ -337,6 +337,29 @@ void mesh_face_remove_topology(
     }
 }
 
+// Depending on what you wish to accomplish you may this function or
+// mesh_remove_face which also marks faces and neighbors for reuse.
+// When a face is popped, the face array size is reduced, the 
+// index is not usable anymore, it should not be added collected.
+// Use this instead.
+enum error_code_e _mesh_remove_face(
+        struct mesh_st * mesh,
+        size_t face_index)
+{
+    struct mesh_collector_st * col = &mesh->private->col;
+    // checking if the face is already removed (also check if it
+    // is out of bounds)
+    if(mesh_face_is_removed(mesh, face_index)) return ec_error;
+    mesh_face_remove_topology(mesh, face_index, col);
+    // Removing the face's neighbors, no linked list needed,
+    // neighbors index follows face index
+    mesh->neighbors[face_index] = invalid_face;
+    // Removing the face (marking it as re-usable)
+    // erasing the vertices + two INVALID_INDEX marks invalid face
+    mesh->neighbors[face_index] = invalid_face;
+    return ec_no_error;
+}
+
 /**
  * Removes a face from a mesh. This does not free any memory,
  * instead, faces are marked as available for reuse.
@@ -355,22 +378,32 @@ enum error_code_e mesh_remove_face(
         struct mesh_st * mesh,
         size_t face_index)
 {
-    struct mesh_collector_st * col = &mesh->private->col;
-    // checking if the face is already removed (also check if it
-    // is out of bounds)
-    if(mesh_face_is_removed(mesh, face_index)) return ec_error;
-    mesh_face_remove_topology(mesh, face_index, col);
-    // Removing the face's neighbors, no linked list needed,
-    // neighbors index follows face index
-    mesh->neighbors[face_index] = invalid_face;
-    // Removing the face (marking it as re-usable)
-    // erasing the vertices + two INVALID_INDEX marks invalid face
-    mesh->neighbors[face_index] = invalid_face;
-    // Updating the linked list
-    mesh->neighbors[face_index].f[2] = col->removed_faces;
-    mesh->faces[face_index].f[2] = col->removed_faces;
-    col->removed_faces = face_index;
-    return ec_no_error;
+    enum error_code_e err = _mesh_remove_face(
+            mesh, face_index);
+    if(err == ec_no_error){
+        struct mesh_collector_st * col = &mesh->private->col;
+        // Updating the linked list
+        mesh->neighbors[face_index].f[2] = col->removed_faces;
+        mesh->faces[face_index].f[2] = col->removed_faces;
+        col->removed_faces = face_index;
+        return ec_no_error;
+    }else{
+        return err;
+    }
+}
+
+struct face_st mesh_pop_face(
+        struct mesh_st * mesh)
+{
+    size_t n_faces = array_length(mesh->faces);
+    struct face_st last_face = mesh->faces[n_faces - 1];
+    // Only collect vertex topology which may be harder to really removed
+    // Moreover there is no sense in iterating over it so I don't feel
+    // entitled not to leave unused element in it
+    _mesh_remove_face(mesh, n_faces - 1);
+    array_resize(&mesh->faces, n_faces - 1);
+    array_resize(&mesh->neighbors, n_faces - 1);
+    return last_face;
 }
 
 enum error_code_e mesh_replace_face(
