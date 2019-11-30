@@ -190,6 +190,23 @@ static inline enum error_code_e mesh_face_check(
     return ec_no_error;
 }
 
+enum error_code_e mesh_face_add_topology(
+        mesh_st * mesh,
+        size_t face_index,
+        struct mesh_collector_st * col)
+{
+    enum error_code_e err = ec_no_error;
+    for(size_t i = 0; i < FACE_SIZE; i++){
+        err = mesh_face_add_adajcent_face(
+                mesh, face_index, i);
+        if(err != ec_no_error) return err;
+        err = mesh_vertex_add_adjacent_face(
+                mesh, face_index, i, col);
+        if(err != ec_no_error) return err;
+    }
+    return err;
+}
+
 static inline enum error_code_e _mesh_add_or_replace_face(
         struct mesh_st * mesh,
         struct face_st face,
@@ -221,14 +238,8 @@ static inline enum error_code_e _mesh_add_or_replace_face(
     mesh->faces[face_index] = face;
     mesh->neighbors[face_index] = invalid_face;
     size_t n_adj = array_length(mesh->vertex_adjacent_faces);
-    for(size_t i = 0; i < FACE_SIZE; i++){
-        err = mesh_face_add_adajcent_face(
-                mesh, face_index, i);
-        if(err != ec_no_error) goto fail_no_adj;
-        err = mesh_vertex_add_adjacent_face(
-                mesh, face_index, i, col);
-        if(err != ec_no_error) goto fail_no_adj;
-    }
+    err = mesh_face_add_topology(mesh, face_index, col);
+    if(err != ec_no_error) goto fail_no_adj;
     if(index) *index = face_index;
     if(col && col->removed_faces != INVALID_INDEX){
         col->removed_faces = next_faces_index;
