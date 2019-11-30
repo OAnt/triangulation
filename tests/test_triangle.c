@@ -9,36 +9,36 @@ static struct triangle_st tr_test = {
 
 START_TEST(triangle_classification_above)
 {
-    struct plane_st pl = {1, 1, 1, 0.1};
+    struct plane_st pl = {{1, 1, 1, 0.1}};
     ck_assert(triangle_plane_classify(&tr_test, &pl) == trcl_above);
 }
 END_TEST
 
 START_TEST(triangle_classification_below)
 {
-    struct plane_st pl = {-1, -1, -1, 0.1};
+    struct plane_st pl = {{-1, -1, -1, 0.1}};
     ck_assert(triangle_plane_classify(&tr_test, &pl) == trcl_below);
 }
 END_TEST
 
 START_TEST(triangle_classification_instersect)
 {
-    struct plane_st pl = {-1, 1, -1, 0.1};
+    struct plane_st pl = {{-1, 1, -1, 0.1}};
     ck_assert(triangle_plane_classify(&tr_test, &pl) == trcl_intersected);
 }
 END_TEST
 
 START_TEST(triangle_classification_coplanar)
 {
-    struct plane_st pl = {1, 1, 1, 1};
+    struct plane_st pl = {{1, 1, 1, 1}};
     ck_assert(triangle_plane_classify(&tr_test, &pl) == trcl_coplanar);
 }
 END_TEST
 
 START_TEST(triangle_compute_circumcenter_test)
 {
-    struct plane_st p = {1, 1, 1, 1};
-    struct vector_st v = {10, 10, 10};
+    struct plane_st p = {{1, 1, 1, 1}};
+    struct vector_st v = {{10, 10, 10}};
     ck_assert(triangle_compute_circumcircle_center(&tr_test, &v) ==
             ec_no_error);
     ck_assert_double_eq(plane_vector_classify(&p, &v), 0.0);

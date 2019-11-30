@@ -4,24 +4,24 @@
 
 START_TEST(vector_test_orthogonal_dot_product)
 {
-    struct vector_st a = {1, 0, 1};
-    struct vector_st b = {0, 1, 0};
+    struct vector_st a = {{1, 0, 1}};
+    struct vector_st b = {{0, 1, 0}};
     ck_assert_double_eq(vector_dot_product(&a, &b), 0.0);
 }
 END_TEST
 
 START_TEST(vector_test_colinear_dot_product)
 {
-    struct vector_st a = {1, 0, 0};
-    struct vector_st b = {1, 0, 0};
+    struct vector_st a = {{1, 0, 0}};
+    struct vector_st b = {{1, 0, 0}};
     ck_assert_double_eq(vector_dot_product(&a, &b), 1.0);
 }
 END_TEST
 
 START_TEST(vector_test_subtraction)
 {
-    struct vector_st a = {2, 3, 4.2};
-    struct vector_st b = {1, -1, 8};
+    struct vector_st a = {{2, 3, 4.2}};
+    struct vector_st b = {{1, -1, 8}};
     vector_subtraction(&a, &b, &a);
     ck_assert_double_eq(a.v[0], 1.0);
     ck_assert_double_eq(a.v[1], 4.0);
@@ -35,7 +35,7 @@ END_TEST
 
 START_TEST(vector_test_scaling)
 {
-    struct vector_st a = {1, 2, -3.4};
+    struct vector_st a = {{1, 2, -3.4}};
     vector_scale_by_scalar(&a, 2.0, &a);
     ck_assert_double_eq(a.v[0], 2.0);
     ck_assert_double_eq(a.v[1], 4.0);
@@ -44,7 +44,7 @@ START_TEST(vector_test_scaling)
 
 START_TEST(vector_test_addition)
 {
-    struct vector_st a = {2, 3, 4.2};
+    struct vector_st a = {{2, 3, 4.2}};
     vector_addition(&a, &a, &a);
     ck_assert_double_eq(a.v[0], 4.0);
     ck_assert_double_eq(a.v[1], 6.0);
@@ -69,14 +69,14 @@ END_TEST
 
 START_TEST(vector_test_cross_product)
 {
-    struct vector_st x = {1.0, 0.0, 0.0};
-    struct vector_st y = {0.0, 1.0, 0.0};
-    struct vector_st z = {0.0, 0.0, 1.0};
-    struct vector_st _x = {-1.0, 0.0, 0.0};
-    struct vector_st _y = {0.0, -1.0, 0.0};
-    struct vector_st _z = {0.0, 0.0, -1.0};
-    struct vector_st zero = {0.0, 0.0, 0.0};
-    struct vector_st tmp = {0.0, 0.0, 0.0};
+    struct vector_st x = {{1.0, 0.0, 0.0}};
+    struct vector_st y = {{0.0, 1.0, 0.0}};
+    struct vector_st z = {{0.0, 0.0, 1.0}};
+    struct vector_st _x = {{-1.0, 0.0, 0.0}};
+    struct vector_st _y = {{0.0, -1.0, 0.0}};
+    struct vector_st _z = {{0.0, 0.0, -1.0}};
+    struct vector_st zero = {{0.0, 0.0, 0.0}};
+    struct vector_st tmp = {{0.0, 0.0, 0.0}};
     vector_cross_product(&x, &y, &tmp);
     ck_assert_mem_eq(&tmp, &z, sizeof(struct vector_st));
     vector_cross_product(&y, &z, &tmp);

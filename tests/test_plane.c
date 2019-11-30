@@ -1,11 +1,11 @@
 #include <check.h>
 #include <private/plane.h>
 
-static struct plane_st pl_test = {1, 1, 1, 1};
+static struct plane_st pl_test = {{1, 1, 1, 1}};
 
 START_TEST(vector_classification_above)
 {
-    struct vector_st v_above = {0.5, 0.5, 0.5};
+    struct vector_st v_above = {{0.5, 0.5, 0.5}};
     double v_classification = plane_vector_classify(
             &pl_test,
             &v_above);
@@ -15,7 +15,7 @@ END_TEST
 
 START_TEST(vector_classification_below)
 {
-    struct vector_st v_above = {0.2, 0.2, 0.2};
+    struct vector_st v_above = {{0.2, 0.2, 0.2}};
     double v_classification = plane_vector_classify(
             &pl_test,
             &v_above);
@@ -25,7 +25,7 @@ END_TEST
 
 START_TEST(vector_classification_on_plane)
 {
-    struct vector_st v_above = {1.0/3.0, 1.0/3.0, 1.0/3.0};
+    struct vector_st v_above = {{1.0/3.0, 1.0/3.0, 1.0/3.0}};
     double v_classification = plane_vector_classify(
             &pl_test,
             &v_above);
