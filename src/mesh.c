@@ -203,10 +203,12 @@ static inline enum error_code_e _mesh_add_or_replace_face(
         return err;
     // Resizing both the array, now they can hold the correct number of
     // features
+    size_t next_faces_index = INVALID_INDEX;
     size_t face_index;
     // there is a collector and it contains a removed face, using it
     if(col && col->removed_faces != INVALID_INDEX){
         face_index = col->removed_faces;
+        next_faces_index = mesh->faces[face_index].f[2];
     }else{
         if((err = array_resize(&mesh->faces, n_faces + 1)) != ec_no_error)
             goto fail_no_face;
@@ -228,6 +230,9 @@ static inline enum error_code_e _mesh_add_or_replace_face(
         if(err != ec_no_error) goto fail_no_adj;
     }
     if(index) *index = face_index;
+    if(col && col->removed_faces != INVALID_INDEX){
+        col->removed_faces = next_faces_index;
+    }
     return ec_no_error;
 fail_no_adj:
     array_resize(&mesh->vertex_adjacent_faces, n_adj);
