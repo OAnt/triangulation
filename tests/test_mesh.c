@@ -159,6 +159,23 @@ START_TEST(test_mesh_replace_no_border_effects2)
 }
 END_TEST
 
+START_TEST(test_mesh_enclosing_triangular_face)
+{
+    struct mesh_st mesh = create_cube_mesh();
+    size_t face_index;
+    struct vector_st point = {{0.1, 0.9, 0.0}};
+    ck_assert_int_eq(unindexed_mesh_find_first_enclosing_triangular_face(
+                &mesh, point, pp_xy, &face_index), ec_no_error);
+    ck_assert_uint_eq(face_index, 1);
+    struct vector_st another_point = {{0.9, 0.9, 0.0}};
+    ck_assert_int_eq(unindexed_mesh_find_first_enclosing_triangular_face(
+                &mesh, another_point, pp_xy, &face_index), ec_no_error);
+    ck_assert_uint_eq(face_index, 0);
+    struct vector_st yet_another_point = {{100.0, 40.0, 0.0}};
+    ck_assert_int_eq(unindexed_mesh_find_first_enclosing_triangular_face(
+                &mesh, yet_another_point, pp_xy, &face_index), ec_error);
+}
+
 START_TEST(test_point_in_polygon)
 {
     size_t polygon[] = {0, 1, 2, 3};
@@ -199,6 +216,7 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tc, test_mesh_replace_face);
     tcase_add_test(tc, test_mesh_replace_no_border_effects);
     tcase_add_test(tc, test_mesh_replace_no_border_effects2);
+    tcase_add_test(tc, test_mesh_enclosing_triangular_face);
     tcase_add_test(tc, test_stl_export_stlb);
     tcase_add_test(tc, test_point_in_polygon);
     tcase_add_test(tc, test_point_in_non_convex_polygon);

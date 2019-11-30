@@ -15,6 +15,7 @@ enum error_code_e mesh_cleanup(
     // Mesh is null not doing anything
     if(!mesh) return ec_error;
     // Deleting dynamically allocated arrays
+    free(mesh->private);
     array_delete(&mesh->faces);
     array_delete(&mesh->vertices);
     array_delete(&mesh->neighbors);
@@ -617,5 +618,35 @@ enum point_polygon_position_e projected_polygon_point_position(
     if(n_vertices <= 2) return ppol_out;
     return _polygon_point_position(
             polygon, n_vertices, vertices, point, pp);
+}
+
+enum point_polygon_position_e projected_face_point_position(
+        const struct mesh_st * mesh,
+        size_t face_index,
+        struct vector_st * point,
+        enum projection_plane_e pp)
+{
+    size_t polygon[3] = {0, 1, 2};
+    struct vector_st points[FACE_SIZE];
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        points[i] = mesh->vertices[mesh->faces[face_index].f[i]].point;
+    }
+    return projected_polygon_point_position(
+            polygon, FACE_SIZE, points, point, pp);
+}
+
+enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
+        const struct mesh_st * mesh,
+        struct vector_st point,
+        enum projection_plane_e pp,
+        size_t * face_index)
+{
+    for(size_t f = 0; f < array_length(mesh->faces); f++){
+        if(projected_face_point_position(mesh, f, &point, pp) == ppol_in){
+            *face_index = f;
+            return ec_no_error;
+        }
+    }
+    return ec_error;
 }
 
