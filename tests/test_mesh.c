@@ -3,7 +3,7 @@
 #include <private/array.h>
 
 struct vector_st vertices[] = {
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+    {{1.0, 0.0, 0.0}}, {{0.0, 1.0, 0.0}}, {{0.0, 0.0, 1.0}}};
 
 START_TEST(test_mesh_add_features){
     struct mesh_st mesh;
@@ -26,7 +26,7 @@ START_TEST(test_mesh_add_face_fails){
     struct mesh_st mesh;
     ck_assert(mesh_init(&mesh) == ec_no_error);
     size_t index;
-    struct face_st face = {0, 1, 2};
+    struct face_st face = {{0, 1, 2}};
     ck_assert(mesh_add_face(
                 &mesh, face, &index) == ec_out_of_bound_error);
     for(size_t i = 0; i < FACE_SIZE; i++){
@@ -37,20 +37,20 @@ START_TEST(test_mesh_add_face_fails){
     }
     ck_assert(mesh_add_face(&mesh, face, &index) == ec_no_error);
     ck_assert(index == 0);
-    struct vector_st another_vertex = {1.0, 1.0, 1.0};
+    struct vector_st another_vertex = {{1.0, 1.0, 1.0}};
     ck_assert(mesh_add_vertex(
                 &mesh, another_vertex, &index) == ec_no_error);
-    struct vector_st yet_another_vertex = {-1.0, -1.0, -1.0};
+    struct vector_st yet_another_vertex = {{-1.0, -1.0, -1.0}};
     ck_assert(mesh_add_vertex(
                 &mesh, yet_another_vertex, &index) == ec_no_error);
-    struct face_st another_face = {1, 3, 2};
+    struct face_st another_face = {{1, 3, 2}};
     ck_assert(mesh_add_face(
                 &mesh, another_face, &index) == ec_no_error);
     ck_assert(index == 1);
-    struct face_st yet_another_face = {1, 4, 2};
+    struct face_st yet_another_face = {{1, 4, 2}};
     ck_assert(mesh_add_face(
                 &mesh, yet_another_face, &index) == ec_topology_error);
-    struct face_st still_another_face = {0, 3, 2};
+    struct face_st still_another_face = {{0, 3, 2}};
     ck_assert(mesh_add_face(
                 &mesh, still_another_face, &index) == ec_no_error);
     ck_assert(index == 2);
@@ -61,14 +61,16 @@ START_TEST(test_mesh_add_face_fails){
 END_TEST
 
 struct vector_st cube_vertices[] = {
-    {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0},
-    {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}};
+    {{0, 0, 0}}, {{1, 0, 0}}, {{1, 1, 0}}, {{0, 1, 0}},
+    {{0, 0, 1}}, {{1, 0, 1}}, {{1, 1, 1}}, {{0, 1, 1}}
+};
 struct face_st cube_faces[] = {
-    {0, 1, 2}, {2, 3, 0}, {0, 5, 1}, {0, 4, 5},
-    {2, 1, 5}, {5, 6, 2}, {3, 2, 7}, {2, 6, 7},
-    {6, 5, 4}, {7, 6, 4}, {3, 4, 0}, {3, 7, 4}};
+    {{0, 1, 2}}, {{2, 3, 0}}, {{0, 5, 1}}, {{0, 4, 5}},
+    {{2, 1, 5}}, {{5, 6, 2}}, {{3, 2, 7}}, {{2, 6, 7}},
+    {{6, 5, 4}}, {{7, 6, 4}}, {{3, 4, 0}}, {{3, 7, 4}}
+};
 struct face_st neighbors[] = {
-    {2, 4, 1}, {6, 10, 0}, {3, 4, 0}, {10, 8, 2}
+    {{2, 4, 1}}, {{6, 10, 0}}, {{3, 4, 0}}, {{10, 8, 2}}
 };
 
 struct mesh_st create_cube_mesh(void)
@@ -110,13 +112,13 @@ START_TEST(test_mesh_replace_face)
                 mesh_add_vertex(&mesh, cube_vertices[i], NULL) ==
                 ec_no_error);
     }
-    struct face_st face = {0, 1, 2};
+    struct face_st face = {{0, 1, 2}};
     ck_assert(mesh_add_face(
                 &mesh, face, NULL) == ec_no_error);
-    struct face_st other_face = {0, 4, 1};
+    struct face_st other_face = {{0, 4, 1}};
     ck_assert(mesh_add_face(
                 &mesh, other_face, NULL) == ec_no_error);
-    struct face_st replacement_face = {0, 1, 3};
+    struct face_st replacement_face = {{0, 1, 3}};
     ck_assert(mesh_replace_face(
                 &mesh, replacement_face, 0) == ec_no_error);
     struct face_st other_neighbors = {(size_t)-1, (size_t)-1, 0};
@@ -150,7 +152,7 @@ END_TEST
 START_TEST(test_mesh_replace_no_border_effects2)
 {
     struct mesh_st mesh = create_cube_mesh();
-    struct face_st invalid_face = {100, 101, 102};
+    struct face_st invalid_face = {{100, 101, 102}};
     ck_assert_int_eq(mesh_replace_face(&mesh, invalid_face, 2), ec_out_of_bound_error);
     validate_mesh(mesh);
     mesh_cleanup(&mesh);
@@ -161,10 +163,11 @@ START_TEST(test_point_in_polygon)
 {
     size_t polygon[] = {0, 1, 2, 3};
     struct vector_st vertices[] = {
-        {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},
-        {1.0, 1.0, 0.0}, {0.0, 1.0, 0.0}};
-    struct vector_st in_point = {0.5, 0.5, 0.0};
-    struct vector_st out_point = {1.5, 0.5, 0.0};
+        {{0.0, 0.0, 0.0}}, {{1.0, 0.0, 0.0}},
+        {{1.0, 1.0, 0.0}}, {{0.0, 1.0, 0.0}}
+    };
+    struct vector_st in_point = {{0.5, 0.5, 0.0}};
+    struct vector_st out_point = {{1.5, 0.5, 0.0}};
     ck_assert(polygon_point_position(polygon, 4, vertices, &in_point) == ppol_in);
     ck_assert(polygon_point_position(polygon, 4, vertices, &out_point) == ppol_out);
 }
@@ -174,12 +177,12 @@ START_TEST(test_point_in_non_convex_polygon)
 {
     size_t polygon[] = {0, 1, 2, 3, 4, 5};
     struct vector_st vertices[] = {
-        {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},
-        {1.5, 0.0, 0.9}, {2.0, 0.0, 0.0},
-        {2.5, 0.0, 1.0}, {0.0, 0.0, 1.0}
+        {{0.0, 0.0, 0.0}}, {{1.0, 0.0, 0.0}},
+        {{1.5, 0.0, 0.9}}, {{2.0, 0.0, 0.0}},
+        {{2.5, 0.0, 1.0}}, {{0.0, 0.0, 1.0}}
     };
-    struct vector_st in_point = {0.5, 0.0, 0.5};
-    struct vector_st out_point = {3.5, 0.0, 0.5};
+    struct vector_st in_point = {{0.5, 0.0, 0.5}};
+    struct vector_st out_point = {{3.5, 0.0, 0.5}};
     ck_assert(polygon_point_position(polygon, 6, vertices, &in_point) == ppol_in);
     ck_assert(polygon_point_position(polygon, 6, vertices, &out_point) == ppol_out);
 }

@@ -162,7 +162,7 @@ enum error_code_e mesh_face_add_adajcent_face(
 }
 
 struct face_st invalid_face = {
-    INVALID_INDEX, INVALID_INDEX, INVALID_INDEX};
+    {INVALID_INDEX, INVALID_INDEX, INVALID_INDEX}};
 
 static inline enum error_code_e mesh_face_check(
         struct mesh_st * mesh,
