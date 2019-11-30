@@ -492,9 +492,9 @@ void winding_number_modify(
             /**winding_number);*/
 }
 
-static struct vector_st x = {1.0, 0.0, 0.0};
-static struct vector_st y = {0.0, 1.0, 0.0};
-static struct vector_st z = {0.0, 0.0, 1.0};
+static struct vector_st x = {{1.0, 0.0, 0.0}};
+static struct vector_st y = {{0.0, 1.0, 0.0}};
+static struct vector_st z = {{0.0, 0.0, 1.0}};
 
 enum point_polygon_position_e polygon_point_position(
         _IN size_t * polygon,
@@ -553,8 +553,9 @@ enum point_polygon_position_e polygon_point_position(
     /*printf("%f, %f, %f, %d\n", x_dot, y_dot, z_dot, pp);*/
     int32_t winding_number = 0;
     for(size_t i = 0; i < n_vertices; i++){
-        struct segment_st seg = {
-            vertices[i], vertices[(i+1) % n_vertices]};
+        struct segment_st seg = {{
+            vertices[i], vertices[(i+1) % n_vertices]
+        }};
         winding_number_modify(point, &seg, pp, &winding_number);
     }
     if(winding_number > 0){

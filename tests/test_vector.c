@@ -54,7 +54,9 @@ END_TEST
 
 START_TEST(vector_test_position)
 {
-    struct segment_st seg = {{{1, 0, 0}, {0, 1, 0}}};
+    struct segment_st seg = {{
+        {{1, 0, 0}}, {{0, 1, 0}}
+    }};
     struct vector_st vec = {{0.1, 0.1, 0.0}};
     enum point_position_e pp = vector_position_relative_to_segment(&vec, &seg, pp_xy); 
     ck_assert(pp == pt_left);

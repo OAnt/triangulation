@@ -5,7 +5,10 @@
 #include <private/triangle.h>
 
 static struct triangle_st tr_test = {
-    {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+    {
+        {{1, 0, 0}}, {{0, 1, 0}}, {{0, 0, 1}}
+    }
+};
 
 START_TEST(triangle_classification_above)
 {

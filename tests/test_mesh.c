@@ -15,7 +15,7 @@ START_TEST(test_mesh_add_features){
         ck_assert(index == i);
     }
     size_t index;
-    struct face_st face = {0, 1, 2};
+    struct face_st face = {{0, 1, 2}};
     ck_assert(mesh_add_face(&mesh, face, &index) == ec_no_error);
     ck_assert(index == 0);
     ck_assert(mesh_cleanup(&mesh) == ec_no_error);
@@ -121,9 +121,9 @@ START_TEST(test_mesh_replace_face)
     struct face_st replacement_face = {{0, 1, 3}};
     ck_assert(mesh_replace_face(
                 &mesh, replacement_face, 0) == ec_no_error);
-    struct face_st other_neighbors = {(size_t)-1, (size_t)-1, 0};
+    struct face_st other_neighbors = {{(size_t)-1, (size_t)-1, 0}};
     ck_assert_mem_eq(mesh.neighbors + 1, &other_neighbors, sizeof(struct face_st));
-    struct face_st replacement_neighbors = {1, (size_t)-1, (size_t)-1};
+    struct face_st replacement_neighbors = {{1, (size_t)-1, (size_t)-1}};
     ck_assert_mem_eq(mesh.neighbors, &replacement_neighbors, sizeof(struct face_st));
     ck_assert_mem_eq(mesh.faces, &replacement_face, sizeof(struct face_st));
     mesh_cleanup(&mesh);
