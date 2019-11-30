@@ -565,6 +565,27 @@ enum error_code_e planar_polygon_best_projection(
     return ec_no_error;
 }
 
+static inline enum point_polygon_position_e _polygon_point_position(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _IN struct vector_st * point,
+        _IN enum projection_plane_e pp)
+{
+    int32_t winding_number = 0;
+    for(size_t i = 0; i < n_vertices; i++){
+        struct segment_st seg = {{
+            vertices[i], vertices[(i+1) % n_vertices]
+        }};
+        winding_number_modify(point, &seg, pp, &winding_number);
+    }
+    if(winding_number > 0){
+        return ppol_in;
+    }else{
+        return ppol_out;
+    }
+}
+
 enum point_polygon_position_e polygon_point_position(
         _IN size_t * polygon,
         _IN size_t n_vertices,
@@ -579,18 +600,22 @@ enum point_polygon_position_e polygon_point_position(
     if(planar_polygon_best_projection(
                 polygon, n_vertices, vertices, &pp) != ec_no_error)
         return ppol_out;
-    /*printf("%f, %f, %f, %d\n", x_dot, y_dot, z_dot, pp);*/
-    int32_t winding_number = 0;
-    for(size_t i = 0; i < n_vertices; i++){
-        struct segment_st seg = {{
-            vertices[i], vertices[(i+1) % n_vertices]
-        }};
-        winding_number_modify(point, &seg, pp, &winding_number);
-    }
-    if(winding_number > 0){
-        return ppol_in;
-    }else{
-        return ppol_out;
-    }
+    return _polygon_point_position(
+            polygon, n_vertices, vertices, point, pp);
+}
+
+enum point_polygon_position_e projected_polygon_point_position(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _IN struct vector_st * point,
+        _IN enum projection_plane_e pp)
+{
+    // this functions assumes the polygon is plane
+    // it computes its normal by taking the first
+    // three vertices
+    if(n_vertices <= 2) return ppol_out;
+    return _polygon_point_position(
+            polygon, n_vertices, vertices, point, pp);
 }
 
