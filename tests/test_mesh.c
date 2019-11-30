@@ -184,7 +184,9 @@ START_TEST(test_point_in_non_convex_polygon)
     struct vector_st in_point = {{0.5, 0.0, 0.5}};
     struct vector_st out_point = {{3.5, 0.0, 0.5}};
     ck_assert(polygon_point_position(polygon, 6, vertices, &in_point) == ppol_in);
+    ck_assert(projected_polygon_point_position(polygon, 6, vertices, &in_point, pp_zx) == ppol_in);
     ck_assert(polygon_point_position(polygon, 6, vertices, &out_point) == ppol_out);
+    ck_assert(projected_polygon_point_position(polygon, 6, vertices, &out_point, pp_zx) == ppol_out);
 }
 END_TEST
 
