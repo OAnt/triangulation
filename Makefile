@@ -29,7 +29,7 @@ $(TESTOUT): $(TESTSRC)
 	cc $(TESTS) $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ 
 
 tests_: build $(SOOUT) $(TESTOUT)
-	LD_LIBRARY_PATH=$(SODIR) $(EXTRA_BIN) ./$(TESTOUT)
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(SODIR) $(EXTRA_BIN) ./$(TESTOUT)
 
 clean:
 	rm -rf build
