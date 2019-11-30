@@ -1,4 +1,4 @@
-EXTRA_CFLAGS:=""
+EXTRA_CFLAGS:=
 INCLUDES=-I include
 CFLAGS=-Wall -g -fPIC -x c $(EXTRA_CFLAGS)
 SRCDIR=src
