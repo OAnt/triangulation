@@ -9,6 +9,19 @@
 
 #define INVALID_INDEX (size_t)-1
 
+struct mesh_collector_st{
+    /** Index of the removed face */
+    size_t removed_faces;
+    /** First element of the removed adjacent faces (linked) list */
+    size_t removed_adjacent_faces;
+};
+
+/** Contains private date the user should not care about */
+struct mesh_private_st {
+    struct mesh_collector_st col; /** Collects removed feature so they
+                                    can be reused */
+};
+
 enum error_code_e mesh_cleanup(
         struct mesh_st * mesh)
 {
@@ -32,6 +45,10 @@ enum error_code_e mesh_init(
     if(!mesh) return ec_error;
     // Setting everything to zero for good measure
     memset(mesh, 0, sizeof(struct mesh_st));
+    mesh->private = calloc(1, sizeof(struct mesh_private_st));
+    if(!mesh->private) goto fail_no_priv;
+    mesh->private->col.removed_adjacent_faces = INVALID_INDEX;
+    mesh->private->col.removed_faces = INVALID_INDEX;
     // Initializing arrays, in case of failure going to an
     // error handler that reverts what was done until the error.
     // This assumes that array_new does the same.
@@ -54,17 +71,12 @@ fail_no_neighbors:
     // Only the faces were allocated
 fail_no_vec:
     array_delete(&mesh->faces);
-    // Nothing was allocated yet
 fail_no_faces:
+    free(mesh->private);
+    // Nothing was allocated yet
+fail_no_priv:
     return ec_memory_error;
 }
-
-struct mesh_collector_st{
-    /** Index of the removed face */
-    size_t removed_face;
-    /** First element of the removed adjacent faces (linked) list */
-    size_t removed_adjacent_faces;
-};
 
 static struct mesh_collector_st empty_collector = {
     INVALID_INDEX, INVALID_INDEX};
@@ -193,8 +205,8 @@ static inline enum error_code_e _mesh_add_or_replace_face(
     // features
     size_t face_index;
     // there is a collector and it contains a removed face, using it
-    if(col && col->removed_face != INVALID_INDEX){
-        face_index = col->removed_face;
+    if(col && col->removed_faces != INVALID_INDEX){
+        face_index = col->removed_faces;
     }else{
         if((err = array_resize(&mesh->faces, n_faces + 1)) != ec_no_error)
             goto fail_no_face;
@@ -339,15 +351,15 @@ void mesh_face_remove_topology(
  * the removed items are added to those linked list
  * return nothing
  */
-struct mesh_collector_st mesh_remove_face(
+enum error_code_e mesh_remove_face(
         struct mesh_st * mesh,
         size_t face_index)
 {
-    struct mesh_collector_st col = empty_collector;
+    struct mesh_collector_st * col = &mesh->private->col;
     // checking if the face is already removed (also check if it
     // is out of bounds)
-    if(mesh_face_is_removed(mesh, face_index)) return col;
-    mesh_face_remove_topology(mesh, face_index, &col);
+    if(mesh_face_is_removed(mesh, face_index)) return ec_error;
+    mesh_face_remove_topology(mesh, face_index, col);
     // Removing the face's neighbors, no linked list needed,
     // neighbors index follows face index
     mesh->neighbors[face_index] = invalid_face;
@@ -355,10 +367,10 @@ struct mesh_collector_st mesh_remove_face(
     // erasing the vertices + two INVALID_INDEX marks invalid face
     mesh->neighbors[face_index] = invalid_face;
     // Updating the linked list
-    mesh->neighbors[face_index].f[2] = col.removed_face;
-    mesh->faces[face_index].f[2] = col.removed_face;
-    col.removed_face = face_index;
-    return col;
+    mesh->neighbors[face_index].f[2] = col->removed_faces;
+    mesh->faces[face_index].f[2] = col->removed_faces;
+    col->removed_faces = face_index;
+    return ec_no_error;
 }
 
 enum error_code_e mesh_replace_face(
@@ -368,16 +380,18 @@ enum error_code_e mesh_replace_face(
 {
     size_t _index;
     struct face_st old_face = mesh->faces[index];
-    struct mesh_collector_st col = mesh_remove_face(mesh, index);
-    if(col.removed_face == INVALID_INDEX) return ec_out_of_bound_error;
+    enum error_code_e err = mesh_remove_face(mesh, index);
+    if(err != ec_no_error) return ec_out_of_bound_error;
     else{
-        enum error_code_e err = _mesh_add_or_replace_face(mesh, face, &col, &_index);
+        struct mesh_collector_st * col = &mesh->private->col;
+        enum error_code_e err = _mesh_add_or_replace_face(
+                mesh, face, col, &_index);
         // Putting back the previous face if something failed to ensure there
         // are no border effects. Not doing it in case of memory error because
         // some vertex_face_adjacency objects may not have been collected
         if(err != ec_no_error && err != ec_memory_error){
-            mesh_face_remove_topology(mesh, index, &col);
-            _mesh_add_or_replace_face(mesh, old_face, &col, &_index);
+            mesh_face_remove_topology(mesh, index, col);
+            _mesh_add_or_replace_face(mesh, old_face, col, &_index);
         }
         return err;
     }
