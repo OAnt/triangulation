@@ -1,3 +1,4 @@
+EXTRA_BIN:=
 EXTRA_CFLAGS:=
 INCLUDES=-I include
 CFLAGS=-Wall -g -fPIC -x c $(EXTRA_CFLAGS)
@@ -28,7 +29,7 @@ $(TESTOUT): $(TESTSRC)
 	cc $(TESTS) $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ 
 
 tests_: build $(SOOUT) $(TESTOUT)
-	./$(TESTOUT)
+	LD_LIBRARY_PATH=$(SODIR) $(EXTRA_BIN) ./$(TESTOUT)
 
 clean:
 	rm -rf build
