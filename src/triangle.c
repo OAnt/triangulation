@@ -78,14 +78,15 @@ void vector_three_way_cross_product_bc_first(
     vector_subtraction(&scaled_b, &scaled_c, out);
 }
 
-/* 
- * computation taken form wikipedia:
- * https://en.wikipedia.org/wiki/Circumscribed_circle
- */
 enum error_code_e triangle_compute_circumcircle_center(
         struct triangle_st * tr,
         struct vector_st * cc_center)
 {
+#if 1 // either I made a mistake and can't find it or it is wrong
+    /* 
+     * computation taken form wikipedia:
+     * https://en.wikipedia.org/wiki/Circumscribed_circle
+     */
     // tr is considered the ABC triangle
     // offset by - C
     //compute a = A - C;
@@ -95,7 +96,7 @@ enum error_code_e triangle_compute_circumcircle_center(
     //compute b = B - C;
     struct vector_st b;
     vector_subtraction(tr->t + 1, tr->t + 2, &b);
-    double sq_b_len = vector_dot_product(&a, &a);
+    double sq_b_len = vector_dot_product(&b, &b);
     // computing ||b|| * ||b|| x a
     struct vector_st scaled_a;
     vector_scale_by_scalar(&a, sq_b_len, &scaled_a);
@@ -123,6 +124,29 @@ enum error_code_e triangle_compute_circumcircle_center(
     // offsetting by C we all computations had an offset of -C
     vector_addition(&relative_cc_center, tr->t + 2, cc_center);
     return ec_no_error;
+#else
+    struct vector_st ac, ab;
+    vector_subtraction(tr->t + 2, tr->t, &ac);
+    vector_subtraction(tr->t + 1, tr->t, &ab);
+    struct vector_st ab_x_ac;
+    vector_cross_product(&ab, &ac, &ab_x_ac);
+    struct vector_st ab_x_ac__x__ab;
+    vector_cross_product(&ab_x_ac, &ab, &ab_x_ac__x__ab);
+    struct vector_st ac__x__ab_x_ac;
+    vector_cross_product(&ab_x_ac, &ac, &ac__x__ab_x_ac);
+    double sq_ac_len, sq_ab_len;
+    sq_ac_len = vector_dot_product(&ac, &ac);
+    vector_scale_by_scalar(&ab_x_ac__x__ab, sq_ac_len, &ab_x_ac__x__ab);
+    sq_ab_len = vector_dot_product(&ab, &ab);
+    vector_scale_by_scalar(&ac__x__ab_x_ac, sq_ab_len, &ac__x__ab_x_ac);
+    struct vector_st numerator;
+    vector_addition(&ab_x_ac__x__ab, &ac__x__ab_x_ac, &numerator);
+    double denom = 2.0 * vector_dot_product(&ab_x_ac, &ab_x_ac);
+    if (denom < EPSILON) return ec_div_by_zero_error;
+    vector_scale_by_scalar(&numerator, 1 / denom, cc_center);
+    vector_addition(cc_center, tr->t, cc_center);
+    return ec_no_error;
+#endif
 }
 
 
