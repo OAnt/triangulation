@@ -39,11 +39,42 @@ START_TEST(test_triangulation_is_clean)
 }
 END_TEST
 
+START_TEST(test_triangulation_on_duplicated)
+{
+    struct mesh_st mesh = generate_pointcloud_2d();
+    mesh.vertices[5] = mesh.vertices[4];
+    enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
+    ck_assert_int_eq(err, ec_no_error);
+    mesh_cleanup(&mesh);
+}
+END_TEST
+
+START_TEST(test_triangulation_on_invalid_mesh)
+{
+    struct mesh_st mesh;
+    mesh_init(&mesh);
+    struct vector_st v0 = {{0.0, 0.0, 0.0}};
+    mesh_add_vertex(&mesh, v0, NULL);
+    struct vector_st v1 = {{1.0, 0.0, 0.0}};
+    mesh_add_vertex(&mesh, v1, NULL);
+    ck_assert_int_eq(mesh_delaunay_triangulation(&mesh, pp_xy),
+            ec_topology_error);
+    struct vector_st v2 = {{1.0, 1.0, 0.0}};
+    mesh_add_vertex(&mesh, v2, NULL);
+    struct face_st f = {{0, 1, 2}};
+    mesh_add_face(&mesh, f, NULL);
+    ck_assert_int_eq(mesh_delaunay_triangulation(&mesh, pp_xy),
+            ec_out_of_bound_error);
+}
+END_TEST
+
 Suite * mk_delaunay_suite(void){
     Suite * s = suite_create("Delaunay");
     TCase * tc = tcase_create(
             "Delaunay");
     tcase_add_test(tc, test_triangulation_is_clean);
+    tcase_add_test(tc, test_triangulation_on_duplicated);
+    tcase_add_test(tc, test_triangulation_on_invalid_mesh);
     suite_add_tcase(s, tc);
     return s;
 }
