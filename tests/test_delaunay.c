@@ -1,7 +1,8 @@
-#include "public/mesh.h"
-#include <check.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <check.h>
+#include "public/mesh.h"
 #include <private/delaunay_triangulation.h>
 #include <private/array.h>
 
@@ -11,7 +12,9 @@ struct mesh_st generate_pointcloud_2d(void)
 {
     struct mesh_st mesh;
     mesh_init(&mesh);
-    unsigned int state = time(NULL);
+    /*unsigned int state = time(NULL);*/
+    /*printf("%d\n", state);*/
+    unsigned int state = 1575405021;
     double range = 10.0;
     for(int32_t i = 0; i < N_VERTEX; i++){
         struct vector_st v = {{
