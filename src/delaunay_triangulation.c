@@ -1,3 +1,4 @@
+#include <float.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -163,19 +164,6 @@ void mesh_super_triangle_cleanup(
     array_resize(&mesh->vertices, n_vertices - 3);
 }
 
-static struct vector_st infinite_vertices_xy[FACE_SIZE] = {
-    {{-1.0, -1.0, 0.0}}, {{50.0, -1.0, 0.0}},
-    {{0.0, 50.0, 0.0}}
-};
-static struct vector_st infinite_vertices_yz[FACE_SIZE] = {
-    {{0.0, -1.0, -1.0}}, {{0.0, 50.0, -1.0}},
-    {{0.0, 0.0, 50.0}}
-};
-static struct vector_st infinite_vertices_zx[FACE_SIZE] = {
-    {{-1.0, 0.0, -1.0}}, {{-1.0, 0.0, 50.0}},
-    {{50.0, 0.0, 0.0}}
-};
-
 enum error_code_e mesh_delaunay_triangulation(
         struct mesh_st * mesh,
         enum projection_plane_e pp)
@@ -184,13 +172,37 @@ enum error_code_e mesh_delaunay_triangulation(
     if(n_vertices < 3) return ec_topology_error;
     if(array_length(mesh->faces) != 0) return ec_out_of_bound_error;
     // Initializing super triangle
-    struct vector_st * infinite_vertices;
+    struct vector_st min = {DBL_MAX, DBL_MAX, DBL_MAX};
+    struct vector_st max = {-DBL_MAX, -DBL_MAX, -DBL_MAX};
+    for(size_t v = 0; v < n_vertices; v++){
+        for(int32_t i = 0; i < 3; i++){
+            if(mesh->vertices[v].point.v[i] > max.v[i])
+                max.v[i] = mesh->vertices[v].point.v[i];
+            if(mesh->vertices[v].point.v[i] < min.v[i])
+                min.v[i] = mesh->vertices[v].point.v[i];
+        }
+    }
+    struct vector_st sizes = {
+        {max.v[0] - min.v[0], max.v[1] - min.v[1], max.v[2] - min.v[2]}
+    };
+    struct triangle_st infinite_vertices;
+    memset(&infinite_vertices, 0, sizeof(struct triangle_st));
+    double safe_offset = 1.0;
+    infinite_vertices.t[0].v[0] = - safe_offset;
+    infinite_vertices.t[0].v[1] = - safe_offset;
+    infinite_vertices.t[0].v[2] = - safe_offset;
     if(pp == pp_xy){
-        infinite_vertices = infinite_vertices_xy;
+        double side_len = sizes.v[0] + sizes.v[1] + safe_offset;
+        infinite_vertices.t[1].v[0] = side_len;
+        infinite_vertices.t[2].v[1] = side_len;
     }else if(pp == pp_yz){
-        infinite_vertices = infinite_vertices_yz;
+        double side_len = sizes.v[1] + sizes.v[2] + safe_offset;
+        infinite_vertices.t[1].v[1] = side_len;
+        infinite_vertices.t[2].v[2] = side_len;
     }else if(pp == pp_zx){
-        infinite_vertices = infinite_vertices_zx;
+        double side_len = sizes.v[0] + sizes.v[2] + safe_offset;
+        infinite_vertices.t[1].v[0] = side_len;
+        infinite_vertices.t[2].v[2] = side_len;
     }else{
         return ec_out_of_bound_error;
     }
@@ -200,7 +212,7 @@ enum error_code_e mesh_delaunay_triangulation(
     struct face_st super_triangle;
     for(int32_t i = 0; i < FACE_SIZE; i++){
         err = mesh_add_vertex(
-                mesh, infinite_vertices[i], &super_triangle.f[i]);
+                mesh, infinite_vertices.t[i], &super_triangle.f[i]);
         if(err != ec_no_error) goto failure;
     }
     mesh_add_face(mesh, super_triangle, NULL);
