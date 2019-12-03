@@ -39,19 +39,6 @@ enum error_code_e face_stack_pop(face_stack_t * s, struct quad_st * v){
     return ec_no_error;
 }
 
-bool is_super_face(
-        struct mesh_st * mesh,
-        size_t face_index)
-{
-    size_t n_vertices = array_length(mesh->vertices) - 3;
-    for(int32_t i = 0; i < FACE_SIZE; i++){
-        if(mesh->faces[face_index].f[i] >= n_vertices){
-            return true;
-        }
-    }
-    return false;
-}
-
 enum error_code_e insert_vertex_in_triangulation(
         struct mesh_st * mesh,
         size_t vertex_index,
@@ -129,6 +116,19 @@ enum error_code_e insert_vertex_in_triangulation(
 failure:
     face_stack_cleanup(&face_stack);
     return err;
+}
+
+bool is_super_face(
+        struct mesh_st * mesh,
+        size_t face_index)
+{
+    size_t n_vertices = array_length(mesh->vertices) - 3;
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        if(mesh->faces[face_index].f[i] >= n_vertices){
+            return true;
+        }
+    }
+    return false;
 }
 
 void mesh_rewind(
