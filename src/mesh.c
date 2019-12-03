@@ -8,8 +8,6 @@
 #include <private/mesh.h>
 
 struct mesh_collector_st{
-    /** Index of the removed face */
-    size_t removed_faces;
     /** First element of the removed adjacent faces (linked) list */
     size_t removed_adjacent_faces;
 };
@@ -46,7 +44,6 @@ enum error_code_e mesh_init(
     mesh->private = calloc(1, sizeof(struct mesh_private_st));
     if(!mesh->private) goto fail_no_priv;
     mesh->private->col.removed_adjacent_faces = INVALID_INDEX;
-    mesh->private->col.removed_faces = INVALID_INDEX;
     // Initializing arrays, in case of failure going to an
     // error handler that reverts what was done until the error.
     // This assumes that array_new does the same.
@@ -74,15 +71,6 @@ fail_no_faces:
     // Nothing was allocated yet
 fail_no_priv:
     return ec_memory_error;
-}
-
-static struct mesh_collector_st empty_collector = {
-    INVALID_INDEX, INVALID_INDEX};
-
-void mesh_collector_init(
-        struct mesh_collector_st * col)
-{
-    *col = empty_collector;
 }
 
 enum error_code_e mesh_vertex_add_adjacent_face(
@@ -218,20 +206,14 @@ static inline enum error_code_e _mesh_add_or_replace_face(
         return err;
     // Resizing both the array, now they can hold the correct number of
     // features
-    size_t next_faces_index = INVALID_INDEX;
     size_t face_index;
     // there is a collector and it contains a removed face, using it
-    if(col && col->removed_faces != INVALID_INDEX){
-        face_index = col->removed_faces;
-        next_faces_index = mesh->faces[face_index].f[2];
-    }else{
-        if((err = array_resize(&mesh->faces, n_faces + 1)) != ec_no_error)
-            goto fail_no_face;
-        if((err = array_resize(&mesh->neighbors, n_faces + 1)) != 
-                ec_no_error)
-            goto fail_no_neighbors;
-        face_index = n_faces;
-    }
+    if((err = array_resize(&mesh->faces, n_faces + 1)) != ec_no_error)
+        goto fail_no_face;
+    if((err = array_resize(&mesh->neighbors, n_faces + 1)) != 
+            ec_no_error)
+        goto fail_no_neighbors;
+    face_index = n_faces;
     // appending the face and returns its index
     mesh->faces[face_index] = face;
     mesh->neighbors[face_index] = invalid_face;
@@ -239,9 +221,6 @@ static inline enum error_code_e _mesh_add_or_replace_face(
     err = mesh_face_add_topology(mesh, face_index, col);
     if(err != ec_no_error) goto fail_no_adj;
     if(index) *index = face_index;
-    if(col && col->removed_faces != INVALID_INDEX){
-        col->removed_faces = next_faces_index;
-    }
     return ec_no_error;
 fail_no_adj:
     array_resize(&mesh->vertex_adjacent_faces, n_adj);
