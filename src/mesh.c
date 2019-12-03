@@ -309,7 +309,8 @@ void mesh_face_remove_from_vertex_adjacent_faces(
         size_t vertex_index,
         struct mesh_collector_st * col)
 {
-    if(vertex_index == INVALID_INDEX) return;
+    if(vertex_index == INVALID_INDEX)
+        return;
     size_t next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
     size_t * previous_adj_index = 
@@ -455,8 +456,6 @@ enum error_code_e mesh_swap_edge(
     mesh->neighbors[face_index_0] = invalid_face;
     mesh->faces[face_index_1] = new_face_1;
     mesh->neighbors[face_index_1] = invalid_face;
-    /*print_face(&new_face_0, face_index_0);*/
-    /*print_face(&new_face_1, face_index_1);*/
     enum error_code_e err = ec_no_error;
     if((err = mesh_face_add_topology(
                     mesh, face_index_0, &mesh->private->col)) != ec_no_error)
@@ -472,21 +471,30 @@ enum error_code_e mesh_replace_face(
         struct face_st face,
         size_t index)
 {
-    size_t _index;
+    enum error_code_e err;
+    if(mesh_face_is_removed(mesh, index)){
+        return ec_out_of_bound_error;
+    }
+    if((err = mesh_face_check(mesh, face)) != ec_no_error){
+        return err;
+    }
     struct face_st old_face = mesh->faces[index];
-    enum error_code_e err = mesh_remove_face(mesh, index);
-    if(err != ec_no_error) return ec_out_of_bound_error;
-    else{
-        struct mesh_collector_st * col = &mesh->private->col;
-        enum error_code_e err = _mesh_add_or_replace_face(
-                mesh, face, col, &_index);
+    mesh_face_remove_topology(mesh, index, &mesh->private->col);
+    mesh->faces[index] = face;
+    mesh->neighbors[index] = invalid_face;
+    err = mesh_face_add_topology(
+                    mesh, index, &mesh->private->col);
+    if(err != ec_no_error && err != ec_memory_error)
+    {
         // Putting back the previous face if something failed to ensure there
         // are no border effects. Not doing it in case of memory error because
         // some vertex_face_adjacency objects may not have been collected
-        if(err != ec_no_error && err != ec_memory_error){
-            mesh_face_remove_topology(mesh, index, col);
-            _mesh_add_or_replace_face(mesh, old_face, col, &_index);
-        }
+        mesh_face_remove_topology(mesh, index, &mesh->private->col);
+        mesh->faces[index] = old_face;
+        mesh->neighbors[index] = invalid_face;
+        mesh_face_add_topology(mesh, index, &mesh->private->col);
+        return err;
+    }else{
         return err;
     }
 }
