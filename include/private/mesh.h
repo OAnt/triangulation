@@ -5,6 +5,8 @@
 #include <private/vector.h>
 #include <public/mesh.h>
 
+#define INVALID_INDEX (size_t)-20
+
 #define FACE_SIZE 3
 
 /**
@@ -102,6 +104,20 @@ enum error_code_e mesh_replace_face(
  */
 struct face_st mesh_pop_face(
         _IN struct mesh_st * mesh);
+
+/**
+ * Swaps the edge between two faces. On success this function guarantees
+ * that the vertex on face_index_0 that is not part of the edge between
+ * the faces is third in the resulting faces vertices list.
+ * param mesh Mesh the faces belong to.
+ * param face_index_0 A face to swap.
+ * param face_index_1 Second face to swap, faces must be adjacent.
+ * return ec_no_error on success.
+ */
+enum error_code_e mesh_swap_edge(
+        struct mesh_st * mesh,
+        size_t face_index_0,
+        size_t face_index_1);
 
 /**
  * Adds a vertex to the mesh.

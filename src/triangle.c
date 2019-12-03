@@ -97,17 +97,20 @@ enum error_code_e triangle_compute_circumcircle_center(
     struct vector_st b;
     vector_subtraction(tr->t + 1, tr->t + 2, &b);
     double sq_b_len = vector_dot_product(&b, &b);
-    // computing ||b|| * ||b|| x a
-    struct vector_st scaled_a;
-    vector_scale_by_scalar(&a, sq_b_len, &scaled_a);
     // computing ||a|| * ||a|| x b
     struct vector_st scaled_b;
     vector_scale_by_scalar(&b, sq_a_len, &scaled_b);
+    // computing ||b|| * ||b|| x a
+    struct vector_st scaled_a;
+    vector_scale_by_scalar(&a, sq_b_len, &scaled_a);
     // computing ||a|| * ||a|| x b - ||b|| * ||b|| x a
     struct vector_st scaled_diff;
     vector_subtraction(&scaled_b, &scaled_a, &scaled_diff);
     //computing (||a|| * ||a|| x b - ||b|| * ||b|| x a) x (a x b)
     struct vector_st unscaled_direction;
+    /*struct vector_st a_x_b;*/
+    /*vector_cross_product(&a, &b, &a_x_b);*/
+    /*vector_cross_product(&scaled_diff, &a_x_b, &unscaled_direction);*/
     vector_three_way_cross_product_bc_first(
             &scaled_diff, &a, &b, &unscaled_direction);
     // computing 2 * ||a x b|| * ||a x b||
@@ -115,12 +118,13 @@ enum error_code_e triangle_compute_circumcircle_center(
     double ab_dot_product = vector_dot_product(&a, &b);
     double sq_ab_cross_prdt_len = sq_a_len * sq_b_len - \
                                   ab_dot_product * ab_dot_product;
+    /*double sq_ab_cross_prdt_len = vector_dot_product(&a_x_b, &a_x_b);*/
     double denom = 2 * sq_ab_cross_prdt_len;
-    if(denom == 0.0) return ec_div_by_zero_error;
+    if(denom < EPSILON) return ec_div_by_zero_error;
     // computing the relative cc center
     struct vector_st relative_cc_center;
     vector_scale_by_scalar(
-            &unscaled_direction, 1 / denom, &relative_cc_center);
+            &unscaled_direction, 1.0 / denom, &relative_cc_center);
     // offsetting by C we all computations had an offset of -C
     vector_addition(&relative_cc_center, tr->t + 2, cc_center);
     return ec_no_error;

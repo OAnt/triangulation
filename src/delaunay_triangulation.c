@@ -1,11 +1,56 @@
-#include <float.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
 #include <private/array.h>
 #include <private/mesh.h>
 #include <public/common.h>
+#include <private/triangle.h>
 #include <private/delaunay_triangulation.h>
+
+struct quad_st{
+    size_t face_index_0;
+    size_t face_index_1;
+};
+
+typedef struct quad_st * face_stack_t;
+
+enum error_code_e face_stack_init(face_stack_t * s){
+    return array_new(struct quad_st, 0, s);
+}   
+
+void face_stack_cleanup(face_stack_t * s){
+    array_delete(s);
+}
+
+enum error_code_e face_stack_push(face_stack_t * s, struct quad_st v){
+    size_t n = array_length(*s);
+    enum error_code_e err = array_resize(s, n + 1);
+    if(err != ec_no_error) return err;
+    (*s)[n] = v;
+    return ec_no_error;
+}
+
+enum error_code_e face_stack_pop(face_stack_t * s, struct quad_st * v){
+    size_t n = array_length(*s);
+    if(n == 0) return ec_error;
+    n -= 1;
+    *v = (*s)[n];
+    array_resize(s, n);
+    return ec_no_error;
+}
+
+bool is_super_face(
+        struct mesh_st * mesh,
+        size_t face_index)
+{
+    size_t n_vertices = array_length(mesh->vertices) - 3;
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        if(mesh->faces[face_index].f[i] >= n_vertices){
+            return true;
+        }
+    }
+    return false;
+}
 
 enum error_code_e insert_vertex_in_triangulation(
         struct mesh_st * mesh,
@@ -33,20 +78,57 @@ enum error_code_e insert_vertex_in_triangulation(
                 mesh, new_triangles[i], new_face_indexes + i);
         if(err != ec_no_error) return err;
     }
-    return ec_no_error;
-}
-
-bool is_super_face(
-        struct mesh_st * mesh,
-        size_t face_index)
-{
-    size_t n_vertices = array_length(mesh->vertices) - 3;
-    for(int32_t i = 0; i < FACE_SIZE; i++){
-        if(mesh->faces[face_index].f[i] >= n_vertices){
-            return true;
+    face_stack_t face_stack;
+    err = face_stack_init(&face_stack);
+    if(err != ec_no_error) goto failure;
+    for(int32_t i = 0; i < 3; i++){
+        size_t face = new_face_indexes[i];
+        // The position of the new vertex is the same in all faces
+        // the opposite face is at the fixed offset 0
+        if(mesh->neighbors[face].f[0] != INVALID_INDEX){
+            struct quad_st quad = {face, mesh->neighbors[face].f[0]};
+            err = face_stack_push(&face_stack, quad);
+            if(err != ec_no_error) goto failure;
         }
     }
-    return false;
+    struct quad_st quad;
+    while(face_stack_pop(&face_stack, &quad) == ec_no_error){
+        struct face_st * face = &mesh->faces[quad.face_index_1];
+        struct triangle_st tr = {{
+            mesh->vertices[face->f[0]].point,
+            mesh->vertices[face->f[1]].point,
+            mesh->vertices[face->f[2]].point,
+        }};
+        struct vector_st cc_center, cc_to_vertex, cc_to_triangle_vertex;
+        err = triangle_compute_circumcircle_center(&tr, &cc_center);
+        if(err != ec_no_error) return err;
+        vector_subtraction(tr.t, &cc_center, &cc_to_triangle_vertex);
+        double sq_cc_radius = vector_dot_product(
+                &cc_to_triangle_vertex, &cc_to_triangle_vertex);
+        vector_subtraction(&point, &cc_center, &cc_to_vertex);
+        double sq_dist = vector_dot_product(&cc_to_vertex, &cc_to_vertex);
+        if(sq_dist < sq_cc_radius){
+            // swap make sure that the vertex we are inserting is 
+            // still in third position
+            err = mesh_swap_edge(mesh, quad.face_index_0, quad.face_index_1);
+            if(err != ec_no_error) break;
+            if(mesh->neighbors[quad.face_index_0].f[0] != INVALID_INDEX){
+                struct quad_st quad_0 = {quad.face_index_0,
+                    mesh->neighbors[quad.face_index_0].f[0]};
+                err = face_stack_push(&face_stack, quad_0);
+                if(err != ec_no_error) break;
+            }
+            if(mesh->neighbors[quad.face_index_1].f[0] != INVALID_INDEX){
+                struct quad_st quad_1 = {quad.face_index_1,
+                    mesh->neighbors[quad.face_index_1].f[0]};
+                err = face_stack_push(&face_stack, quad_1);
+                if(err != ec_no_error) break;
+            }
+        }
+    }
+failure:
+    face_stack_cleanup(&face_stack);
+    return err;
 }
 
 void mesh_rewind(
@@ -82,16 +164,16 @@ void mesh_super_triangle_cleanup(
 }
 
 static struct vector_st infinite_vertices_xy[FACE_SIZE] = {
-    {{-1000000.0, -1000000.0, 0.0}}, {{1000000.0, -1000000.0, 0.0}},
-    {{0.0, 1000000.0, 0.0}}
+    {{-1.0, -1.0, 0.0}}, {{50.0, -1.0, 0.0}},
+    {{0.0, 50.0, 0.0}}
 };
 static struct vector_st infinite_vertices_yz[FACE_SIZE] = {
-    {{0.0, -1000000.0, -1000000.0}}, {{0.0, 1000000.0, -1000000.0}},
-    {{0.0, 0.0, 1000000.0}}
+    {{0.0, -1.0, -1.0}}, {{0.0, 50.0, -1.0}},
+    {{0.0, 0.0, 50.0}}
 };
 static struct vector_st infinite_vertices_zx[FACE_SIZE] = {
-    {{-1000000.0, 0.0, -1000000.0}}, {{-1000000.0, 0.0, 1000000.0}},
-    {{1000000.0, 0.0, 0.0}}
+    {{-1.0, 0.0, -1.0}}, {{-1.0, 0.0, 50.0}},
+    {{50.0, 0.0, 0.0}}
 };
 
 enum error_code_e mesh_delaunay_triangulation(

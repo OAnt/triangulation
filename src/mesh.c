@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -6,8 +7,6 @@
 #include <private/vector.h>
 #include <private/array.h>
 #include <private/mesh.h>
-
-#define INVALID_INDEX (size_t)-1
 
 struct mesh_collector_st{
     /** Index of the removed face */
@@ -296,6 +295,7 @@ void mesh_face_remove_from_neigbhors(
         size_t face_index,
         size_t neighbor_index)
 {
+    if(neighbor_index == INVALID_INDEX) return;
     for(int32_t i = 0; i < FACE_SIZE; i++){
         if(mesh->neighbors[neighbor_index].f[i] == face_index){
             mesh->neighbors[neighbor_index].f[i] = INVALID_INDEX;
@@ -309,6 +309,7 @@ void mesh_face_remove_from_vertex_adjacent_faces(
         size_t vertex_index,
         struct mesh_collector_st * col)
 {
+    if(vertex_index == INVALID_INDEX) return;
     size_t next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
     size_t * previous_adj_index = 
@@ -399,7 +400,6 @@ enum error_code_e mesh_remove_face(
     if(err == ec_no_error){
         struct mesh_collector_st * col = &mesh->private->col;
         // Updating the linked list
-        mesh->neighbors[face_index].f[2] = col->removed_faces;
         mesh->faces[face_index].f[2] = col->removed_faces;
         col->removed_faces = face_index;
         return ec_no_error;
@@ -420,6 +420,51 @@ struct face_st mesh_pop_face(
     array_resize(&mesh->faces, n_faces - 1);
     array_resize(&mesh->neighbors, n_faces - 1);
     return last_face;
+}
+
+enum error_code_e mesh_swap_edge(
+        struct mesh_st * mesh,
+        size_t face_index_0,
+        size_t face_index_1)
+{
+    int32_t edge_offset_0 = -1, edge_offset_1 = -1;
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        if(mesh->neighbors[face_index_0].f[i] == face_index_1){
+            edge_offset_0 = i;
+        }
+        if(mesh->neighbors[face_index_1].f[i] == face_index_0){
+            edge_offset_1 = i;
+        }
+    }
+    if(edge_offset_0 == -1 || edge_offset_1 == -1) return ec_error;
+    mesh_face_remove_topology(mesh, face_index_0, &mesh->private->col);
+    mesh_face_remove_topology(mesh, face_index_1, &mesh->private->col);
+    int32_t new_edge_offset_0 = (edge_offset_0 + 2) % FACE_SIZE;
+    int32_t new_edge_offset_1 = (edge_offset_1 + 2) % FACE_SIZE;
+    struct face_st new_face_0 = {{
+        mesh->faces[face_index_0].f[edge_offset_0],
+        mesh->faces[face_index_1].f[new_edge_offset_1],
+        mesh->faces[face_index_0].f[new_edge_offset_0],
+    }};
+    struct face_st new_face_1 = {{
+        mesh->faces[face_index_1].f[new_edge_offset_1],
+        mesh->faces[face_index_1].f[edge_offset_1],
+        mesh->faces[face_index_0].f[new_edge_offset_0],
+    }};
+    mesh->faces[face_index_0] = new_face_0;
+    mesh->neighbors[face_index_0] = invalid_face;
+    mesh->faces[face_index_1] = new_face_1;
+    mesh->neighbors[face_index_1] = invalid_face;
+    /*print_face(&new_face_0, face_index_0);*/
+    /*print_face(&new_face_1, face_index_1);*/
+    enum error_code_e err = ec_no_error;
+    if((err = mesh_face_add_topology(
+                    mesh, face_index_0, &mesh->private->col)) != ec_no_error)
+            return err;
+    if((err = mesh_face_add_topology(
+                    mesh, face_index_1, &mesh->private->col)) != ec_no_error)
+            return err;
+    return err;
 }
 
 enum error_code_e mesh_replace_face(

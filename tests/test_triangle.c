@@ -9,6 +9,11 @@ static struct triangle_st tr_test = {
         {{1, 0, 0}}, {{0, 1, 0}}, {{0, 0, 1}}
     }
 };
+static struct triangle_st tr_test2 = {
+    {
+        {{9.845242, 8.990467, 0.000000}}, {{2.772597, 9.037801, 0.000000}}, {{8.317162, 6.549212, 0.000000}}
+    }
+};
 
 START_TEST(triangle_classification_above)
 {
@@ -40,22 +45,23 @@ END_TEST
 
 START_TEST(triangle_compute_circumcenter_test)
 {
-    struct plane_st p = {{1, 1, 1, 1}};
+    struct plane_st p = {{0, 0, 1, 0}};
+    /*struct plane_st p = {{1, 1, 1, 1}};*/
     struct vector_st v = {{10, 10, 10}};
-    ck_assert(triangle_compute_circumcircle_center(&tr_test, &v) ==
+    ck_assert(triangle_compute_circumcircle_center(&tr_test2, &v) ==
             ec_no_error);
     ck_assert_double_eq(plane_vector_classify(&p, &v), 0.0);
     struct vector_st cc_center_to_corner_0, \
         cc_center_to_corner_1, cc_center_to_corner_2;
-    vector_subtraction(tr_test.t, &v, &cc_center_to_corner_0);
+    vector_subtraction(tr_test2.t, &v, &cc_center_to_corner_0);
     double sq_dist_0 = vector_dot_product(
            &cc_center_to_corner_0,
            &cc_center_to_corner_0);
-    vector_subtraction(tr_test.t + 1, &v, &cc_center_to_corner_1);
+    vector_subtraction(tr_test2.t + 1, &v, &cc_center_to_corner_1);
     double sq_dist_1 = vector_dot_product(
            &cc_center_to_corner_1,
            &cc_center_to_corner_1);
-    vector_subtraction(tr_test.t + 2, &v, &cc_center_to_corner_2);
+    vector_subtraction(tr_test2.t + 2, &v, &cc_center_to_corner_2);
     double sq_dist_2 = vector_dot_product(
            &cc_center_to_corner_2,
            &cc_center_to_corner_2);

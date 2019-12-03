@@ -27,10 +27,11 @@ struct mesh_st generate_pointcloud_2d(void)
 START_TEST(test_triangulation_is_clean)
 {
     struct mesh_st mesh = generate_pointcloud_2d();
-    ck_assert_int_eq(mesh_delaunay_triangulation(&mesh, pp_xy), ec_no_error);
-    ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
-    ck_assert_int_lt(array_length(mesh.faces), 1000000);
+    enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
+    ck_assert_int_lt(array_length(mesh.faces), 10000);
     mesh_export_stlb(&mesh, "build/tri.stl");
+    ck_assert_int_eq(err, ec_no_error);
+    ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
     mesh_cleanup(&mesh);
 }
 END_TEST
