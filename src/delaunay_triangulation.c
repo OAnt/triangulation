@@ -132,32 +132,17 @@ bool is_super_face(
     return false;
 }
 
-void mesh_rewind(
-        struct mesh_st * mesh,
-        size_t * _index)
-{
-    size_t index = *_index;
-    for(; index > 0; index--){
-        if(!is_super_face(mesh, index)) break;
-    }
-    array_resize(&mesh->faces, index + 1);
-    *_index = index;
-}
-
 void mesh_super_triangle_cleanup(
         struct mesh_st * mesh)
 {
-    size_t decr_index = array_length(mesh->faces) - 1;
-    for(size_t index = 0; index < array_length(mesh->faces); index++){
-        if(index == decr_index) break;
+    size_t index = array_length(mesh->faces) - 1;
+    while(1){
         if(is_super_face(mesh, index)){
-            mesh_rewind(mesh, &decr_index);
-            struct face_st face;
-            mesh_pop_face(mesh, &face);
-            decr_index--;
-            mesh_replace_face(mesh, face, index);
+            mesh_remove_face(mesh, index);
         }
-    }
+        if(index == 0) break;
+        else index--;
+    };
     size_t n_vertices = array_length(mesh->vertices);
     // all the adjacent faces have been removed, the vertex are isolated
     // feature, rewinding the vertex array will finish the
