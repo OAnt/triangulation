@@ -192,6 +192,19 @@ START_TEST(test_pop_face)
     mesh_cleanup(&mesh);
 }
 
+START_TEST(test_remove_face)
+{
+    struct mesh_st mesh = create_cube_mesh();
+    mesh_remove_face(&mesh, 0);
+    ck_assert_int_eq(array_length(mesh.faces), 11);
+    ck_assert_int_eq(array_length(mesh.neighbors), 11);
+    for(int32_t i = 0; i < 11; i++){
+        ck_assert_int_eq(mesh_remove_face(&mesh, 0), ec_no_error);
+    }
+    ck_assert_int_eq(mesh_remove_face(&mesh, 0), ec_error);
+    mesh_cleanup(&mesh);
+}
+
 START_TEST(test_point_in_polygon)
 {
     size_t polygon[] = {0, 1, 2, 3};
@@ -231,6 +244,7 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tc, test_mesh_add_face_fails);
     tcase_add_test(tc, test_mesh_replace_face);
     tcase_add_test(tc, test_pop_face);
+    tcase_add_test(tc, test_remove_face);
     tcase_add_test(tc, test_mesh_replace_no_border_effects);
     tcase_add_test(tc, test_mesh_replace_no_border_effects2);
     tcase_add_test(tc, test_mesh_enclosing_triangular_face);

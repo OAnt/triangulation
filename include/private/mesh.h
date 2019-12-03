@@ -80,7 +80,6 @@ enum error_code_e mesh_add_face(
         _IN struct face_st face,
         _OUT size_t * index);
 
-
 /**
  * Replaces the face at index by the given one. Vertices must
  * be inserted beforehand.
@@ -106,6 +105,19 @@ enum error_code_e mesh_replace_face(
 enum error_code_e mesh_pop_face(
         _IN struct mesh_st * mesh,
         _OUT struct face_st * face);
+
+/**
+ * Removes a face from a mesh. This does not free any memory.
+ * instead, it swaps the last face with the face to delete and
+ * forget about it.
+ * param mesh Mesh from which a face will be removed.
+ * param face_index Index of the face to remove.
+ * return ec_no_error on success. It returns an error the face
+ * can't be removed (because it is not in the mesh)
+ */
+enum error_code_e mesh_remove_face(
+        _IN struct mesh_st * mesh,
+        _IN size_t face_index);
 
 /**
  * Swaps the edge between two faces. On success this function guarantees
