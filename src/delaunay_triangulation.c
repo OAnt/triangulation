@@ -152,7 +152,8 @@ void mesh_super_triangle_cleanup(
         if(index == decr_index) break;
         if(is_super_face(mesh, index)){
             mesh_rewind(mesh, &decr_index);
-            struct face_st face = mesh_pop_face(mesh);
+            struct face_st face;
+            mesh_pop_face(mesh, &face);
             decr_index--;
             mesh_replace_face(mesh, face, index);
         }

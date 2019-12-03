@@ -377,49 +377,48 @@ enum error_code_e _mesh_remove_face(
     return ec_no_error;
 }
 
-/**
- * Removes a face from a mesh. This does not free any memory,
- * instead, faces are marked as available for reuse.
- * This is not even of the private api. The reason is,
- * I want the faces and vertices to be contiguous.
- * This function breaks this behavior. A face
- * should not be removed unless it is replaced in the
- * same public function call.
- * param mesh Mesh from which a face will be removed.
- * param face_index Index of the face to remove.
- * param col Contains the heads of the various linked list of removed objects
- * the removed items are added to those linked list
- * return nothing
- */
-enum error_code_e mesh_remove_face(
+enum error_code_e mesh_pop_face(
         struct mesh_st * mesh,
-        size_t face_index)
-{
-    enum error_code_e err = _mesh_remove_face(
-            mesh, face_index);
-    if(err == ec_no_error){
-        struct mesh_collector_st * col = &mesh->private->col;
-        // Updating the linked list
-        mesh->faces[face_index].f[2] = col->removed_faces;
-        col->removed_faces = face_index;
-        return ec_no_error;
-    }else{
-        return err;
-    }
-}
-
-struct face_st mesh_pop_face(
-        struct mesh_st * mesh)
+        struct face_st * face) 
 {
     size_t n_faces = array_length(mesh->faces);
-    struct face_st last_face = mesh->faces[n_faces - 1];
+    if(n_faces == 0) return ec_out_of_bound_error;
+    *face = mesh->faces[n_faces - 1];
     // Only collect vertex topology which may be harder to really removed
     // Moreover there is no sense in iterating over it so I don't feel
     // entitled not to leave unused element in it
     _mesh_remove_face(mesh, n_faces - 1);
     array_resize(&mesh->faces, n_faces - 1);
     array_resize(&mesh->neighbors, n_faces - 1);
-    return last_face;
+    return ec_no_error;
+}
+
+/**
+ * Removes a face from a mesh. This does not free any memory.
+ * instead, it swaps the last face with the face to delete and
+ * forget about it.
+ * param mesh Mesh from which a face will be removed.
+ * param face_index Index of the face to remove.
+ * return ec_no_error on success. It returns an error the face
+ * can't be removed (because it is not in the mesh)
+ */
+enum error_code_e mesh_remove_face(
+        struct mesh_st * mesh,
+        size_t face_index)
+{
+    if(mesh_face_is_removed(mesh, face_index)) return ec_error;
+    size_t n_faces = array_length(mesh->faces);
+    struct face_st old_face;
+    // This mesh_face_id_removed already does the out of bounds check
+    mesh_pop_face(mesh, &old_face);
+    // The face to remove is the last one this is the same as pop
+    if( face_index + 1 == n_faces) return ec_no_error;
+    mesh_face_remove_topology(mesh, face_index, &mesh->private->col);
+    mesh->faces[face_index] = old_face;
+    mesh->neighbors[face_index] = invalid_face;
+    enum error_code_e err = mesh_face_add_topology(
+            mesh, face_index, &mesh->private->col);
+    return err;
 }
 
 enum error_code_e mesh_swap_edge(
@@ -471,13 +470,11 @@ enum error_code_e mesh_replace_face(
         size_t index)
 {
     enum error_code_e err;
-    if(mesh_face_is_removed(mesh, index)){
-        return ec_out_of_bound_error;
-    }
     if((err = mesh_face_check(mesh, face)) != ec_no_error){
         return err;
     }
     struct face_st old_face = mesh->faces[index];
+    err = _mesh_remove_face(mesh, index);
     mesh_face_remove_topology(mesh, index, &mesh->private->col);
     mesh->faces[index] = face;
     mesh->neighbors[index] = invalid_face;

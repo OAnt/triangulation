@@ -100,10 +100,12 @@ enum error_code_e mesh_replace_face(
  * Removes the last face from the list and returns it.
  * param mesh Pointer to the mesh containing from which the face will be
  * removed.
- * return The list of vertices of the removed face
+ * param face Pointer to the storage for the popped face.
+ * return ec_no_erro upon success. It will fail if the mesh is empty.
  */
-struct face_st mesh_pop_face(
-        _IN struct mesh_st * mesh);
+enum error_code_e mesh_pop_face(
+        _IN struct mesh_st * mesh,
+        _OUT struct face_st * face);
 
 /**
  * Swaps the edge between two faces. On success this function guarantees
@@ -115,9 +117,9 @@ struct face_st mesh_pop_face(
  * return ec_no_error on success.
  */
 enum error_code_e mesh_swap_edge(
-        struct mesh_st * mesh,
-        size_t face_index_0,
-        size_t face_index_1);
+        _IN struct mesh_st * mesh,
+        _IN size_t face_index_0,
+        _IN size_t face_index_1);
 
 /**
  * Adds a vertex to the mesh.

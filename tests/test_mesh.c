@@ -180,10 +180,15 @@ START_TEST(test_mesh_enclosing_triangular_face)
 START_TEST(test_pop_face)
 {
     struct mesh_st mesh = create_cube_mesh();
-    struct face_st popped = mesh_pop_face(&mesh);
+    struct face_st popped;
+    mesh_pop_face(&mesh, &popped);
     ck_assert_mem_eq(&popped, cube_faces + 11, sizeof(struct face_st));
     ck_assert_int_eq(array_length(mesh.faces), 11);
     ck_assert_int_eq(array_length(mesh.neighbors), 11);
+    for(int32_t i = 0; i < 11; i++){
+        ck_assert_int_eq(mesh_pop_face(&mesh, &popped), ec_no_error);
+    }
+    ck_assert_int_eq(mesh_pop_face(&mesh, &popped), ec_out_of_bound_error);
     mesh_cleanup(&mesh);
 }
 
