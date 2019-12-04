@@ -40,6 +40,24 @@ enum error_code_e face_stack_pop(face_stack_t * s, struct quad_st * v){
     return ec_no_error;
 }
 
+enum error_code_e revert_insertion(
+        struct mesh_st * mesh,
+        size_t new_face_indexes[3],
+        struct face_st old_face)
+{
+    enum error_code_e err2 = mesh_remove_face(mesh, new_face_indexes[2]);
+    enum error_code_e err1 = mesh_remove_face(mesh, new_face_indexes[1]);
+    enum error_code_e err0 = mesh_replace_face(
+            mesh, old_face, new_face_indexes[0]);
+    if(err0 != ec_no_error || err1 != ec_no_error ||
+            err2 != ec_no_error)
+    {
+        return ec_error;
+    }else{
+        return ec_no_error;
+    }
+}
+
 enum error_code_e insert_vertex_in_triangulation(
         struct mesh_st * mesh,
         size_t vertex_index,
@@ -52,11 +70,11 @@ enum error_code_e insert_vertex_in_triangulation(
     // This should not happen because of the super triangle.
     // Checking nonetheless
     if(err != ec_no_error) return err;
-    struct face_st * face = &mesh->faces[face_index];
+    struct face_st old_face = mesh->faces[face_index];
     struct face_st new_triangles[3] = {
-        {{face->f[0], face->f[1], vertex_index}},
-        {{face->f[1], face->f[2], vertex_index}},
-        {{face->f[2], face->f[0], vertex_index}},
+        {{old_face.f[0], old_face.f[1], vertex_index}},
+        {{old_face.f[1], old_face.f[2], vertex_index}},
+        {{old_face.f[2], old_face.f[0], vertex_index}},
     };
     size_t new_face_indexes[3] = {face_index, 0, 0};
     err = mesh_replace_face(mesh, new_triangles[0], face_index);
@@ -89,7 +107,11 @@ enum error_code_e insert_vertex_in_triangulation(
         }};
         struct vector_st cc_center, cc_to_vertex, cc_to_triangle_vertex;
         err = triangle_compute_circumcircle_center(&tr, &cc_center);
-        if(err != ec_no_error) return err;
+        if(err != ec_no_error){
+            // division by zero, some points are too close
+            // for the algorithm to work
+            return err;
+        }
         vector_subtraction(tr.t, &cc_center, &cc_to_triangle_vertex);
         double sq_cc_radius = vector_dot_product(
                 &cc_to_triangle_vertex, &cc_to_triangle_vertex);
@@ -212,7 +234,8 @@ enum error_code_e mesh_delaunay_triangulation(
         // mesh is beyond repair anyway (in case of error).
         // If there is a problem with the geometry, there is
         // high chance the cleanup will make thing worse.
-        if(err == ec_memory_error) goto failure;
+        if(err == ec_memory_error || err == ec_div_by_zero_error)
+            goto failure;
         else if(err != ec_no_error) return err;
     }
 failure:
