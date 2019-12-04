@@ -240,6 +240,6 @@ enum error_code_e mesh_delaunay_triangulation(
     }
 failure:
     mesh_super_triangle_cleanup(mesh);
-    return ec_no_error;
+    return err;
 }
 
