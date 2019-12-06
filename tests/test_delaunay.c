@@ -1,3 +1,4 @@
+#include "private/vector.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -43,13 +44,29 @@ START_TEST(test_triangulation_on_duplicated)
     struct mesh_st mesh = generate_pointcloud_2d(10);
     mesh.vertices[9] = mesh.vertices[4];
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
-    mesh_export_stlb(&mesh, "build/tri1.stl");
     ck_assert_int_eq(err, ec_no_error);
     for(size_t f = 0; f < array_length(mesh.faces); f++){
         for(int32_t i = 0;  i < FACE_SIZE; i++){
             ck_assert_int_ne(mesh.faces[f].f[i], 9);
         }
     }
+    mesh_cleanup(&mesh);
+}
+END_TEST
+
+START_TEST(test_triangulation_with_vertex_on_edge)
+{
+    struct mesh_st mesh = generate_pointcloud_2d(10);
+    vector_addition(
+            &mesh.vertices[1].point,
+            &mesh.vertices[2].point,
+            &mesh.vertices[3].point);
+    vector_scale_by_scalar(&mesh.vertices[3].point, 0.5,
+            &mesh.vertices[3].point);
+    enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
+    mesh_export_stlb(&mesh, "build/tri1.stl");
+    ck_assert_int_eq(err, ec_no_error);
+    ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
     mesh_cleanup(&mesh);
 }
 END_TEST
@@ -80,6 +97,7 @@ Suite * mk_delaunay_suite(void){
     tcase_add_test(tc, test_triangulation_is_clean);
     tcase_add_test(tc, test_triangulation_on_duplicated);
     tcase_add_test(tc, test_triangulation_on_invalid_mesh);
+    tcase_add_test(tc, test_triangulation_with_vertex_on_edge);
     suite_add_tcase(s, tc);
     return s;
 }

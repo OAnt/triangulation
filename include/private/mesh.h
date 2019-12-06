@@ -146,6 +146,21 @@ enum error_code_e mesh_add_vertex(
         _OUT size_t * index);
 
 /**
+ * computes the normal of a polygon assuming it is planar
+ * if the polygon is degenerate (cannot compute normal), returns an error.
+ * param polygon Pointer to list of vertex index.
+ * param n_vertices Number of vertices in the polygon.
+ * param vertices Pointer to an array of vector representing vertices positions
+ * param normal Normal of the polygon.
+ * return ec_no_error if the polygon is regular. ec_error if it is degenerate.
+ */
+enum error_code_e planar_polygon_normal(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _OUT struct vector_st * normal);
+
+/**
  * Position of a point relative to a polygon.
  */
 enum point_polygon_position_e {
