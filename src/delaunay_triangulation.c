@@ -40,6 +40,21 @@ enum error_code_e face_stack_pop(face_stack_t * s, struct quad_st * v){
     return ec_no_error;
 }
 
+bool mesh_triangle_would_be_regular(
+        struct mesh_st * mesh,
+        struct face_st face)
+{
+    size_t p[FACE_SIZE] = {0, 1, 2};
+    struct vector_st v[FACE_SIZE] = {
+        mesh->vertices[face.f[0]].point,
+        mesh->vertices[face.f[1]].point,
+        mesh->vertices[face.f[2]].point};
+    struct vector_st normal;
+    enum error_code_e err = planar_polygon_normal(p, FACE_SIZE, v, &normal);
+    if(err == ec_no_error) return true;
+    else return false;
+}
+
 enum error_code_e insert_vertex_in_triangulation(
         struct mesh_st * mesh,
         size_t vertex_index,
@@ -58,6 +73,16 @@ enum error_code_e insert_vertex_in_triangulation(
         {{old_face.f[1], old_face.f[2], vertex_index}},
         {{old_face.f[2], old_face.f[0], vertex_index}},
     };
+    size_t regular_count = 0;
+    size_t regular_triangles[3] = {INVALID_INDEX};
+    for(size_t i = 0; i < 3; i++){
+        bool regular = mesh_triangle_would_be_regular(
+                mesh, new_triangles[i]);
+        if(regular) regular_triangles[regular_count++] = i;
+    }
+    // Doing anything would create invalid triangles, vertex index
+    // is a duplicated vertex
+    if(regular_count < 2) return ec_no_error;
     size_t new_face_indexes[3] = {face_index, 0, 0};
     err = mesh_replace_face(mesh, new_triangles[0], face_index);
     if(err != ec_no_error) return err;
