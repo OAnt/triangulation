@@ -57,12 +57,14 @@ END_TEST
 START_TEST(test_triangulation_with_vertex_on_edge)
 {
     struct mesh_st mesh = generate_pointcloud_2d(10);
-    vector_addition(
-            &mesh.vertices[1].point,
-            &mesh.vertices[2].point,
-            &mesh.vertices[3].point);
-    vector_scale_by_scalar(&mesh.vertices[3].point, 0.5,
-            &mesh.vertices[3].point);
+    for(size_t i = 2; i < N_VERTEX; i += 2){
+        vector_addition(
+                &mesh.vertices[i-2].point,
+                &mesh.vertices[i-1].point,
+                &mesh.vertices[i].point);
+        vector_scale_by_scalar(&mesh.vertices[i].point, 0.5,
+                &mesh.vertices[i].point);
+    }
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
     mesh_export_stlb(&mesh, "build/tri1.stl");
     ck_assert_int_eq(err, ec_no_error);

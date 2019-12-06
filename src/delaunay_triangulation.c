@@ -55,6 +55,18 @@ bool mesh_triangle_would_be_regular(
     else return false;
 }
 
+#define N_NEW_FACES_MAX 4
+
+enum error_code_e handle_vertex_on_edge(
+        struct mesh_st * mesh,
+        size_t face_index,
+        struct face_st new_triangles[N_NEW_FACES_MAX],
+        size_t * n_new_faces)
+{
+    // for now does nothing just making interfaces
+    return ec_no_error;
+}
+
 enum error_code_e insert_vertex_in_triangulation(
         struct mesh_st * mesh,
         size_t vertex_index,
@@ -68,13 +80,16 @@ enum error_code_e insert_vertex_in_triangulation(
     // Checking nonetheless
     if(err != ec_no_error) return err;
     struct face_st old_face = mesh->faces[face_index];
-    struct face_st new_triangles[3] = {
+    size_t n_new_faces = 3;
+    // Three faces is the standard case (-1 + 3), when a point 
+    // is on a edge, there will -2 + 4 triangles
+    struct face_st new_triangles[N_NEW_FACES_MAX] = {
         {{old_face.f[0], old_face.f[1], vertex_index}},
         {{old_face.f[1], old_face.f[2], vertex_index}},
         {{old_face.f[2], old_face.f[0], vertex_index}},
     };
     size_t regular_count = 0;
-    for(size_t i = 0; i < 3; i++){
+    for(size_t i = 0; i < n_new_faces; i++){
         bool regular = mesh_triangle_would_be_regular(
                 mesh, new_triangles[i]);
         if(regular) regular_count++;
@@ -82,17 +97,23 @@ enum error_code_e insert_vertex_in_triangulation(
     // Doing anything would create invalid triangles, vertex index
     // is a duplicated vertex
     if(regular_count < 2) return ec_no_error;
-    size_t new_face_indexes[3] = {face_index, 0, 0};
+    else if(regular_count == 2){
+        // Note that adding an invalid third face is not always a problem
+        // It will may be swapped as the point is always
+        // within the circumcenter. This transforms the new_triangles
+        // in order to handle all cases of vertex on edge.
+        err = handle_vertex_on_edge(
+                mesh, face_index, new_triangles, &n_new_faces);
+        if(err != ec_no_error) return err;
+    }
+    size_t new_face_indexes[N_NEW_FACES_MAX] = {face_index, 0, 0};
     // Iterating over the list of triangles,
     // the first one replace the face that contains
     // the new vertex as it must be removed.
     // There are regular_count regular faces.
-    // Note that adding an invalid third face is not a problem
-    // It will systematically by swapped as the point is always
-    // within the circumcenter
     err = mesh_replace_face(mesh, new_triangles[0], face_index);
     if(err != ec_no_error) return err;
-    for(int32_t i = 1; i < 3; i++){
+    for(int32_t i = 1; i < n_new_faces; i++){
         err = mesh_add_face(
                 mesh, new_triangles[i], new_face_indexes + i);
         if(err != ec_no_error) return err;
@@ -100,7 +121,7 @@ enum error_code_e insert_vertex_in_triangulation(
     face_stack_t face_stack;
     err = face_stack_init(&face_stack);
     if(err != ec_no_error) goto failure;
-    for(int32_t i = 0; i < 3; i++){
+    for(int32_t i = 0; i < n_new_faces; i++){
         size_t face = new_face_indexes[i];
         // The position of the new vertex is the same in all faces
         // the opposite face is at the fixed offset 0
