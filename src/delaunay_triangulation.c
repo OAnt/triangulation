@@ -40,24 +40,6 @@ enum error_code_e face_stack_pop(face_stack_t * s, struct quad_st * v){
     return ec_no_error;
 }
 
-enum error_code_e revert_insertion(
-        struct mesh_st * mesh,
-        size_t new_face_indexes[3],
-        struct face_st old_face)
-{
-    enum error_code_e err2 = mesh_remove_face(mesh, new_face_indexes[2]);
-    enum error_code_e err1 = mesh_remove_face(mesh, new_face_indexes[1]);
-    enum error_code_e err0 = mesh_replace_face(
-            mesh, old_face, new_face_indexes[0]);
-    if(err0 != ec_no_error || err1 != ec_no_error ||
-            err2 != ec_no_error)
-    {
-        return ec_error;
-    }else{
-        return ec_no_error;
-    }
-}
-
 enum error_code_e insert_vertex_in_triangulation(
         struct mesh_st * mesh,
         size_t vertex_index,
