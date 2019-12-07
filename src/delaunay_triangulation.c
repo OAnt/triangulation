@@ -66,7 +66,7 @@ bool mesh_triangle_would_be_regular(
 }
 
 #define N_ADDED_FACES 2
-#define HANDLE_VERTEX_ON_EDGES 1
+#define HANDLE_VERTEX_ON_EDGES 0
 #if HANDLE_VERTEX_ON_EDGES
 #define N_NEW_FACES_MAX 4
 
