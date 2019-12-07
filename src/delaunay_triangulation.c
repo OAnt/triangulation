@@ -40,19 +40,29 @@ enum error_code_e face_stack_pop(face_stack_t * s, struct quad_st * v){
     return ec_no_error;
 }
 
+struct face_test_st {
+    struct face_st face;
+    bool is_regular;
+};
+
 bool mesh_triangle_would_be_regular(
         struct mesh_st * mesh,
-        struct face_st face)
+        struct face_test_st * face)
 {
     size_t p[FACE_SIZE] = {0, 1, 2};
     struct vector_st v[FACE_SIZE] = {
-        mesh->vertices[face.f[0]].point,
-        mesh->vertices[face.f[1]].point,
-        mesh->vertices[face.f[2]].point};
+        mesh->vertices[face->face.f[0]].point,
+        mesh->vertices[face->face.f[1]].point,
+        mesh->vertices[face->face.f[2]].point};
     struct vector_st normal;
     enum error_code_e err = planar_polygon_normal(p, FACE_SIZE, v, &normal);
-    if(err == ec_no_error) return true;
-    else return false;
+    if(err == ec_no_error){
+        face->is_regular = true;
+        return true;
+    }else{
+        face->is_regular = false;
+        return false;
+    }
 }
 
 #define N_NEW_FACES_MAX 4
@@ -60,7 +70,7 @@ bool mesh_triangle_would_be_regular(
 enum error_code_e handle_vertex_on_edge(
         struct mesh_st * mesh,
         size_t face_index,
-        struct face_st new_triangles[N_NEW_FACES_MAX],
+        struct face_test_st new_triangles[N_NEW_FACES_MAX],
         size_t * n_new_faces)
 {
     // for now does nothing just making interfaces
@@ -83,15 +93,15 @@ enum error_code_e insert_vertex_in_triangulation(
     size_t n_new_faces = 3;
     // Three faces is the standard case (-1 + 3), when a point 
     // is on a edge, there will -2 + 4 triangles
-    struct face_st new_triangles[N_NEW_FACES_MAX] = {
-        {{old_face.f[0], old_face.f[1], vertex_index}},
-        {{old_face.f[1], old_face.f[2], vertex_index}},
-        {{old_face.f[2], old_face.f[0], vertex_index}},
+    struct face_test_st new_triangles[N_NEW_FACES_MAX] = {
+        {{{old_face.f[0], old_face.f[1], vertex_index}}, false},
+        {{{old_face.f[1], old_face.f[2], vertex_index}}, false},
+        {{{old_face.f[2], old_face.f[0], vertex_index}}, false},
     };
     size_t regular_count = 0;
     for(size_t i = 0; i < n_new_faces; i++){
         bool regular = mesh_triangle_would_be_regular(
-                mesh, new_triangles[i]);
+                mesh, &new_triangles[i]);
         if(regular) regular_count++;
     }
     // Doing anything would create invalid triangles, vertex index
@@ -111,11 +121,12 @@ enum error_code_e insert_vertex_in_triangulation(
     // the first one replace the face that contains
     // the new vertex as it must be removed.
     // There are regular_count regular faces.
-    err = mesh_replace_face(mesh, new_triangles[0], face_index);
+    err = mesh_replace_face(mesh, new_triangles[0].face, face_index);
     if(err != ec_no_error) return err;
     for(int32_t i = 1; i < n_new_faces; i++){
         err = mesh_add_face(
-                mesh, new_triangles[i], new_face_indexes + i);
+                mesh, new_triangles[i].face,
+                new_face_indexes + i);
         if(err != ec_no_error) return err;
     }
     face_stack_t face_stack;
