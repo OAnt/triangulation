@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <float.h>
 #include <math.h>
 #include <stdbool.h>
@@ -130,7 +129,8 @@ enum error_code_e insert_vertex_in_triangulation(
             mesh, point, pp, &face_index);
     // This should not happen because of the super triangle.
     // Checking nonetheless
-    if(err != ec_no_error) return err;
+    if(err != ec_no_error)
+        return err;
     struct face_st old_face = mesh->faces[face_index];
     size_t n_new_faces = 3;
     // Three faces is the standard case (-1 + 3), when a point 
