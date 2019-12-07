@@ -288,8 +288,7 @@ enum error_code_e mesh_delaunay_triangulation(
     struct vector_st sizes = {
         {max.v[0] - min.v[0], max.v[1] - min.v[1], max.v[2] - min.v[2]}
     };
-    struct triangle_st infinite_vertices;
-    memset(&infinite_vertices, 0, sizeof(struct triangle_st));
+    struct triangle_st infinite_vertices = {{min, min, min}};
     double safe_offset = 1.0;
     if(pp == pp_xy){
         double side_len = sizes.v[0] + sizes.v[1] + safe_offset;
