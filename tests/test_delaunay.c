@@ -1,8 +1,9 @@
-#include "private/vector.h"
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <check.h>
+#include <private/vector.h>
 #include <public/mesh.h>
 #include <private/delaunay_triangulation.h>
 #include <private/array.h>
@@ -27,12 +28,25 @@ struct mesh_st generate_pointcloud_2d(double range)
     return mesh;
 }
 
+#define MAX_TRI_PATH 1024
+
+void _export_triangulation(
+        mesh_st * mesh,
+        const char * suffix)
+{
+    char name[MAX_TRI_PATH] = {'\0'};
+    snprintf(name, MAX_TRI_PATH, "build/tri_%s.stl", suffix);
+    mesh_export_stlb(mesh, name);
+}
+
+#define export_triangulation(mesh) _export_triangulation((mesh), __func__)
+
 START_TEST(test_triangulation_is_clean)
 {
     struct mesh_st mesh = generate_pointcloud_2d(10);
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
     ck_assert_int_lt(array_length(mesh.faces), 10000);
-    mesh_export_stlb(&mesh, "build/tri.stl");
+    export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
     ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
     mesh_cleanup(&mesh);
@@ -44,6 +58,7 @@ START_TEST(test_triangulation_on_duplicated)
     struct mesh_st mesh = generate_pointcloud_2d(10);
     mesh.vertices[9] = mesh.vertices[4];
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
+    export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
     for(size_t f = 0; f < array_length(mesh.faces); f++){
         for(int32_t i = 0;  i < FACE_SIZE; i++){
@@ -66,7 +81,7 @@ START_TEST(test_triangulation_on_limits)
     mesh.vertices[10].point.v[1] = 0.0;
     mesh.vertices[15].point.v[0] = 0.0;
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
-    mesh_export_stlb(&mesh, "build/tri1.stl");
+    export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
     ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
     mesh_cleanup(&mesh);
@@ -85,6 +100,7 @@ START_TEST(test_triangulation_with_vertex_on_edge)
                 &mesh.vertices[i].point);
     }
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
+    export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
     ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
     mesh_cleanup(&mesh);
