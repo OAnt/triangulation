@@ -54,6 +54,25 @@ START_TEST(test_triangulation_on_duplicated)
 }
 END_TEST
 
+START_TEST(test_triangulation_on_limits)
+{
+    struct mesh_st mesh = generate_pointcloud_2d(10);
+    mesh.vertices[0].point.v[0] = 0.0;
+    mesh.vertices[1].point.v[0] = 0.0;
+    mesh.vertices[2].point.v[1] = 0.0;
+    mesh.vertices[3].point.v[1] = 0.0;
+    mesh.vertices[5].point.v[1] = 0.0;
+    mesh.vertices[5].point.v[0] = 0.0;
+    mesh.vertices[10].point.v[1] = 0.0;
+    mesh.vertices[15].point.v[0] = 0.0;
+    enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
+    mesh_export_stlb(&mesh, "build/tri1.stl");
+    ck_assert_int_eq(err, ec_no_error);
+    ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
+    mesh_cleanup(&mesh);
+}
+END_TEST
+
 START_TEST(test_triangulation_with_vertex_on_edge)
 {
     struct mesh_st mesh = generate_pointcloud_2d(10);
@@ -66,7 +85,6 @@ START_TEST(test_triangulation_with_vertex_on_edge)
                 &mesh.vertices[i].point);
     }
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
-    mesh_export_stlb(&mesh, "build/tri1.stl");
     ck_assert_int_eq(err, ec_no_error);
     ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
     mesh_cleanup(&mesh);
@@ -99,6 +117,7 @@ Suite * mk_delaunay_suite(void){
     tcase_add_test(tc, test_triangulation_is_clean);
     tcase_add_test(tc, test_triangulation_on_duplicated);
     tcase_add_test(tc, test_triangulation_on_invalid_mesh);
+    tcase_add_test(tc, test_triangulation_on_limits);
     tcase_add_test(tc, test_triangulation_with_vertex_on_edge);
     suite_add_tcase(s, tc);
     return s;
