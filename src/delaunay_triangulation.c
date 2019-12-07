@@ -65,6 +65,9 @@ bool mesh_triangle_would_be_regular(
     }
 }
 
+#define N_ADDED_FACES 2
+#define HANDLE_VERTEX_ON_EDGES 0
+#if HANDLE_VERTEX_ON_EDGES
 #define N_NEW_FACES_MAX 4
 
 enum error_code_e handle_vertex_on_edge(
@@ -73,9 +76,45 @@ enum error_code_e handle_vertex_on_edge(
         struct face_test_st new_triangles[N_NEW_FACES_MAX],
         size_t * n_new_faces)
 {
-    // for now does nothing just making interfaces
-    return ec_no_error;
+    if(*n_new_faces != 3) return ec_error;
+    size_t neighbor_index = INVALID_INDEX;
+    size_t non_regular_index = INVALID_INDEX;
+    // at this *n_new_faces is 3
+    for(int32_t i = 0; i < *n_new_faces; i++){
+        if(!new_triangles[i].is_regular){
+            neighbor_index = mesh->neighbors[face_index].f[i];
+            non_regular_index = i;
+        }
+    }
+    // No neighbor, this face should, in fact, be ignored
+    if(neighbor_index == INVALID_INDEX) return ec_no_error;
+    // offset of face index in the neighbor's neighboring face array
+    int32_t offest = 0;
+    for(; offest < FACE_SIZE; offest++){
+        if(mesh->neighbors[neighbor_index].f[offest] == face_index)
+            break;
+    }
+    // two new faces are already known, this is the third
+    struct face_test_st new_face_3 = {{{
+        mesh->faces[neighbor_index].f[(offest + 2) % FACE_SIZE],
+        mesh->faces[neighbor_index].f[offest],
+        // the new vertex is on position 2 in all three first new faces
+        new_triangles[0].face.f[2],}}, true};
+    new_triangles[non_regular_index] = new_face_3;
+    // three new faces are already known, this is the fourth
+    struct face_test_st new_face_4 = {{{
+        mesh->faces[neighbor_index].f[(offest + 1) % FACE_SIZE],
+        mesh->faces[neighbor_index].f[(offest + 2) % FACE_SIZE],
+        // the new vertex is on position 2 in all three first new faces
+        new_triangles[0].face.f[2],}}, true};
+    new_triangles[N_NEW_FACES_MAX - 1] = new_face_4;
+    *n_new_faces = N_NEW_FACES_MAX;
+    return mesh_replace_face(mesh, new_face_4.face, neighbor_index);
 }
+
+#else
+#define N_NEW_FACES_MAX 3
+#endif
 
 enum error_code_e insert_vertex_in_triangulation(
         struct mesh_st * mesh,
@@ -107,6 +146,7 @@ enum error_code_e insert_vertex_in_triangulation(
     // Doing anything would create invalid triangles, vertex index
     // is a duplicated vertex
     if(regular_count < 2) return ec_no_error;
+#if HANDLE_VERTEX_ON_EDGES
     else if(regular_count == 2){
         // Note that adding an invalid third face is not always a problem
         // It will may be swapped as the point is always
@@ -116,6 +156,7 @@ enum error_code_e insert_vertex_in_triangulation(
                 mesh, face_index, new_triangles, &n_new_faces);
         if(err != ec_no_error) return err;
     }
+#endif
     size_t new_face_indexes[N_NEW_FACES_MAX] = {face_index, 0, 0};
     // Iterating over the list of triangles,
     // the first one replace the face that contains
@@ -123,9 +164,11 @@ enum error_code_e insert_vertex_in_triangulation(
     // There are regular_count regular faces.
     err = mesh_replace_face(mesh, new_triangles[0].face, face_index);
     if(err != ec_no_error) return err;
-    for(int32_t i = 1; i < n_new_faces; i++){
+    // the fourth new face is handled by handle_vertex_on_edge
+    for(int32_t i = 0; i < N_ADDED_FACES; i++){
         err = mesh_add_face(
-                mesh, new_triangles[i].face,
+                // the first face is replaced
+                mesh, new_triangles[i + 1].face,
                 new_face_indexes + i);
         if(err != ec_no_error) return err;
     }
