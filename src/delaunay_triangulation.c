@@ -184,6 +184,11 @@ enum error_code_e insert_vertex_in_triangulation(
     for(int32_t i = 0; i < N_ADDED_FACES + 1; i++){
 #if HANDLE_VERTEX_ON_EDGES
         // degenerate face, ignoring it.
+        // The version that does not handle vertices on edge
+        // needs the degenerate triangle, hopefully, the point
+        // on it will appear in the circumcenter of an adjacent
+        // face and the edge will be swapped ending with a
+        // valid triangle, this does not always work though.
         if(!new_triangles[i].is_regular) continue;
 #endif
         if(!replaced){
