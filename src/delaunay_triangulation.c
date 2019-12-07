@@ -183,6 +183,7 @@ enum error_code_e insert_vertex_in_triangulation(
     // the fourth new face is handled by handle_vertex_on_edge
     for(int32_t i = 0; i < N_ADDED_FACES + 1; i++){
 #if HANDLE_VERTEX_ON_EDGES
+        // degenerate face, ignoring it.
         if(!new_triangles[i].is_regular) continue;
 #endif
         if(!replaced){
@@ -205,6 +206,8 @@ enum error_code_e insert_vertex_in_triangulation(
     if(err != ec_no_error) goto failure;
     for(int32_t i = 0; i < n_new_faces; i++){
         size_t face = new_face_indexes[i];
+        // the face was degenerate and ignored, this is a leftover
+        // ignoring
         if(face == INVALID_INDEX) continue;
         // The position of the new vertex is the same in all faces
         // the opposite face is at the fixed offset 0
