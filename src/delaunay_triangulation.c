@@ -169,14 +169,22 @@ enum error_code_e insert_vertex_in_triangulation(
     // the first one replace the face that contains
     // the new vertex as it must be removed.
     // There are regular_count regular faces.
-    err = mesh_replace_face(mesh, new_triangles[0].face, face_index);
-    if(err != ec_no_error) return err;
+    bool replaced = false;
     // the fourth new face is handled by handle_vertex_on_edge
-    for(int32_t i = 1; i < N_ADDED_FACES + 1; i++){
-        err = mesh_add_face(
-                // the first face is replaced
-                mesh, new_triangles[i].face,
-                new_face_indexes + i);
+    for(int32_t i = 0; i < N_ADDED_FACES + 1; i++){
+        if(!replaced){
+            err = mesh_replace_face(
+                    mesh,
+                    new_triangles[i].face,
+                    face_index);
+            new_face_indexes[i] = face_index;
+            replaced = true;
+        }else{
+            err = mesh_add_face(
+                    // the first face is replaced
+                    mesh, new_triangles[i].face,
+                    new_face_indexes + i);
+        }
         if(err != ec_no_error) return err;
     }
     face_stack_t face_stack;
