@@ -67,7 +67,7 @@ bool mesh_triangle_would_be_regular(
 
 #define N_ADDED_FACES 2
 #ifndef HANDLE_VERTEX_ON_EDGES
-#define HANDLE_VERTEX_ON_EDGES 0
+#define HANDLE_VERTEX_ON_EDGES 1
 #endif
 #if HANDLE_VERTEX_ON_EDGES
 #define N_NEW_FACES_MAX 4
@@ -311,7 +311,7 @@ enum error_code_e mesh_delaunay_triangulation(
         {max.v[0] - min.v[0], max.v[1] - min.v[1], max.v[2] - min.v[2]}
     };
     struct triangle_st infinite_vertices = {{min, min, min}};
-    double safe_offset = 1.0;
+    double safe_offset = 0.0;
     if(pp == pp_xy){
         double side_len = sizes.v[0] + sizes.v[1] + safe_offset;
         infinite_vertices.t[1].v[0] = min.v[0] + side_len;
