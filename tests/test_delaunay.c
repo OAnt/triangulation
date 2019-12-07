@@ -83,8 +83,15 @@ START_TEST(test_triangulation_on_limits)
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
     export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
-    ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
+    int32_t vertex_5_found = 0;
+    for(size_t f = 0; f < array_length(mesh.faces); f++){
+        for(int32_t i = 0;  i < FACE_SIZE; i++){
+            if(mesh.faces[f].f[i] == 5)
+                vertex_5_found = 1;
+        }
+    }
     mesh_cleanup(&mesh);
+    ck_assert_int_eq(vertex_5_found, 1);
 }
 END_TEST
 
