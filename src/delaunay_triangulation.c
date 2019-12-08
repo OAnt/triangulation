@@ -403,7 +403,8 @@ enum error_code_e mesh_delaunay_triangulation(
     // mesh is beyond repair anyway (in case of error).
     // If there is a problem with the geometry, there is
     // high chance the cleanup will make thing worse.
-    G_ASSERT(err != ec_topology_error, "The triangulation failed, this is a bug");
+    G_ASSERT(err != ec_topology_error && err != ec_out_of_bound_error,
+            "The triangulation failed, this is a bug");
 failure:
     mesh_super_triangle_cleanup(mesh);
     return err;
