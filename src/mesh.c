@@ -429,6 +429,9 @@ enum error_code_e mesh_swap_edge(
         size_t face_index_0,
         size_t face_index_1)
 {
+    size_t n_faces = array_length(mesh->faces);
+    if(face_index_0 >= n_faces || face_index_1 >= n_faces)
+        return ec_out_of_bound_error;
     int32_t edge_offset_0 = -1, edge_offset_1 = -1;
     for(int32_t i = 0; i < FACE_SIZE; i++){
         if(mesh->neighbors[face_index_0].f[i] == face_index_1){

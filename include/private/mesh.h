@@ -120,7 +120,7 @@ enum error_code_e mesh_pop_face(
  * param mesh Mesh from which a face will be removed.
  * param face_index Index of the face to remove.
  * return ec_no_error on success. It returns an ec_out_of_bound_error
- * if the face can't be removed (because it is not in the mesh)
+ * if the face can't be removed (because it is not in the mesh).
  */
 enum error_code_e mesh_remove_face(
         _IN struct mesh_st * mesh,
@@ -133,7 +133,9 @@ enum error_code_e mesh_remove_face(
  * param mesh Mesh the faces belong to.
  * param face_index_0 A face to swap.
  * param face_index_1 Second face to swap, faces must be adjacent.
- * return ec_no_error on success.
+ * return ec_no_error on success. ec_error is returned if faces are not
+ * adjacent and therefore their edges swapped. ec_out_of_bound_error is
+ * returned if at least one of the face is not in part of the mesh.
  */
 enum error_code_e mesh_swap_edge(
         _IN struct mesh_st * mesh,
