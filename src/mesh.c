@@ -438,6 +438,7 @@ enum error_code_e mesh_swap_edge(
             edge_offset_1 = i;
         }
     }
+    // faces are not adjacent
     if(edge_offset_0 == -1 || edge_offset_1 == -1) return ec_error;
     mesh_face_remove_topology(mesh, face_index_0);
     mesh_face_remove_topology(mesh, face_index_1);
@@ -458,12 +459,12 @@ enum error_code_e mesh_swap_edge(
     mesh->faces[face_index_1] = new_face_1;
     mesh->neighbors[face_index_1] = invalid_face;
     enum error_code_e err = ec_no_error;
-    if((err = mesh_face_add_topology(
-                    mesh, face_index_0)) != ec_no_error)
-            return err;
-    if((err = mesh_face_add_topology(
-                    mesh, face_index_1)) != ec_no_error)
-            return err;
+    err = mesh_face_add_topology(mesh, face_index_0);
+    G_ASSERT(err != ec_topology_error,
+            "Swapping the edge between to valid edges should not alter the topological soundness of the mesh");
+    err = mesh_face_add_topology(mesh, face_index_1);
+    G_ASSERT(err != ec_topology_error,
+            "Swapping the edge between to valid edges should not alter the topological soundness of the mesh");
     return err;
 }
 
