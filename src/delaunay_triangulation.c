@@ -390,9 +390,11 @@ enum error_code_e mesh_delaunay_triangulation(
         enum projection_plane_e pp)
 {
     size_t n_vertices = array_length(mesh->vertices);
-    if(n_vertices < 3) return ec_topology_error;
-    if(array_length(mesh->faces) != 0)
+    if(n_vertices < 3){
+        return ec_topology_error;
+    }else if(array_length(mesh->faces) != 0){
         return ec_out_of_bound_error;
+    }
     G_ASSERT(pp == pp_xy || pp == pp_yz || pp == pp_zx, "Unknown projection plane");
     enum error_code_e err = make_triangulation_super_triangle(
             mesh, pp);
