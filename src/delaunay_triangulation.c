@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <float.h>
 #include <math.h>
 #include <stdbool.h>
@@ -360,6 +361,24 @@ enum error_code_e make_triangulation_super_triangle(
     return err;
 }
 
+enum error_code_e _mesh_delaunay_triangulation(
+        struct mesh_st * mesh,
+        enum projection_plane_e pp,
+        size_t orig_n_vertices)
+{
+    enum error_code_e err = ec_no_error;
+    for(size_t i = 0; i < orig_n_vertices; i++){
+        err = insert_vertex_in_triangulation(mesh, i, pp);
+        // still try to clean something upon failure, this does
+        // not allocates memory, it may work. At this point the
+        // mesh is beyond repair anyway (in case of error).
+        // If there is a problem with the geometry, there is
+        // high chance the cleanup will make thing worse.
+        if(err != ec_no_error) return err;
+    }
+    return err;
+}
+
 enum error_code_e mesh_delaunay_triangulation(
         struct mesh_st * mesh,
         enum projection_plane_e pp)
@@ -373,17 +392,13 @@ enum error_code_e mesh_delaunay_triangulation(
     enum error_code_e err = make_triangulation_super_triangle(
             mesh, pp);
     if(err != ec_no_error) goto failure;
-    for(size_t i = 0; i < n_vertices; i++){
-        err = insert_vertex_in_triangulation(mesh, i, pp);
-        // still try to clean something upon failure, this does
-        // not allocates memory, it may work. At this point the
-        // mesh is beyond repair anyway (in case of error).
-        // If there is a problem with the geometry, there is
-        // high chance the cleanup will make thing worse.
-        if(err == ec_memory_error || err == ec_div_by_zero_error)
-            goto failure;
-        else if(err != ec_no_error) return err;
-    }
+    err = _mesh_delaunay_triangulation(mesh, pp, n_vertices);
+    // still try to clean something upon failure, this does
+    // not allocates memory, it may work. At this point the
+    // mesh is beyond repair anyway (in case of error).
+    // If there is a problem with the geometry, there is
+    // high chance the cleanup will make thing worse.
+    if(err == ec_topology_error) return err;
 failure:
     mesh_super_triangle_cleanup(mesh);
     return err;
