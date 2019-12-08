@@ -342,6 +342,24 @@ struct triangle_st compute_triangulation_super_triangle(
     return infinite_vertices;
 }
 
+enum error_code_e make_triangulation_super_triangle(
+        struct mesh_st * mesh,
+        enum projection_plane_e pp)
+{
+    struct triangle_st infinite_vertices = 
+        compute_triangulation_super_triangle(
+                mesh, pp);
+    enum error_code_e err = ec_no_error;
+    struct face_st super_triangle;
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        err = mesh_add_vertex(
+                mesh, infinite_vertices.t[i], &super_triangle.f[i]);
+        if(err != ec_no_error) return err;
+    }
+    err = mesh_add_face(mesh, super_triangle, NULL);
+    return err;
+}
+
 enum error_code_e mesh_delaunay_triangulation(
         struct mesh_st * mesh,
         enum projection_plane_e pp)
@@ -352,17 +370,9 @@ enum error_code_e mesh_delaunay_triangulation(
         return ec_out_of_bound_error;
     if(pp != pp_xy && pp != pp_yz && pp != pp_zx)
         return ec_out_of_bound_error;
-    struct triangle_st infinite_vertices = 
-        compute_triangulation_super_triangle(
-                mesh, pp);
-    enum error_code_e err = ec_no_error;
-    struct face_st super_triangle;
-    for(int32_t i = 0; i < FACE_SIZE; i++){
-        err = mesh_add_vertex(
-                mesh, infinite_vertices.t[i], &super_triangle.f[i]);
-        if(err != ec_no_error) goto failure;
-    }
-    mesh_add_face(mesh, super_triangle, NULL);
+    enum error_code_e err = make_triangulation_super_triangle(
+            mesh, pp);
+    if(err != ec_no_error) goto failure;
     for(size_t i = 0; i < n_vertices; i++){
         err = insert_vertex_in_triangulation(mesh, i, pp);
         // still try to clean something upon failure, this does
