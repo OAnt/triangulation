@@ -122,32 +122,6 @@ enum error_code_e handle_vertex_on_edge(
 #define N_NEW_FACES_MAX 3
 #endif
 
-void assert_circumcenter(
-        struct vector_st cc_center,
-        struct triangle_st tr)
-{
-#ifndef NDEBUG
-    struct vector_st tmp;
-    vector_subtraction(tr.t, &cc_center, &tmp);
-    double sq_0 = vector_dot_product(&tmp, &tmp);
-    vector_subtraction(tr.t + 1, &cc_center, &tmp);
-    double sq_1 = vector_dot_product(&tmp, &tmp);
-    vector_subtraction(tr.t + 2, &cc_center, &tmp);
-    double sq_2 = vector_dot_product(&tmp, &tmp);
-    bool wrong_0 = !(fabs(sq_0 - sq_1) < EPSILON);
-    bool wrong_1 = !(fabs(sq_0 - sq_2) < EPSILON);
-    bool wrong_2 = !(fabs(sq_2 - sq_1) < EPSILON);
-    if(wrong_0 || wrong_1 || wrong_2){
-        debug_print("Cicumcenter was not found squared distances are: %f, %f, %f\n",
-                sq_0, sq_1, sq_2);
-        abort();
-    }
-#else
-    (void) cc_center;
-    (void) tr;
-#endif
-}
-
 enum error_code_e insert_vertex_in_triangulation(
         struct mesh_st * mesh,
         size_t vertex_index,
