@@ -153,7 +153,8 @@ enum error_code_e mesh_swap_edge(
  * param mesh Pointer to the mesh to add the vertex to.
  * param v Vertex to add the mesh.
  * param index Position of the vertex in the array.
- * return ec_no_error upon success.
+ * return ec_no_error upon success. Returns ec_memory_error if it is
+ * impossible to allocates the memory to store the vertex.
  */
 enum error_code_e mesh_add_vertex(
         _IN struct mesh_st * mesh,
