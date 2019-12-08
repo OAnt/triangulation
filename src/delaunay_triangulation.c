@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
+#include <private/assert.h>
 #include <private/array.h>
 #include <private/mesh.h>
 #include <public/common.h>
@@ -80,7 +81,7 @@ enum error_code_e handle_vertex_on_edge(
         size_t * n_new_faces,
         size_t * new_face_indexes)
 {
-    if(*n_new_faces != 3) return ec_error;
+    G_ASSERT(*n_new_faces == 3, "There must me 3 faces");
     size_t neighbor_index = INVALID_INDEX;
     size_t non_regular_index = INVALID_INDEX;
     // at this *n_new_faces is 3
