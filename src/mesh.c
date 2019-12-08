@@ -495,7 +495,9 @@ enum error_code_e mesh_replace_face(
         mesh_face_remove_topology(mesh, index);
         mesh->faces[index] = old_face;
         mesh->neighbors[index] = invalid_face;
-        mesh_face_add_topology(mesh, index);
+        enum error_code_e err1 = mesh_face_add_topology(mesh, index);
+        G_ASSERT(err1 != ec_topology_error,
+            "Re-adding a face should not break topology");
         return err;
     }else{
         return err;
