@@ -11,13 +11,11 @@
 
 #define N_VERTEX 20
 
-struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices)
+struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices, unsigned int state)
 {
     struct mesh_st mesh;
     mesh_init(&mesh);
     /*unsigned int state = time(NULL);*/
-    /*printf("%d\n", state);*/
-    unsigned int state = 1575405021;
     for(int32_t i = 0; i < n_vertices; i++){
         struct vector_st v = {{
             ((double)rand_r(&state)/(double)(RAND_MAX)) * range,
@@ -31,7 +29,7 @@ struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices)
 
 struct mesh_st generate_pointcloud_2d(double range)
 {
-    return _generate_pointcloud_2d(range, N_VERTEX);
+    return _generate_pointcloud_2d(range, N_VERTEX, 1575405021);
 }
 
 #define MAX_TRI_PATH 1024
@@ -168,7 +166,7 @@ START_TEST(test_delaunay_triangulation_performance)
     size_t _n_points = 100;
     for(int32_t i = 1; i < 11; i++){
         size_t n_points = i * _n_points;
-        struct mesh_st mesh = _generate_pointcloud_2d(10, n_points);
+        struct mesh_st mesh = _generate_pointcloud_2d(10, n_points, time(NULL));
         clock_t clk_start = clock();
         enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
         clock_t clk_end = clock();
