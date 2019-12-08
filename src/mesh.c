@@ -146,6 +146,8 @@ enum error_code_e mesh_face_add_adajcent_face(
     // No neighbors found, the face is 1-manifold, stop here
     if(neighbor_face == INVALID_INDEX)
         return ec_no_error;
+    G_ASSERT(neighbor_face < array_length(mesh->faces),
+            "Neighbor is out of bounds");
     // Neighbor found, setting it accordingly
     mesh->neighbors[face_index].f[opposite_vertex_offset] = 
         neighbor_face;
@@ -284,6 +286,10 @@ void mesh_face_remove_from_neigbhors(
         size_t neighbor_index)
 {
     if(neighbor_index == INVALID_INDEX) return;
+    G_ASSERT(face_index < array_length(mesh->faces),
+            "Face is out of bounds");
+    G_ASSERT(neighbor_index < array_length(mesh->faces),
+            "Neighbor is out of bounds");
     for(int32_t i = 0; i < FACE_SIZE; i++){
         if(mesh->neighbors[neighbor_index].f[i] == face_index){
             mesh->neighbors[neighbor_index].f[i] = INVALID_INDEX;
@@ -299,8 +305,13 @@ void mesh_face_remove_from_vertex_adjacent_faces(
     struct mesh_collector_st * col = &mesh->private->col;
     if(vertex_index == INVALID_INDEX)
         return;
+    G_ASSERT(face_index < array_length(mesh->faces),
+            "Face is out of bounds");
+    G_ASSERT(vertex_index < array_length(mesh->vertices),
+            "Vertex is out of bounds");
     size_t next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
+    size_t initial_adjacent_face = next_adjacent_faces;
     size_t * previous_adj_index = 
         &mesh->vertices[vertex_index].adjacent_faces;
     while(next_adjacent_faces != INVALID_INDEX){
@@ -319,6 +330,8 @@ void mesh_face_remove_from_vertex_adjacent_faces(
         }
         // next element in list
         next_adjacent_faces = vadj->next_adjacent_faces;
+        G_ASSERT(next_adjacent_faces != initial_adjacent_face,
+                "Infinite loop");
         // keeping link to previous link element, to replace
         // its next element if it happens to be the one to remove
         previous_adj_index = &vadj->next_adjacent_faces;
