@@ -76,7 +76,10 @@ enum error_code_e mesh_cleanup(
  * param mesh Pointer to the mesh to add the face to
  * param face Face to add the mesh
  * param index Position of the face in the array
- * return ec_no_error upon success
+ * return ec_no_error upon success. Return ec_memory_error if it is
+ * impossible to allocates the memory to store the face or
+ * ec_topology_error if adding the face would create non manifold edges.
+ * 1 - manifold edges are allowed, 3 or more manifold edges are forbidden.
  */
 enum error_code_e mesh_add_face(
         _IN struct mesh_st * mesh,

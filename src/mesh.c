@@ -79,6 +79,10 @@ enum error_code_e mesh_vertex_add_adjacent_face(
         size_t face_index,
         size_t vertex_offset)
 {
+    G_ASSERT(face_index < array_length(mesh->faces),
+            "Face is out of bounds");
+    G_ASSERT(vertex_offset < FACE_SIZE,
+            "Vertex is out of bounds");
     size_t adj_index;
     struct mesh_collector_st * col = &mesh->private->col;
     // There something in the linked list, pop it
@@ -109,6 +113,10 @@ enum error_code_e mesh_face_add_adajcent_face(
         size_t face_index,
         size_t vertex_offset)
 {
+    G_ASSERT(face_index < array_length(mesh->faces),
+            "Face is out of bounds");
+    G_ASSERT(vertex_offset < FACE_SIZE,
+            "Vertex is out of bounds");
     size_t vertex_index = mesh->faces[face_index].f[vertex_offset];
     // Each faces (this one and the adjacent one) are
     // turning in counter clockwise order. Edge X to Y
@@ -122,6 +130,7 @@ enum error_code_e mesh_face_add_adajcent_face(
     size_t next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
     size_t neighbor_face = INVALID_INDEX;
+    size_t initial_adjacent_face = next_adjacent_faces;
     // Iterating over the list of adjacent faces until
     // we find the corresponding one
     while(next_adjacent_faces != INVALID_INDEX){
@@ -131,6 +140,8 @@ enum error_code_e mesh_face_add_adajcent_face(
         if(vadj->opposite_vertex == opposite_vertex_index){
             neighbor_face = vadj->face;
         }
+        G_ASSERT(next_adjacent_faces != initial_adjacent_face,
+                "Infinite loop");
     }
     // No neighbors found, the face is 1-manifold, stop here
     if(neighbor_face == INVALID_INDEX)
