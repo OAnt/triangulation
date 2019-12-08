@@ -130,7 +130,9 @@ enum error_code_e mesh_face_add_adajcent_face(
     size_t next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
     size_t neighbor_face = INVALID_INDEX;
+#ifndef NDEBUG
     size_t initial_adjacent_face = next_adjacent_faces;
+#endif
     // Iterating over the list of adjacent faces until
     // we find the corresponding one
     while(next_adjacent_faces != INVALID_INDEX){
@@ -311,7 +313,9 @@ void mesh_face_remove_from_vertex_adjacent_faces(
             "Vertex is out of bounds");
     size_t next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
+#ifndef NDEBUG
     size_t initial_adjacent_face = next_adjacent_faces;
+#endif
     size_t * previous_adj_index = 
         &mesh->vertices[vertex_index].adjacent_faces;
     while(next_adjacent_faces != INVALID_INDEX){
@@ -496,6 +500,7 @@ enum error_code_e mesh_replace_face(
         mesh->faces[index] = old_face;
         mesh->neighbors[index] = invalid_face;
         enum error_code_e err1 = mesh_face_add_topology(mesh, index);
+        (void)err1;
         G_ASSERT(err1 != ec_topology_error,
             "Re-adding a face should not break topology");
         return err;
