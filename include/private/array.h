@@ -10,8 +10,10 @@
  * the underlying array may be larger than n_elem.
  * param type Size of elements in the array.
  * param n_elem Maximum number of element in the array.
- * param ptr The pointer to the allocated chunk
- * return ec_no_error if the function succeeds
+ * param ptr The pointer to the allocated chunk.
+ * return ec_no_error if the function succeeds or ec_memory_error if the
+ * allocation fails for any reason (A NULL pointer is returned by the
+ * allocator)
  */
 enum error_code_e array_new_(
         _IN size_t type,
@@ -37,7 +39,9 @@ size_t array_length(_IN void * ptr);
  * param ptr Reference to the array to resize, ptr maybe modified
  * by reallocation
  * param n_elem New size for the array
- * return ec_no_error if the function succeeds
+ * return ec_no_error if the function succeeds or ec_memory_error if the
+ * allocation fails for any reason (A NULL pointer is returned by the
+ * allocator)
  */
 enum error_code_e array_resize_(
         _IN _OUT void ** ptr,
@@ -51,9 +55,9 @@ enum error_code_e array_resize_(
 /**
  * Frees the array referenced by pointer and sets it to NULL
  * param ptr Reference to the array to free
- * return ec_no_error if the function succeeds
+ * return Nothing, this function normally does not fail.
  */
-enum error_code_e array_delete_(
+void array_delete_(
         _IN _OUT void ** ptr);
 
 /**

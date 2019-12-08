@@ -24,7 +24,7 @@ START_TEST(test_manipulation)
     ck_assert(array_resize(&array, 1) == ec_no_error);
     ck_assert(array_shrink(&array) == ec_no_error);
     ck_assert(array_resize(&array, 3) == ec_no_error);
-    ck_assert(array_delete(&array) == ec_no_error);
+    array_delete(&array);
 }
 END_TEST
 

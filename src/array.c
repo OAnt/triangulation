@@ -100,13 +100,12 @@ enum error_code_e array_shrink_(
     return ec_no_error;
 }
 
-enum error_code_e array_delete_(
+void array_delete_(
         void ** ptr)
 {
     //converting the caller supplied pointer to the array header
     struct array_header_st * header = ARRAY_HEADER(*ptr);
     free(header);
     *ptr = NULL;
-    return ec_no_error;
 }
 
