@@ -69,7 +69,9 @@ void array_delete_(
  * Resizes pointer so that it takes the minimum amount of memory
  * possible to store array_length(*ptr) elements.
  * param ptr Reference to the array to resize.
- * return ec_no_error if the function succeeds
+ * return ec_no_error if the function succeeds or ec_memory_error if the
+ * allocation fails for any reason (A NULL pointer is returned by the
+ * allocator)
  */
 enum error_code_e array_shrink_(
         _IN _OUT void ** ptr);
