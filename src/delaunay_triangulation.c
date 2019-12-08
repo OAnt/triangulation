@@ -393,8 +393,7 @@ enum error_code_e mesh_delaunay_triangulation(
     if(n_vertices < 3) return ec_topology_error;
     if(array_length(mesh->faces) != 0)
         return ec_out_of_bound_error;
-    if(pp != pp_xy && pp != pp_yz && pp != pp_zx)
-        return ec_out_of_bound_error;
+    G_ASSERT(pp == pp_xy || pp == pp_yz || pp == pp_zx, "Unknown projection plane");
     enum error_code_e err = make_triangulation_super_triangle(
             mesh, pp);
     if(err != ec_no_error) goto failure;
@@ -416,8 +415,7 @@ enum error_code_e mesh_delaunay_triangulation_user_defined_boundaries(
 {
     size_t n_vertices = array_length(mesh->vertices);
     if(n_vertices < 3) return ec_topology_error;
-    if(pp != pp_xy && pp != pp_yz && pp != pp_zx)
-        return ec_out_of_bound_error;
+    G_ASSERT(pp == pp_xy || pp == pp_yz || pp == pp_zx, "Unknown projection plane");
     return _mesh_delaunay_triangulation(mesh, pp);
 }
 
