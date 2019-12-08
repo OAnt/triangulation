@@ -551,12 +551,12 @@ enum intersection_type_e  edge_determine_intersection_type(
     //point is between seg[0] and seg[1], edge is
     //pointing upward and there is an intersection
     if(seg->s[0].v[y] <= point->v[y] && \
-            point->v[y] <= seg->s[1].v[y]){
+            point->v[y] < seg->s[1].v[y]){
         return it_upward;
     //point is between seg[1] and seg[0], edge is
     //pointing downward and there is an intersection
     }else if(seg->s[1].v[y] <= point->v[y] && \
-            point->v[y] <= seg->s[0].v[y]){
+            point->v[y] < seg->s[0].v[y]){
         return it_downward;
     //point is not between the segment vertical bounds
     //there cannot be an intersection with an horizontal
