@@ -297,13 +297,11 @@ void mesh_super_triangle_cleanup(
     array_resize(&mesh->vertices, n_vertices - 3);
 }
 
-enum error_code_e mesh_delaunay_triangulation(
+struct triangle_st compute_triangulation_super_triangle(
         struct mesh_st * mesh,
         enum projection_plane_e pp)
 {
     size_t n_vertices = array_length(mesh->vertices);
-    if(n_vertices < 3) return ec_topology_error;
-    if(array_length(mesh->faces) != 0) return ec_out_of_bound_error;
     // Initializing super triangle
     struct vector_st min = {DBL_MAX, DBL_MAX, DBL_MAX};
     struct vector_st max = {-DBL_MAX, -DBL_MAX, -DBL_MAX};
@@ -338,11 +336,25 @@ enum error_code_e mesh_delaunay_triangulation(
         infinite_vertices.t[2].v[2] = min.v[2] + side_len;
         infinite_vertices.t[0].v[0] = min.v[0] - safe_offset;
         infinite_vertices.t[0].v[2] = min.v[2] - safe_offset;
-    }else{
-        return ec_out_of_bound_error;
     }
     // The super triangle is meant to be big enough so that all points
     // are inside
+    return infinite_vertices;
+}
+
+enum error_code_e mesh_delaunay_triangulation(
+        struct mesh_st * mesh,
+        enum projection_plane_e pp)
+{
+    size_t n_vertices = array_length(mesh->vertices);
+    if(n_vertices < 3) return ec_topology_error;
+    if(array_length(mesh->faces) != 0)
+        return ec_out_of_bound_error;
+    if(pp != pp_xy && pp != pp_yz && pp != pp_zx)
+        return ec_out_of_bound_error;
+    struct triangle_st infinite_vertices = 
+        compute_triangulation_super_triangle(
+                mesh, pp);
     enum error_code_e err = ec_no_error;
     struct face_st super_triangle;
     for(int32_t i = 0; i < FACE_SIZE; i++){
