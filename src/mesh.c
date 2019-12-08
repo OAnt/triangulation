@@ -283,9 +283,9 @@ void mesh_face_remove_from_neigbhors(
 void mesh_face_remove_from_vertex_adjacent_faces(
         mesh_st * mesh,
         size_t face_index,
-        size_t vertex_index,
-        struct mesh_collector_st * col)
+        size_t vertex_index)
 {
+    struct mesh_collector_st * col = &mesh->private->col;
     if(vertex_index == INVALID_INDEX)
         return;
     size_t next_adjacent_faces = 
@@ -328,7 +328,7 @@ void mesh_face_remove_topology(
         // Removing face from its ith vertex adjacent faces list
         mesh_face_remove_from_vertex_adjacent_faces(
                 mesh, face_index,
-                mesh->faces[face_index].f[i], col);
+                mesh->faces[face_index].f[i]);
     }
 }
 
