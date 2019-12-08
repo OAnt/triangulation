@@ -317,8 +317,7 @@ void mesh_face_remove_from_vertex_adjacent_faces(
 
 void mesh_face_remove_topology(
         mesh_st * mesh,
-        size_t face_index,
-        struct mesh_collector_st * col)
+        size_t face_index)
 {
     for(int32_t i = 0; i < FACE_SIZE; i++){
         // Removing face from its ith neighbors
@@ -341,11 +340,10 @@ enum error_code_e _mesh_remove_face(
         struct mesh_st * mesh,
         size_t face_index)
 {
-    struct mesh_collector_st * col = &mesh->private->col;
     // checking if the face is already removed (also check if it
     // is out of bounds)
     if(mesh_face_is_removed(mesh, face_index)) return ec_error;
-    mesh_face_remove_topology(mesh, face_index, col);
+    mesh_face_remove_topology(mesh, face_index);
     // Removing the face's neighbors, no linked list needed,
     // neighbors index follows face index
     mesh->neighbors[face_index] = invalid_face;
@@ -391,7 +389,7 @@ enum error_code_e mesh_remove_face(
     mesh_pop_face(mesh, &old_face);
     // The face to remove is the last one this is the same as pop
     if( face_index + 1 == n_faces) return ec_no_error;
-    mesh_face_remove_topology(mesh, face_index, &mesh->private->col);
+    mesh_face_remove_topology(mesh, face_index);
     mesh->faces[face_index] = old_face;
     mesh->neighbors[face_index] = invalid_face;
     enum error_code_e err = mesh_face_add_topology(
@@ -414,8 +412,8 @@ enum error_code_e mesh_swap_edge(
         }
     }
     if(edge_offset_0 == -1 || edge_offset_1 == -1) return ec_error;
-    mesh_face_remove_topology(mesh, face_index_0, &mesh->private->col);
-    mesh_face_remove_topology(mesh, face_index_1, &mesh->private->col);
+    mesh_face_remove_topology(mesh, face_index_0);
+    mesh_face_remove_topology(mesh, face_index_1);
     int32_t new_edge_offset_0 = (edge_offset_0 + 2) % FACE_SIZE;
     int32_t new_edge_offset_1 = (edge_offset_1 + 2) % FACE_SIZE;
     struct face_st new_face_0 = {{
@@ -453,7 +451,7 @@ enum error_code_e mesh_replace_face(
     }
     struct face_st old_face = mesh->faces[index];
     err = _mesh_remove_face(mesh, index);
-    mesh_face_remove_topology(mesh, index, &mesh->private->col);
+    mesh_face_remove_topology(mesh, index);
     mesh->faces[index] = face;
     mesh->neighbors[index] = invalid_face;
     err = mesh_face_add_topology(
@@ -463,7 +461,7 @@ enum error_code_e mesh_replace_face(
         // Putting back the previous face if something failed to ensure there
         // are no border effects. Not doing it in case of memory error because
         // some vertex_face_adjacency objects may not have been collected
-        mesh_face_remove_topology(mesh, index, &mesh->private->col);
+        mesh_face_remove_topology(mesh, index);
         mesh->faces[index] = old_face;
         mesh->neighbors[index] = invalid_face;
         mesh_face_add_topology(mesh, index);
