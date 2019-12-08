@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <public/common.h>
-#include <private/assert.h>
+#include <private/debug.h>
 #include <private/common.h>
 #include <private/vector.h>
 #include <private/array.h>

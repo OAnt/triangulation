@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
-#include <private/assert.h>
+#include <private/debug.h>
 #include <private/array.h>
 #include <private/mesh.h>
 #include <public/common.h>
