@@ -320,23 +320,23 @@ struct triangle_st compute_triangulation_super_triangle(
     struct triangle_st infinite_vertices = {{min, min, min}};
     double safe_offset = 1.0;
     if(pp == pp_xy){
-        double side_len = sizes.v[0] + sizes.v[1] + safe_offset;
+        double side_len = (sizes.v[0] + sizes.v[1] + safe_offset) * 10;
         infinite_vertices.t[1].v[0] = min.v[0] + side_len;
         infinite_vertices.t[2].v[1] = min.v[1] + side_len;
-        infinite_vertices.t[0].v[0] = min.v[0] - safe_offset;
-        infinite_vertices.t[0].v[1] = min.v[1] - safe_offset;
+        infinite_vertices.t[0].v[0] = min.v[0] - side_len;
+        infinite_vertices.t[0].v[1] = min.v[1] - side_len;
     }else if(pp == pp_yz){
-        double side_len = sizes.v[1] + sizes.v[2] + safe_offset;
+        double side_len = (sizes.v[1] + sizes.v[2] + safe_offset) * 10;
         infinite_vertices.t[1].v[1] = min.v[1] + side_len;
         infinite_vertices.t[2].v[2] = min.v[2] + side_len;
-        infinite_vertices.t[0].v[1] = min.v[1] - safe_offset;
-        infinite_vertices.t[0].v[2] = min.v[2] - safe_offset;
+        infinite_vertices.t[0].v[1] = min.v[1] - side_len;
+        infinite_vertices.t[0].v[2] = min.v[2] - side_len;
     }else if(pp == pp_zx){
-        double side_len = sizes.v[0] + sizes.v[2] + safe_offset;
+        double side_len = (sizes.v[0] + sizes.v[2] + safe_offset) * 10;
         infinite_vertices.t[1].v[0] = min.v[0] + side_len;
         infinite_vertices.t[2].v[2] = min.v[2] + side_len;
-        infinite_vertices.t[0].v[0] = min.v[0] - safe_offset;
-        infinite_vertices.t[0].v[2] = min.v[2] - safe_offset;
+        infinite_vertices.t[0].v[0] = min.v[0] - side_len;
+        infinite_vertices.t[0].v[2] = min.v[2] - side_len;
     }
     // The super triangle is meant to be big enough so that all points
     // are inside
