@@ -94,7 +94,7 @@ enum error_code_e mesh_add_face(
  * param index Position of the face to replace
  * return ec_no_error upon success. In case of memory error
  * the mesh vertex face adjacency will be incomplete. Repeating
- * the operation after freeing some enough may fix the issue.
+ * the operation after freeing enough memory may fix the issue.
  */
 enum error_code_e mesh_replace_face(
         struct mesh_st * mesh,
@@ -106,7 +106,8 @@ enum error_code_e mesh_replace_face(
  * param mesh Pointer to the mesh containing from which the face will be
  * removed.
  * param face Pointer to the storage for the popped face.
- * return ec_no_erro upon success. It will fail if the mesh is empty.
+ * return ec_no_erro upon success. It will return ec_out_of_bounds
+ * if the mesh is empty.
  */
 enum error_code_e mesh_pop_face(
         _IN struct mesh_st * mesh,
@@ -118,8 +119,8 @@ enum error_code_e mesh_pop_face(
  * forget about it.
  * param mesh Mesh from which a face will be removed.
  * param face_index Index of the face to remove.
- * return ec_no_error on success. It returns an error the face
- * can't be removed (because it is not in the mesh)
+ * return ec_no_error on success. It returns an ec_out_of_bound_error
+ * if the face can't be removed (because it is not in the mesh)
  */
 enum error_code_e mesh_remove_face(
         _IN struct mesh_st * mesh,

@@ -407,7 +407,7 @@ enum error_code_e mesh_remove_face(
         struct mesh_st * mesh,
         size_t face_index)
 {
-    if(mesh_face_is_removed(mesh, face_index)) return ec_error;
+    if(mesh_face_is_removed(mesh, face_index)) return ec_out_of_bound_error;
     size_t n_faces = array_length(mesh->faces);
     struct face_st old_face;
     // This mesh_face_id_removed already does the out of bounds check
@@ -419,6 +419,8 @@ enum error_code_e mesh_remove_face(
     mesh->neighbors[face_index] = invalid_face;
     enum error_code_e err = mesh_face_add_topology(
             mesh, face_index);
+    G_ASSERT(err != ec_topology_error,
+            "Re-adding a face after removing another one should not break topology");
     return err;
 }
 

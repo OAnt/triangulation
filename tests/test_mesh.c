@@ -201,7 +201,7 @@ START_TEST(test_remove_face)
     for(int32_t i = 0; i < 11; i++){
         ck_assert_int_eq(mesh_remove_face(&mesh, 0), ec_no_error);
     }
-    ck_assert_int_eq(mesh_remove_face(&mesh, 0), ec_error);
+    ck_assert_int_eq(mesh_remove_face(&mesh, 0), ec_out_of_bound_error);
     mesh_cleanup(&mesh);
 }
 
