@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <check.h>
+#include <private/debug.h>
 #include <private/vector.h>
 #include <public/mesh.h>
 #include <private/delaunay_triangulation.h>
@@ -162,6 +163,26 @@ START_TEST(test_triangulation_on_invalid_mesh)
 }
 END_TEST
 
+START_TEST(test_delaunay_triangulation_performance)
+{
+    size_t _n_points = 100;
+    for(int32_t i = 1; i < 11; i++){
+        size_t n_points = i * _n_points;
+        struct mesh_st mesh = _generate_pointcloud_2d(10, n_points);
+        clock_t clk_start = clock();
+        enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
+        clock_t clk_end = clock();
+        if(i == 10){
+            export_triangulation(&mesh);
+        }
+        ck_assert_int_eq(err, ec_no_error);
+        debug_print("Triangulation of %ld points done in %f seconds\n",
+                n_points, ((float)(clk_end - clk_start))/CLOCKS_PER_SEC);
+        mesh_cleanup(&mesh);
+    }
+}
+END_TEST
+
 Suite * mk_delaunay_suite(void){
     Suite * s = suite_create("Delaunay");
     TCase * tc = tcase_create(
@@ -171,6 +192,7 @@ Suite * mk_delaunay_suite(void){
     tcase_add_test(tc, test_triangulation_on_invalid_mesh);
     tcase_add_test(tc, test_triangulation_on_limits);
     tcase_add_test(tc, test_triangulation_with_vertex_on_edge);
+    tcase_add_test(tc, test_delaunay_triangulation_performance);
     suite_add_tcase(s, tc);
     return s;
 }
