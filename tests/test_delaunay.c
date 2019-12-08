@@ -69,6 +69,12 @@ START_TEST(test_triangulation_on_duplicated)
 }
 END_TEST
 
+#define N_BOUNDARIES 4
+struct vector_st boundary_vertices[N_BOUNDARIES] = {
+    {{0.0, 0.0, 0.0}}, {{10.0, 0.0, 0.0}},
+    {{0.0, 10.0, 0.0}}, {{10.0, 10.0, 0.0}}
+};
+
 START_TEST(test_triangulation_on_limits)
 {
     struct mesh_st mesh = generate_pointcloud_2d(10);
@@ -80,7 +86,25 @@ START_TEST(test_triangulation_on_limits)
     mesh.vertices[5].point.v[0] = 0.0;
     mesh.vertices[10].point.v[1] = 0.0;
     mesh.vertices[15].point.v[0] = 0.0;
-    enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
+    size_t boundary_vertices_indexes[N_BOUNDARIES];
+    for(int32_t i = 0; i < N_BOUNDARIES; i++){
+        mesh_add_vertex(&mesh, boundary_vertices[i],
+                boundary_vertices_indexes + i);
+    }
+    struct face_st bg_0 = {{
+        boundary_vertices_indexes[0],
+        boundary_vertices_indexes[1],
+        boundary_vertices_indexes[2]
+    }};
+    mesh_add_face(&mesh, bg_0, NULL);
+    struct face_st bg_1 = {{
+        boundary_vertices_indexes[2],
+        boundary_vertices_indexes[1],
+        boundary_vertices_indexes[3]
+    }};
+    mesh_add_face(&mesh, bg_1, NULL);
+    enum error_code_e err = mesh_delaunay_triangulation_user_defined_boundaries(
+            &mesh, pp_xy);
     export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
     int32_t vertex_5_found = 0;
@@ -91,7 +115,7 @@ START_TEST(test_triangulation_on_limits)
         }
     }
     mesh_cleanup(&mesh);
-    ck_assert_int_eq(vertex_5_found, 1);
+    ck_assert_int_eq(vertex_5_found, 0);
 }
 END_TEST
 

@@ -368,6 +368,10 @@ enum error_code_e _mesh_delaunay_triangulation(
 {
     enum error_code_e err = ec_no_error;
     for(size_t i = 0; i < orig_n_vertices; i++){
+        // vertex is already in triangulation, possible
+        // if boundaries are user defined
+        if(mesh->vertices[i].adjacent_faces != INVALID_INDEX)
+            continue;
         err = insert_vertex_in_triangulation(mesh, i, pp);
         // still try to clean something upon failure, this does
         // not allocates memory, it may work. At this point the
@@ -402,5 +406,16 @@ enum error_code_e mesh_delaunay_triangulation(
 failure:
     mesh_super_triangle_cleanup(mesh);
     return err;
+}
+
+enum error_code_e mesh_delaunay_triangulation_user_defined_boundaries(
+        struct mesh_st * mesh,
+        enum projection_plane_e pp)
+{
+    size_t n_vertices = array_length(mesh->vertices);
+    if(n_vertices < 3) return ec_topology_error;
+    if(pp != pp_xy && pp != pp_yz && pp != pp_zx)
+        return ec_out_of_bound_error;
+    return _mesh_delaunay_triangulation(mesh, pp, n_vertices);
 }
 
