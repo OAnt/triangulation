@@ -10,14 +10,14 @@
 
 #define N_VERTEX 20
 
-struct mesh_st generate_pointcloud_2d(double range)
+struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices)
 {
     struct mesh_st mesh;
     mesh_init(&mesh);
     /*unsigned int state = time(NULL);*/
     /*printf("%d\n", state);*/
     unsigned int state = 1575405021;
-    for(int32_t i = 0; i < N_VERTEX; i++){
+    for(int32_t i = 0; i < n_vertices; i++){
         struct vector_st v = {{
             ((double)rand_r(&state)/(double)(RAND_MAX)) * range,
             ((double)rand_r(&state)/(double)(RAND_MAX)) * range,
@@ -26,6 +26,11 @@ struct mesh_st generate_pointcloud_2d(double range)
         mesh_add_vertex(&mesh, v, NULL);
     }
     return mesh;
+}
+
+struct mesh_st generate_pointcloud_2d(double range)
+{
+    return _generate_pointcloud_2d(range, N_VERTEX);
 }
 
 #define MAX_TRI_PATH 1024
