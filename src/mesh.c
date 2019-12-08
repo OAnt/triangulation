@@ -366,7 +366,8 @@ enum error_code_e _mesh_remove_face(
 {
     // checking if the face is already removed (also check if it
     // is out of bounds)
-    if(mesh_face_is_removed(mesh, face_index)) return ec_error;
+    G_ASSERT(mesh_face_is_valid(mesh, face_index),
+            "Face was already removed");
     mesh_face_remove_topology(mesh, face_index);
     // Removing the face's neighbors, no linked list needed,
     // neighbors index follows face index
