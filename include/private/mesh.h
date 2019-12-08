@@ -54,7 +54,9 @@ struct mesh_st {
 /**
  * Initialize a mesh, call this function before using
  * param mesh pointer to the mesh to initialize
- * return ec_no_error upon success
+ * return ec_no_error upon success. ec_memory_error if an error
+ * was encountered during an allocation (a NULL pointer was
+ * returned by an allocator).
  */
 enum error_code_e mesh_init(
         _IN struct mesh_st * mesh);
@@ -62,7 +64,8 @@ enum error_code_e mesh_init(
 /**
  * Deallocates memory used by a mesh
  * param mesh pointer to the mesh to clean
- * return ec_no_error upon success
+ * return ec_no_error upon success or ec_error if a NULL pointer
+ * was issued.
  */
 enum error_code_e mesh_cleanup(
         _IN struct mesh_st * mesh);
