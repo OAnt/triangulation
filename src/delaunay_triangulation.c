@@ -239,7 +239,7 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     mesh_remove_face((mesh), (index))
 #define delaunay_mesh_swap_edge(mesh, index_0, index_1) \
     mesh_swap_edge((mesh), (index_0), (index_1))
-#define mesh_replace_face(mesh, face, index) \
+#define delaunay_mesh_replace_face(mesh, face, index) \
     mesh_replace_face((mesh), (face), (index)) 
 #define delaunay_mesh_find_first_enclosing_triangular_face(mesh, p, pp, i) \
     mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
@@ -315,7 +315,7 @@ bool mesh_triangle_would_be_regular(
 #define N_NEW_FACES_MAX 4
 
 enum error_code_e handle_vertex_on_edge(
-        struct mesh_st * mesh,
+        struct delaunay_mesh_st * mesh,
         size_t face_index,
         struct face_test_st new_triangles[N_NEW_FACES_MAX],
         size_t * n_new_faces,
@@ -327,7 +327,7 @@ enum error_code_e handle_vertex_on_edge(
     // at this *n_new_faces is 3
     for(int32_t i = 0; i < *n_new_faces; i++){
         if(!new_triangles[i].is_regular){
-            neighbor_index = mesh->neighbors[face_index].f[i];
+            neighbor_index = delaunay_mesh_neighbor(mesh, face_index).f[i];
             non_regular_index = i;
         }
     }
@@ -336,26 +336,26 @@ enum error_code_e handle_vertex_on_edge(
     // offset of face index in the neighbor's neighboring face array
     int32_t offest = 0;
     for(; offest < FACE_SIZE; offest++){
-        if(mesh->neighbors[neighbor_index].f[offest] == face_index)
+        if(delaunay_mesh_neighbor(mesh, neighbor_index).f[offest] == face_index)
             break;
     }
     // two new faces are already known, this is the third
     struct face_test_st new_face_3 = {{{
-        mesh->faces[neighbor_index].f[(offest + 2) % FACE_SIZE],
-        mesh->faces[neighbor_index].f[offest],
+        delaunay_mesh_face(mesh, neighbor_index).f[(offest + 2) % FACE_SIZE],
+        delaunay_mesh_face(mesh, neighbor_index).f[offest],
         // the new vertex is on position 2 in all three first new faces
         new_triangles[0].face.f[2],}}, true};
     new_triangles[non_regular_index] = new_face_3;
     // three new faces are already known, this is the fourth
     struct face_test_st new_face_4 = {{{
-        mesh->faces[neighbor_index].f[(offest + 1) % FACE_SIZE],
-        mesh->faces[neighbor_index].f[(offest + 2) % FACE_SIZE],
+        delaunay_mesh_face(mesh, neighbor_index).f[(offest + 1) % FACE_SIZE],
+        delaunay_mesh_face(mesh, neighbor_index).f[(offest + 2) % FACE_SIZE],
         // the new vertex is on position 2 in all three first new faces
         new_triangles[0].face.f[2],}}, true};
     new_triangles[N_NEW_FACES_MAX - 1] = new_face_4;
     new_face_indexes[N_NEW_FACES_MAX - 1] = neighbor_index;
     *n_new_faces = N_NEW_FACES_MAX;
-    return mesh_replace_face(mesh, new_face_4.face, neighbor_index);
+    return delaunay_mesh_replace_face(mesh, new_face_4.face, neighbor_index);
 }
 
 #else
