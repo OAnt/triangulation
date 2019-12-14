@@ -227,9 +227,9 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
 #define delaunay_mesh_find_first_enclosing_triangular_face(mesh, p, pp, i) \
     indexed_mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
 #define delaunay_mesh_st indexed_mesh_st
-#define delaunay_mesh_faces(mesh) (mesh)->mesh->faces
-#define delaunay_mesh_neighbor(mesh, index) (mesh)->mesh->neighbors[(index)]
-#define delaunay_mesh_vertices(mesh) (mesh)->mesh->vertices
+#define delaunay_mesh_faces(mesh_) (mesh_)->mesh->faces
+#define delaunay_mesh_neighbor(mesh_, index) (mesh_)->mesh->neighbors[(index)]
+#define delaunay_mesh_vertices(mesh_) (mesh_)->mesh->vertices
 
 #else
 
@@ -371,7 +371,7 @@ enum error_code_e insert_vertex_in_triangulation(
         enum projection_plane_e pp)
 {
     size_t face_index;
-    struct vector_st point = mesh->vertices[vertex_index].point;
+    struct vector_st point = delaunay_mesh_vertex(mesh, vertex_index).point;
     enum error_code_e err = delaunay_mesh_find_first_enclosing_triangular_face(
             mesh, point, pp, &face_index);
     // This should not happen because of the super triangle.
