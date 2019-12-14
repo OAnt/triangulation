@@ -14,6 +14,7 @@
 
 #define UNINDEXED_DELAUNAY
 #ifndef UNINDEXED_DELAUNAY
+#define INDEXED_DELAUNAY
 
 struct indexed_mesh_st{
     mesh_st * mesh;
@@ -513,12 +514,12 @@ failure:
 }
 
 bool is_super_face(
-        struct delaunay_mesh_st * mesh,
+        struct mesh_st * mesh,
         size_t face_index)
 {
-    size_t n_vertices = array_length(delaunay_mesh_vertices(mesh)) - 3;
+    size_t n_vertices = array_length(mesh->vertices) - 3;
     for(int32_t i = 0; i < FACE_SIZE; i++){
-        if(delaunay_mesh_face(mesh, face_index).f[i] >= n_vertices){
+        if(mesh->faces[face_index].f[i] >= n_vertices){
             return true;
         }
     }
@@ -526,21 +527,21 @@ bool is_super_face(
 }
 
 void mesh_super_triangle_cleanup(
-        struct delaunay_mesh_st * mesh)
+        struct mesh_st * mesh)
 {
-    size_t index = array_length(delaunay_mesh_faces(mesh)) - 1;
+    size_t index = array_length(mesh->faces) - 1;
     while(1){
         if(is_super_face(mesh, index)){
-            delaunay_mesh_remove_face(mesh, index);
+            mesh_remove_face(mesh, index);
         }
         if(index == 0) break;
         else index--;
     };
-    size_t n_vertices = array_length(delaunay_mesh_vertices(mesh));
+    size_t n_vertices = array_length(mesh->vertices);
     // all the adjacent faces have been removed, the vertex are isolated
     // feature, rewinding the vertex array will finish the
     // removal
-    array_resize(&delaunay_mesh_vertices(mesh), n_vertices - 3);
+    array_resize(&mesh->vertices, n_vertices - 3);
 }
 
 struct triangle_st compute_triangulation_super_triangle(
@@ -618,7 +619,10 @@ enum error_code_e _mesh_delaunay_triangulation(
         // if boundaries are user defined
         if(mesh->vertices[i].adjacent_faces != INVALID_INDEX)
             continue;
+#ifdef INDEXED_DELAUNAY
+#else
         err = insert_vertex_in_triangulation(mesh, i, pp);
+#endif
         // still try to clean something upon failure, this does
         // not allocates memory, it may work. At this point the
         // mesh is beyond repair anyway (in case of error).
