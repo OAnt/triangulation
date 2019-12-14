@@ -119,7 +119,7 @@ void vector_cross_product(
  */
 void get_axis_system_from_projection_plane(
         _IN enum projection_plane_e pp,
-        _IN int32_t * x,
+        _OUT int32_t * x,
         _OUT int32_t * y);
 
 #endif
