@@ -158,9 +158,13 @@ enum error_code_e spatial_hash_iterate_over_buckets(
     // Objects that are out of the grid bounds can be handled (the % ensures
     // that the grid is infinite)
     int32_t orig_x = ((int32_t)trunc(min.v[0] / sph->x_cell_size) % sph->n_x_bkts);
+    if(orig_x < 0) orig_x += sph->n_x_bkts;
     int32_t orig_y = ((int32_t)trunc(min.v[1] / sph->y_cell_size) % sph->n_y_bkts);
+    if(orig_y < 0) orig_y += sph->n_y_bkts;
     int32_t end_x = ((int32_t)ceil(max.v[0] / sph->x_cell_size) % sph->n_x_bkts);
+    if(end_x < 0) end_x += sph->n_x_bkts;
     int32_t end_y = ((int32_t)ceil(max.v[1] / sph->y_cell_size) % sph->n_y_bkts);
+    if(end_y < 0) end_y += sph->n_y_bkts;
     for(int32_t x = orig_x; x != end_x; x = (x + 1) % sph->n_x_bkts){
         for(int32_t y = orig_y; y != end_y; y = (y + 1) % sph->n_y_bkts){
             size_t bucket = y * sph->n_x_bkts + x;
