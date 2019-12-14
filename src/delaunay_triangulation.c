@@ -124,6 +124,10 @@ enum error_code_e indexed_mesh_add_face(
     G_ASSERT(index != NULL, "This function needs the index");
     enum error_code_e err = mesh_add_face(mesh->mesh, face, index);
     if(err == ec_no_error){
+        size_t n_handles = array_length(mesh->handles);
+        G_ASSERT(n_handles == *index,
+                "Not the same number of handle");
+        array_resize(&mesh->handles, n_handles + 1);
         return indexed_mesh_insert_into_spatial_hash(
                 mesh, *index);
     }else{
