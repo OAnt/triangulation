@@ -7,5 +7,6 @@
 #define MAX(x, y) (x) > (y) ? x : y
 #define MIN(x, y) (x) < (y) ? x : y
 #define EPSILON 1e-10
+#define INVALID_INDEX (size_t)-1
 
 #endif

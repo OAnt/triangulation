@@ -5,8 +5,6 @@
 #include <private/vector.h>
 #include <public/mesh.h>
 
-#define INVALID_INDEX (size_t)-1
-
 #define FACE_SIZE 3
 
 /**
