@@ -158,6 +158,7 @@ START_TEST(test_triangulation_on_invalid_mesh)
     mesh_add_face(&mesh, f, NULL);
     ck_assert_int_eq(mesh_delaunay_triangulation(&mesh, pp_xy),
             ec_out_of_bound_error);
+    mesh_cleanup(&mesh);
 }
 END_TEST
 
