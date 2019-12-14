@@ -619,10 +619,7 @@ enum error_code_e _mesh_delaunay_triangulation(
         // if boundaries are user defined
         if(mesh->vertices[i].adjacent_faces != INVALID_INDEX)
             continue;
-#ifdef INDEXED_DELAUNAY
-#else
         err = insert_vertex_in_triangulation(mesh, i, pp);
-#endif
         // still try to clean something upon failure, this does
         // not allocates memory, it may work. At this point the
         // mesh is beyond repair anyway (in case of error).
