@@ -59,10 +59,10 @@ struct query_st queries[N_QUERIES] = {
     {{{0.0, 0.0, 0.0}}, {{30.0, 30.0, 0.0}}, 4, get_object_0_or_2},
 };
 
-struct spatial_hash_st * spatial_hash_create(size_t handles[N_OBJECTS]){
-    struct spatial_hash_st * sph;
-    ck_assert(spatial_hash_new(
-                n_cells, n_cells, cell_size, cell_size, &sph) == ec_no_error);
+void spatial_hash_fill(
+        struct spatial_hash_st * sph,
+        size_t handles[N_OBJECTS])
+{
     for(int32_t i = 0; i < N_OBJECTS; i++){
         ck_assert(spatial_hash_add(
                     sph,
@@ -71,6 +71,18 @@ struct spatial_hash_st * spatial_hash_create(size_t handles[N_OBJECTS]){
                     objects[i].index,
                     handles + i) == ec_no_error);
     }
+}
+
+struct spatial_hash_st * _spatial_hash_create(void){
+    struct spatial_hash_st * sph;
+    ck_assert(spatial_hash_new(
+                n_cells, n_cells, cell_size, cell_size, &sph) == ec_no_error);
+    return sph;
+}
+
+struct spatial_hash_st * spatial_hash_create(size_t handles[N_OBJECTS]){
+    struct spatial_hash_st * sph = _spatial_hash_create();
+    spatial_hash_fill(sph, handles);
     return sph;
 }
 
@@ -119,12 +131,28 @@ START_TEST(test_spatial_hash_remove)
 }
 END_TEST
 
+START_TEST(test_spatial_hash_thrash)
+{
+    struct spatial_hash_st * sph = _spatial_hash_create();
+    for(int32_t i = 0; i < 10; i++){
+        size_t handles[N_OBJECTS];
+        spatial_hash_fill(sph, handles);
+        for(int32_t j = 0; j < N_OBJECTS; j++){
+            spatial_hash_remove(sph, handles[j]);
+        }
+    }
+    
+    spatial_hash_delete(&sph);
+}
+END_TEST
+
 Suite * mk_spatial_hash_suite(void){
     Suite * s = suite_create("Spatial Hash");
     TCase * sph_tc = tcase_create(
             "Spatial Hash");
     tcase_add_test(sph_tc, test_spatial_hash_get);
     tcase_add_test(sph_tc, test_spatial_hash_remove);
+    tcase_add_test(sph_tc, test_spatial_hash_thrash);
     suite_add_tcase(s, sph_tc);
     return s;
 }
