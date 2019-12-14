@@ -3,12 +3,12 @@
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
-#include <private/debug.h>
 #include <private/array.h>
-#include <private/mesh.h>
-#include <public/common.h>
-#include <private/triangle.h>
+#include <private/debug.h>
 #include <private/delaunay_triangulation.h>
+#include <private/mesh.h>
+#include <private/triangle.h>
+#include <public/common.h>
 
 struct quad_st{
     size_t face_index_0;
