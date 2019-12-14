@@ -9,6 +9,7 @@ extern Suite * mk_array_suite(void);
 extern Suite * mk_mesh_suite(void);
 extern Suite * mk_vector_suite(void);
 extern Suite * mk_delaunay_suite(void);
+extern Suite * mk_spatial_hash_suite(void);
 
 mk_geo_test_suite_t all_suites[] = {
     mk_vector_classification_suite,
@@ -16,7 +17,8 @@ mk_geo_test_suite_t all_suites[] = {
     mk_array_suite,
     mk_mesh_suite,
     mk_vector_suite,
-    mk_delaunay_suite
+    mk_delaunay_suite,
+    mk_spatial_hash_suite,
 };
 
 int main(void){
