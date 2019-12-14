@@ -631,7 +631,18 @@ enum error_code_e __mesh_delaunay_triangulation(
 }
 
 #ifndef UNINDEXED_DELAUNAY
-
+enum error_code_e _mesh_delaunay_triangulation(
+        struct mesh_st * mesh,
+        enum projection_plane_e pp)
+{
+    struct indexed_mesh_st indexed_mesh;
+    enum error_code_e err = indexed_mesh_init_in_place_faces_as_boundaries(
+            mesh, pp, &indexed_mesh);
+    if(err != ec_no_error) return err;
+    err = __mesh_delaunay_triangulation(&indexed_mesh, pp);
+    indexed_mesh_cleanup(&indexed_mesh);
+    return err;
+}
 #else
 #define _mesh_delaunay_triangulation(mesh, pp) __mesh_delaunay_triangulation((mesh), (pp))
 #endif
