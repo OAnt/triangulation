@@ -12,7 +12,7 @@
 #include <private/triangle.h>
 #include <public/common.h>
 
-#define UNINDEXED_DELAUNAY
+/*#define UNINDEXED_DELAUNAY*/
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY
 
@@ -48,7 +48,7 @@ enum error_code_e indexed_mesh_insert_into_spatial_hash(
         struct indexed_mesh_st * mesh,
         size_t face_index)
 {
-    G_ASSERT(face_index < array_length(mesh->mesh),
+    G_ASSERT(face_index < array_length(mesh->mesh->faces),
             "Face is out of bounds");
     G_ASSERT(mesh->handles[face_index] == INVALID_INDEX,
             "Face is already inserted");
@@ -551,8 +551,8 @@ struct triangle_st compute_triangulation_super_triangle(
     G_ASSERT(pp == pp_xy || pp == pp_yz || pp == pp_zx, "Unknown projection plane");
     size_t n_vertices = array_length(mesh->vertices);
     // Initializing super triangle
-    struct vector_st min = {DBL_MAX, DBL_MAX, DBL_MAX};
-    struct vector_st max = {-DBL_MAX, -DBL_MAX, -DBL_MAX};
+    struct vector_st min = {{DBL_MAX, DBL_MAX, DBL_MAX}};
+    struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
     for(size_t v = 0; v < n_vertices; v++){
         for(int32_t i = 0; i < 3; i++){
             if(mesh->vertices[v].point.v[i] > max.v[i])
