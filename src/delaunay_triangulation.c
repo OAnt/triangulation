@@ -227,9 +227,9 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
 #define delaunay_mesh_find_first_enclosing_triangular_face(mesh, p, pp, i) \
     indexed_mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
 #define delaunay_mesh_st indexed_mesh_st
-#define delaunay_mesh_face(mesh, index) (mesh)->mesh->faces[(index)]
+#define delaunay_mesh_faces(mesh) (mesh)->mesh->faces
 #define delaunay_mesh_neighbor(mesh, index) (mesh)->mesh->neighbors[(index)]
-#define delaunay_mesh_vertex(mesh, index) (mesh)->mesh->vertices[(index)]
+#define delaunay_mesh_vertices(mesh) (mesh)->mesh->vertices
 
 #else
 
@@ -242,13 +242,16 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
 #define delaunay_mesh_replace_face(mesh, face, index) \
     mesh_replace_face((mesh), (face), (index)) 
 #define delaunay_mesh_find_first_enclosing_triangular_face(mesh, p, pp, i) \
-    mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
+    unindexed_mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
 #define delaunay_mesh_st mesh_st
-#define delaunay_mesh_face(mesh, index) (mesh)->faces[(index)]
+#define delaunay_mesh_faces(mesh) (mesh)->faces
 #define delaunay_mesh_neighbor(mesh, index) (mesh)->neighbors[(index)]
-#define delaunay_mesh_vertex(mesh, index) (mesh)->vertices[(index)]
+#define delaunay_mesh_vertices(mesh) (mesh)->vertices
 
 #endif
+
+#define delaunay_mesh_vertex(mesh, index) delaunay_mesh_vertices((mesh))[(index)]
+#define delaunay_mesh_face(mesh, index) delaunay_mesh_faces((mesh))[(index)]
 
 struct quad_st{
     size_t face_index_0;
@@ -363,19 +366,19 @@ enum error_code_e handle_vertex_on_edge(
 #endif
 
 enum error_code_e insert_vertex_in_triangulation(
-        struct mesh_st * mesh,
+        struct delaunay_mesh_st * mesh,
         size_t vertex_index,
         enum projection_plane_e pp)
 {
     size_t face_index;
     struct vector_st point = mesh->vertices[vertex_index].point;
-    enum error_code_e err = unindexed_mesh_find_first_enclosing_triangular_face(
+    enum error_code_e err = delaunay_mesh_find_first_enclosing_triangular_face(
             mesh, point, pp, &face_index);
     // This should not happen because of the super triangle.
     // Checking nonetheless
     if(err != ec_no_error)
         return err;
-    struct face_st old_face = mesh->faces[face_index];
+    struct face_st old_face = delaunay_mesh_face(mesh, face_index);
     size_t n_new_faces = 3;
     // Three faces is the standard case (-1 + 3), when a point 
     // is on a edge, there will -2 + 4 triangles
@@ -434,14 +437,14 @@ enum error_code_e insert_vertex_in_triangulation(
         if(!new_triangles[i].is_regular) continue;
 #endif
         if(!replaced){
-            err = mesh_replace_face(
+            err = delaunay_mesh_replace_face(
                     mesh,
                     new_triangles[i].face,
                     face_index);
             new_face_indexes[i] = face_index;
             replaced = true;
         }else{
-            err = mesh_add_face(
+            err = delaunay_mesh_add_face(
                     // the first face is replaced
                     mesh, new_triangles[i].face,
                     new_face_indexes + i);
@@ -458,19 +461,19 @@ enum error_code_e insert_vertex_in_triangulation(
         if(face == INVALID_INDEX) continue;
         // The position of the new vertex is the same in all faces
         // the opposite face is at the fixed offset 0
-        if(mesh->neighbors[face].f[0] != INVALID_INDEX){
-            struct quad_st quad = {face, mesh->neighbors[face].f[0]};
+        if(delaunay_mesh_neighbor(mesh, face).f[0] != INVALID_INDEX){
+            struct quad_st quad = {face, delaunay_mesh_neighbor(mesh, face).f[0]};
             err = face_stack_push(&face_stack, quad);
             if(err != ec_no_error) goto failure;
         }
     }
     struct quad_st quad;
     while(face_stack_pop(&face_stack, &quad) == ec_no_error){
-        struct face_st * face = &mesh->faces[quad.face_index_1];
+        struct face_st * face = &delaunay_mesh_face(mesh, quad.face_index_1);
         struct triangle_st tr = {{
-            mesh->vertices[face->f[0]].point,
-            mesh->vertices[face->f[1]].point,
-            mesh->vertices[face->f[2]].point,
+            delaunay_mesh_vertex(mesh, face->f[0]).point,
+            delaunay_mesh_vertex(mesh, face->f[1]).point,
+            delaunay_mesh_vertex(mesh, face->f[2]).point,
         }};
         struct vector_st cc_center, cc_to_vertex, cc_to_triangle_vertex;
         err = triangle_compute_circumcircle_center(&tr, &cc_center);
@@ -487,17 +490,18 @@ enum error_code_e insert_vertex_in_triangulation(
         if(sq_dist < sq_cc_radius){
             // swap make sure that the vertex we are inserting is 
             // still in third position
-            err = mesh_swap_edge(mesh, quad.face_index_0, quad.face_index_1);
+            err = delaunay_mesh_swap_edge(
+                    mesh, quad.face_index_0, quad.face_index_1);
             if(err != ec_no_error) break;
-            if(mesh->neighbors[quad.face_index_0].f[0] != INVALID_INDEX){
+            if(delaunay_mesh_neighbor(mesh, quad.face_index_0).f[0] != INVALID_INDEX){
                 struct quad_st quad_0 = {quad.face_index_0,
-                    mesh->neighbors[quad.face_index_0].f[0]};
+                    delaunay_mesh_neighbor(mesh, quad.face_index_0).f[0]};
                 err = face_stack_push(&face_stack, quad_0);
                 if(err != ec_no_error) break;
             }
-            if(mesh->neighbors[quad.face_index_1].f[0] != INVALID_INDEX){
+            if(delaunay_mesh_neighbor(mesh, quad.face_index_1).f[0] != INVALID_INDEX){
                 struct quad_st quad_1 = {quad.face_index_1,
-                    mesh->neighbors[quad.face_index_1].f[0]};
+                    delaunay_mesh_neighbor(mesh, quad.face_index_1).f[0]};
                 err = face_stack_push(&face_stack, quad_1);
                 if(err != ec_no_error) break;
             }
@@ -509,12 +513,12 @@ failure:
 }
 
 bool is_super_face(
-        struct mesh_st * mesh,
+        struct delaunay_mesh_st * mesh,
         size_t face_index)
 {
-    size_t n_vertices = array_length(mesh->vertices) - 3;
+    size_t n_vertices = array_length(delaunay_mesh_vertices(mesh)) - 3;
     for(int32_t i = 0; i < FACE_SIZE; i++){
-        if(mesh->faces[face_index].f[i] >= n_vertices){
+        if(delaunay_mesh_face(mesh, face_index).f[i] >= n_vertices){
             return true;
         }
     }
@@ -522,21 +526,21 @@ bool is_super_face(
 }
 
 void mesh_super_triangle_cleanup(
-        struct mesh_st * mesh)
+        struct delaunay_mesh_st * mesh)
 {
-    size_t index = array_length(mesh->faces) - 1;
+    size_t index = array_length(delaunay_mesh_faces(mesh)) - 1;
     while(1){
         if(is_super_face(mesh, index)){
-            mesh_remove_face(mesh, index);
+            delaunay_mesh_remove_face(mesh, index);
         }
         if(index == 0) break;
         else index--;
     };
-    size_t n_vertices = array_length(mesh->vertices);
+    size_t n_vertices = array_length(delaunay_mesh_vertices(mesh));
     // all the adjacent faces have been removed, the vertex are isolated
     // feature, rewinding the vertex array will finish the
     // removal
-    array_resize(&mesh->vertices, n_vertices - 3);
+    array_resize(&delaunay_mesh_vertices(mesh), n_vertices - 3);
 }
 
 struct triangle_st compute_triangulation_super_triangle(
