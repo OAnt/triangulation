@@ -1,3 +1,4 @@
+#include "private/vector.h"
 #include <stdio.h>
 #include <float.h>
 #include <math.h>
@@ -7,8 +8,247 @@
 #include <private/debug.h>
 #include <private/delaunay_triangulation.h>
 #include <private/mesh.h>
+#include <private/spatial_hash.h>
 #include <private/triangle.h>
 #include <public/common.h>
+
+#define UNINDEXED_DELAUNAY
+#ifndef UNINDEXED_DELAUNAY
+
+struct indexed_mesh_st{
+    mesh_st * mesh;
+    size_t * handles;
+    struct spatial_hash_st * sph;
+    int32_t x_index;
+    int32_t y_index;
+};
+
+void indexed_mesh_face_increment_bounds(
+        struct indexed_mesh_st * mesh,
+        size_t face_index,
+        struct vector_st * min,
+        struct vector_st * max)
+{
+    for(int32_t v = 0; v < FACE_SIZE; v++){
+        size_t vertex_index = mesh->mesh->faces[face_index].f[v];
+        struct vector_st * point = &mesh->mesh->vertices[vertex_index].point;
+        if(point->v[mesh->x_index] > max->v[0])
+            max->v[0] = point->v[mesh->x_index];
+        if(point->v[mesh->y_index] > max->v[1])
+            max->v[1] = point->v[mesh->y_index];
+        if(point->v[mesh->x_index] < min->v[0])
+            min->v[0] = point->v[mesh->x_index];
+        if(point->v[mesh->y_index] < min->v[1])
+            min->v[1] = point->v[mesh->y_index];
+    }
+}
+
+enum error_code_e indexed_mesh_insert_into_spatial_hash(
+        struct indexed_mesh_st * mesh,
+        size_t face_index)
+{
+    G_ASSERT(face_index < array_length(mesh->mesh),
+            "Face is out of bounds");
+    G_ASSERT(mesh->handles[face_index] == INVALID_INDEX,
+            "Face is already inserted");
+    struct vector_st min = {{DBL_MAX, DBL_MAX, DBL_MAX}};
+    struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
+    indexed_mesh_face_increment_bounds(mesh, face_index, &min, &max);
+    return spatial_hash_add(
+            mesh->sph, min, max, face_index, &mesh->handles[face_index]);
+}
+
+void indexed_mesh_remove_from_spatial_hash(
+        struct indexed_mesh_st * mesh,
+        size_t face_index)
+{
+    G_ASSERT(face_index < array_length(mesh->mesh),
+            "Face is out of bounds");
+    G_ASSERT(mesh->handles[face_index] != INVALID_INDEX,
+            "Face is already removed");
+    spatial_hash_remove(mesh->sph, mesh->handles[face_index]);
+    mesh->handles[face_index] = INVALID_INDEX;
+}
+
+enum error_code_e indexed_mesh_init_in_place_faces_as_boundaries(
+        mesh_st * mesh,
+        enum projection_plane_e pp,
+        struct indexed_mesh_st * indexed_mesh)
+{
+    get_axis_system_from_projection_plane(
+            pp, &indexed_mesh->x_index, &indexed_mesh->y_index);
+    indexed_mesh->mesh = mesh; 
+    size_t n_faces = array_length(mesh->faces);
+    struct vector_st min = {{DBL_MAX, DBL_MAX, DBL_MAX}};
+    struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
+    for(size_t f = 0; f < n_faces; f++){
+        indexed_mesh_face_increment_bounds(indexed_mesh, f, &min, &max);
+    }
+    static int32_t n_bkts = 10;
+    double x_cell_size = (max.v[0] - min.v[0]) / n_bkts;
+    double y_cell_size = (max.v[1] - min.v[1]) / n_bkts;
+    enum error_code_e err = array_new(
+            size_t, n_faces, &indexed_mesh->handles);
+    if(err != ec_no_error) goto fail_no_handles;
+    err = spatial_hash_new(
+            n_bkts, n_bkts, x_cell_size, y_cell_size, &indexed_mesh->sph);
+    if(err != ec_no_error) goto fail_no_sph;
+    for(size_t f = 0; f < n_faces; f++){
+        indexed_mesh->handles[f] = INVALID_INDEX;
+        err = indexed_mesh_insert_into_spatial_hash(indexed_mesh, f);
+        if(err != ec_no_error) goto fail_face_insert;
+    }
+    return ec_no_error;
+fail_face_insert:
+    spatial_hash_delete(&indexed_mesh->sph);
+fail_no_sph:
+    array_delete(&indexed_mesh->handles);
+fail_no_handles:
+    return err;
+}
+
+void indexed_mesh_cleanup(
+        struct indexed_mesh_st * mesh)
+{
+    spatial_hash_delete(&mesh->sph);
+    array_delete(&mesh->handles);
+    memset(mesh, 0, sizeof(struct indexed_mesh_st));
+}
+
+enum error_code_e indexed_mesh_add_face(
+        struct indexed_mesh_st * mesh,
+        struct face_st face,
+        size_t * index)
+{
+    G_ASSERT(index != NULL, "This function needs the index");
+    enum error_code_e err = mesh_add_face(mesh->mesh, face, index);
+    if(err == ec_no_error){
+        return indexed_mesh_insert_into_spatial_hash(
+                mesh, *index);
+    }else{
+        return err;
+    }
+}
+
+enum error_code_e indexed_mesh_remove_face(
+        struct indexed_mesh_st * mesh,
+        size_t face_index)
+{
+    indexed_mesh_remove_from_spatial_hash(mesh, face_index);
+    return mesh_remove_face(mesh->mesh, face_index);
+}
+
+enum error_code_e indexed_mesh_swap_edge(
+        struct indexed_mesh_st * mesh,
+        size_t face_index_0,
+        size_t face_index_1)
+{
+    enum error_code_e err = mesh_swap_edge(
+            mesh->mesh, face_index_0, face_index_1);
+    if(err == ec_no_error){
+        indexed_mesh_remove_from_spatial_hash(mesh, face_index_0);
+        indexed_mesh_remove_from_spatial_hash(mesh, face_index_1);
+        err = indexed_mesh_insert_into_spatial_hash(mesh, face_index_0);
+        if(err != ec_no_error) return err;
+        return indexed_mesh_insert_into_spatial_hash(mesh, face_index_1);
+    }else{
+        return err;
+    }
+}
+
+enum error_code_e indexed_mesh_replace_face(
+        struct indexed_mesh_st * mesh,
+        struct face_st face,
+        size_t index)
+{
+    enum error_code_e err = mesh_replace_face(mesh->mesh, face, index);
+    if(err != ec_no_error) return err;
+    indexed_mesh_remove_from_spatial_hash(mesh, index);
+    return indexed_mesh_insert_into_spatial_hash(mesh, index);
+}
+
+struct indexed_mesh_hash_get_callback_data_st{
+    const struct indexed_mesh_st * mesh;
+    struct vector_st * point;
+    enum projection_plane_e pp;
+    enum point_polygon_position_e pos;
+    size_t * face_index;
+};
+
+bool indexed_mesh_hash_get_callback(
+        size_t face_index,
+        void * _data)
+{
+    struct indexed_mesh_hash_get_callback_data_st * data = 
+        (struct indexed_mesh_hash_get_callback_data_st *) _data;
+    const struct indexed_mesh_st * mesh = data->mesh;
+    data->pos = projected_face_point_position(
+            mesh->mesh,
+            face_index,
+            data->point,
+            data->pp);
+    if(data->pos == ppol_in){
+        *data->face_index = face_index;
+        return true;
+    }else{
+        return false;
+    }
+}
+
+enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
+        const struct indexed_mesh_st * mesh,
+        struct vector_st point,
+        enum projection_plane_e pp,
+        size_t * face_index)
+{
+    struct indexed_mesh_hash_get_callback_data_st data = {
+        mesh, &point, pp, ppol_out, face_index};
+    spatial_hash_get(
+            mesh->sph,
+            point,
+            point,
+            indexed_mesh_hash_get_callback,
+            &data);
+    if(data.pos == ppol_in){
+        return ec_no_error;
+    }else{
+        return ec_error;
+    }
+}
+
+#define delaunay_mesh_add_face(mesh, face, index) \
+    indexed_mesh_add_face((mesh), (face), (index))
+#define delaunay_mesh_remove_face(mesh, index) \
+    indexed_mesh_remove_face((mesh), (index))
+#define delaunay_mesh_swap_edge(mesh, index_0, index_1) \
+    indexed_mesh_swap_edge((mesh), (index_0), (index_1))
+#define delaunay_mesh_replace_face(mesh, face, index) \
+    indexed_mesh_replace_face((mesh), (face), (index)) 
+#define delaunay_mesh_find_first_enclosing_triangular_face(mesh, p, pp, i) \
+    indexed_mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
+#define delaunay_mesh_st indexed_mesh_st
+#define delaunay_mesh_face(mesh, index) (mesh)->mesh->faces[(index)]
+#define delaunay_mesh_neighbor(mesh, index) (mesh)->mesh->neighbors[(index)]
+#define delaunay_mesh_vertex(mesh, index) (mesh)->mesh->vertices[(index)]
+
+#else
+
+#define delaunay_mesh_add_face(mesh, face, index) \
+    mesh_add_face((mesh), (face), (index))
+#define delaunay_mesh_remove_face(mesh, index) \
+    mesh_remove_face((mesh), (index))
+#define delaunay_mesh_swap_edge(mesh, index_0, index_1) \
+    mesh_swap_edge((mesh), (index_0), (index_1))
+#define mesh_replace_face(mesh, face, index) \
+    mesh_replace_face((mesh), (face), (index)) 
+#define delaunay_mesh_find_first_enclosing_triangular_face(mesh, p, pp, i) \
+    mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
+#define delaunay_mesh_st mesh_st
+#define delaunay_mesh_face(mesh, index) (mesh)->faces[(index)]
+#define delaunay_mesh_neighbor(mesh, index) (mesh)->neighbors[(index)]
+#define delaunay_mesh_vertex(mesh, index) (mesh)->vertices[(index)]
+
+#endif
 
 struct quad_st{
     size_t face_index_0;
@@ -48,14 +288,14 @@ struct face_test_st {
 };
 
 bool mesh_triangle_would_be_regular(
-        struct mesh_st * mesh,
+        struct delaunay_mesh_st * mesh,
         struct face_test_st * face)
 {
     size_t p[FACE_SIZE] = {0, 1, 2};
     struct vector_st v[FACE_SIZE] = {
-        mesh->vertices[face->face.f[0]].point,
-        mesh->vertices[face->face.f[1]].point,
-        mesh->vertices[face->face.f[2]].point};
+        delaunay_mesh_vertex(mesh, face->face.f[0]).point,
+        delaunay_mesh_vertex(mesh, face->face.f[1]).point,
+        delaunay_mesh_vertex(mesh, face->face.f[2]).point};
     struct vector_st normal;
     enum error_code_e err = planar_polygon_normal(p, FACE_SIZE, v, &normal);
     if(err == ec_no_error){
