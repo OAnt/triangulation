@@ -12,7 +12,7 @@
 #include <private/triangle.h>
 #include <public/common.h>
 
-/*#define UNINDEXED_DELAUNAY*/
+#define UNINDEXED_DELAUNAY
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY
 
