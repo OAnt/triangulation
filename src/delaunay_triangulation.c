@@ -608,16 +608,16 @@ enum error_code_e make_triangulation_super_triangle(
     return err;
 }
 
-enum error_code_e _mesh_delaunay_triangulation(
-        struct mesh_st * mesh,
+enum error_code_e __mesh_delaunay_triangulation(
+        struct delaunay_mesh_st * mesh,
         enum projection_plane_e pp)
 {
-    size_t n_vertices = array_length(mesh->vertices);
+    size_t n_vertices = array_length(delaunay_mesh_vertices(mesh));
     enum error_code_e err = ec_no_error;
     for(size_t i = 0; i < n_vertices; i++){
         // vertex is already in triangulation, possible
         // if boundaries are user defined
-        if(mesh->vertices[i].adjacent_faces != INVALID_INDEX)
+        if(delaunay_mesh_vertex(mesh, i).adjacent_faces != INVALID_INDEX)
             continue;
         err = insert_vertex_in_triangulation(mesh, i, pp);
         // still try to clean something upon failure, this does
@@ -629,6 +629,12 @@ enum error_code_e _mesh_delaunay_triangulation(
     }
     return err;
 }
+
+#ifndef UNINDEXED_DELAUNAY
+
+#else
+#define _mesh_delaunay_triangulation(mesh, pp) __mesh_delaunay_triangulation((mesh), (pp))
+#endif
 
 enum error_code_e mesh_delaunay_triangulation(
         struct mesh_st * mesh,
