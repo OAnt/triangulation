@@ -12,7 +12,7 @@
 #include <private/triangle.h>
 #include <public/common.h>
 
-#define UNINDEXED_DELAUNAY
+/*#define UNINDEXED_DELAUNAY*/
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY
 
@@ -208,10 +208,14 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
 {
     struct indexed_mesh_hash_get_callback_data_st data = {
         mesh, &point, pp, ppol_out, face_index};
+    struct vector_st delta = {{EPSILON, EPSILON, EPSILON}};
+    struct vector_st min, max;
+    vector_subtraction(&point, &delta, &min);
+    vector_addition(&point, &delta, &max);
     spatial_hash_get(
             mesh->sph,
-            point,
-            point,
+            min,
+            max,
             indexed_mesh_hash_get_callback,
             &data);
     if(data.pos == ppol_in){
