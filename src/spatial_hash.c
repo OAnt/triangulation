@@ -151,6 +151,7 @@ static inline enum error_code_e spatial_hash_iterate_over_buckets(
         void * data,
         const char * caller)
 {
+    (void)caller;
     G_ASSERT(max.v[0] >= min.v[0], "Max must be greater or equal than min");
     G_ASSERT(max.v[1] >= min.v[1], "Max must be greater or equal than min");
     // Computing the span of the intersection between the object
@@ -168,7 +169,7 @@ static inline enum error_code_e spatial_hash_iterate_over_buckets(
     if(end_y < 0) end_y += sph->n_y_bkts;
     int32_t x = orig_x;
     do{
-        int32_t y = orig_x;
+        int32_t y = orig_y;
         do{
             size_t bucket = y * sph->n_x_bkts + x;
             enum error_code_e err = iterator_callback(sph, bucket, data);
