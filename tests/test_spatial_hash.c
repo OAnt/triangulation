@@ -138,6 +138,7 @@ START_TEST(test_spatial_hash_thrash)
         size_t handles[N_OBJECTS];
         spatial_hash_fill(sph, handles);
         for(int32_t j = 0; j < N_OBJECTS; j++){
+            ck_assert_int_le(handles[j], 4);
             spatial_hash_remove(sph, handles[j]);
         }
     }
