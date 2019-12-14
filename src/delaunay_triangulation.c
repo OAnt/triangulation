@@ -12,7 +12,7 @@
 #include <private/triangle.h>
 #include <public/common.h>
 
-/*#define UNINDEXED_DELAUNAY*/
+#define UNINDEXED_DELAUNAY
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY
 
@@ -63,7 +63,7 @@ void indexed_mesh_remove_from_spatial_hash(
         struct indexed_mesh_st * mesh,
         size_t face_index)
 {
-    G_ASSERT(face_index < array_length(mesh->mesh),
+    G_ASSERT(face_index < array_length(mesh->mesh->faces),
             "Face is out of bounds");
     G_ASSERT(mesh->handles[face_index] != INVALID_INDEX,
             "Face is already removed");
@@ -128,19 +128,12 @@ enum error_code_e indexed_mesh_add_face(
         G_ASSERT(n_handles == *index,
                 "Not the same number of handle");
         array_resize(&mesh->handles, n_handles + 1);
+        mesh->handles[*index] = INVALID_INDEX;
         return indexed_mesh_insert_into_spatial_hash(
                 mesh, *index);
     }else{
         return err;
     }
-}
-
-enum error_code_e indexed_mesh_remove_face(
-        struct indexed_mesh_st * mesh,
-        size_t face_index)
-{
-    indexed_mesh_remove_from_spatial_hash(mesh, face_index);
-    return mesh_remove_face(mesh->mesh, face_index);
 }
 
 enum error_code_e indexed_mesh_swap_edge(
@@ -227,8 +220,6 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
 
 #define delaunay_mesh_add_face(mesh, face, index) \
     indexed_mesh_add_face((mesh), (face), (index))
-#define delaunay_mesh_remove_face(mesh, index) \
-    indexed_mesh_remove_face((mesh), (index))
 #define delaunay_mesh_swap_edge(mesh, index_0, index_1) \
     indexed_mesh_swap_edge((mesh), (index_0), (index_1))
 #define delaunay_mesh_replace_face(mesh, face, index) \
@@ -244,8 +235,6 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
 
 #define delaunay_mesh_add_face(mesh, face, index) \
     mesh_add_face((mesh), (face), (index))
-#define delaunay_mesh_remove_face(mesh, index) \
-    mesh_remove_face((mesh), (index))
 #define delaunay_mesh_swap_edge(mesh, index_0, index_1) \
     mesh_swap_edge((mesh), (index_0), (index_1))
 #define delaunay_mesh_replace_face(mesh, face, index) \

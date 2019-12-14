@@ -166,26 +166,17 @@ static inline enum error_code_e spatial_hash_iterate_over_buckets(
     if(end_x < 0) end_x += sph->n_x_bkts;
     int32_t end_y = ((int32_t)ceil(max.v[1] / sph->y_cell_size) % sph->n_y_bkts);
     if(end_y < 0) end_y += sph->n_y_bkts;
-    debug_print("%s:%d, %d, %d, %d\n", caller, orig_x, orig_y, end_x, end_y);
     int32_t x = orig_x;
     do{
         int32_t y = orig_x;
         do{
             size_t bucket = y * sph->n_x_bkts + x;
-            debug_print("%s:%ld\n", caller, bucket);
             enum error_code_e err = iterator_callback(sph, bucket, data);
             if(err != ec_no_error) return err;
             y = (y + 1) % sph->n_y_bkts;
         }while(y != end_y);
         x = (x + 1) % sph->n_x_bkts;
     }while(x != end_x);
-    /*for(int32_t x = orig_x; x != end_x; x = (x + 1) % sph->n_x_bkts){*/
-        /*for(int32_t y = orig_y; y != end_y; y = (y + 1) % sph->n_y_bkts){*/
-            /*size_t bucket = y * sph->n_x_bkts + x;*/
-            /*enum error_code_e err = iterator_callback(sph, bucket, data);*/
-            /*if(err != ec_no_error) return err;*/
-        /*}*/
-    /*}*/
     return ec_no_error;
 }
 
