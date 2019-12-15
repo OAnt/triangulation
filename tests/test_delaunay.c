@@ -3,13 +3,52 @@
 #include <stdlib.h>
 #include <time.h>
 #include <check.h>
+#include <private/array.h>
 #include <private/debug.h>
+#include <private/delaunay_triangulation.h>
+#include <private/triangle.h>
 #include <private/vector.h>
 #include <public/mesh.h>
-#include <private/delaunay_triangulation.h>
-#include <private/array.h>
 
 #define N_VERTEX 20
+
+void validate_triangle_is_delaunay_conformant(
+        struct mesh_st * mesh, 
+        size_t face_index)
+{
+    struct face_st * face = &mesh->faces[face_index];
+    struct triangle_st tr = {{
+        mesh->vertices[face->f[0]].point,
+        mesh->vertices[face->f[1]].point,
+        mesh->vertices[face->f[2]].point,
+    }};
+    struct vector_st cc_center, cc_to_vertex, cc_to_triangle_vertex;
+    ck_assert_int_eq(triangle_compute_circumcircle_center(&tr, &cc_center), ec_no_error);
+    vector_subtraction(tr.t, &cc_center, &cc_to_triangle_vertex);
+    double sq_cc_radius = vector_dot_product(
+            &cc_to_triangle_vertex, &cc_to_triangle_vertex);
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        size_t ngb_index = mesh->neighbors[face_index].f[i];
+        if(ngb_index == INVALID_INDEX) continue;
+        struct face_st * neighbor = &mesh->faces[ngb_index];
+        for(int32_t j = 0; j < FACE_SIZE; j++){
+            size_t v_index = neighbor->f[j];
+            if(v_index != face->f[0] && v_index != face->f[1] && v_index != face->f[2]){
+                vector_subtraction(&mesh->vertices[v_index].point, &cc_center, &cc_to_vertex);
+                double sq_dist = vector_dot_product(&cc_to_vertex, &cc_to_vertex);
+                ck_assert_float_gt(sq_dist, sq_cc_radius);
+            }
+        }
+    }
+}
+
+void validate_mesh_is_delaunay_conformant(
+        struct mesh_st * mesh)
+{
+    for(size_t f = 0; f < array_length(mesh->faces); f++){
+        validate_triangle_is_delaunay_conformant(mesh, f);
+    }
+}
 
 struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices, unsigned int state)
 {
@@ -53,6 +92,7 @@ START_TEST(test_triangulation_is_clean)
     export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
     ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
+    validate_mesh_is_delaunay_conformant(&mesh);
     mesh_cleanup(&mesh);
 }
 END_TEST
@@ -69,6 +109,7 @@ START_TEST(test_triangulation_on_duplicated)
             ck_assert_int_ne(mesh.faces[f].f[i], 9);
         }
     }
+    validate_mesh_is_delaunay_conformant(&mesh);
     mesh_cleanup(&mesh);
 }
 END_TEST
@@ -118,6 +159,7 @@ START_TEST(test_triangulation_on_limits)
                 vertex_5_found = 1;
         }
     }
+    validate_mesh_is_delaunay_conformant(&mesh);
     mesh_cleanup(&mesh);
     ck_assert_int_eq(vertex_5_found, 0);
 }
@@ -138,6 +180,7 @@ START_TEST(test_triangulation_with_vertex_on_edge)
     export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
     ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
+    validate_mesh_is_delaunay_conformant(&mesh);
     mesh_cleanup(&mesh);
 }
 END_TEST
@@ -158,6 +201,7 @@ START_TEST(test_triangulation_on_invalid_mesh)
     mesh_add_face(&mesh, f, NULL);
     ck_assert_int_eq(mesh_delaunay_triangulation(&mesh, pp_xy),
             ec_out_of_bound_error);
+    validate_mesh_is_delaunay_conformant(&mesh);
     mesh_cleanup(&mesh);
 }
 END_TEST
@@ -168,13 +212,16 @@ START_TEST(test_delaunay_triangulation_performance)
     for(int32_t i = 1; i < 12; i++){
         size_t n_points = i * _n_points;
         if(i == 11) n_points = 10000;
-        struct mesh_st mesh = _generate_pointcloud_2d(10, n_points, time(NULL));
+        if(i == 12) n_points = 100000;
+        unsigned int state = time(NULL);
+        struct mesh_st mesh = _generate_pointcloud_2d(10, n_points, state);
         clock_t clk_start = clock();
         enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
         clock_t clk_end = clock();
         if(i >= 10){
             export_triangulation(&mesh);
         }
+        validate_mesh_is_delaunay_conformant(&mesh);
         ck_assert_int_eq(err, ec_no_error);
         debug_print("Triangulation of %ld points done in %f seconds\n",
                 n_points, ((float)(clk_end - clk_start))/CLOCKS_PER_SEC);
