@@ -167,11 +167,12 @@ START_TEST(test_delaunay_triangulation_performance)
     size_t _n_points = 100;
     for(int32_t i = 1; i < 11; i++){
         size_t n_points = i * _n_points;
+        if(i == 11) n_points = 10000;
         struct mesh_st mesh = _generate_pointcloud_2d(10, n_points, time(NULL));
         clock_t clk_start = clock();
         enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
         clock_t clk_end = clock();
-        if(i == 10){
+        if(i >= 10){
             export_triangulation(&mesh);
         }
         ck_assert_int_eq(err, ec_no_error);

@@ -1,4 +1,3 @@
-#include "private/vector.h"
 #include <stdio.h>
 #include <float.h>
 #include <math.h>
@@ -12,7 +11,7 @@
 #include <private/triangle.h>
 #include <public/common.h>
 
-#define UNINDEXED_DELAUNAY
+/*#define UNINDEXED_DELAUNAY*/
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY
 
@@ -22,6 +21,8 @@ struct indexed_mesh_st{
     struct spatial_hash_st * sph;
     int32_t x_index;
     int32_t y_index;
+    double x_cell_size;
+    double y_cell_size;
 };
 
 void indexed_mesh_face_increment_bounds(
@@ -87,7 +88,9 @@ enum error_code_e indexed_mesh_init_in_place_faces_as_boundaries(
     }
     static int32_t n_bkts = 100;
     double x_cell_size = (max.v[0] - min.v[0]) / n_bkts;
+    indexed_mesh->x_cell_size = x_cell_size;
     double y_cell_size = (max.v[1] - min.v[1]) / n_bkts;
+    indexed_mesh->y_cell_size = y_cell_size;
     enum error_code_e err = array_new(
             size_t, n_faces, &indexed_mesh->handles);
     if(err != ec_no_error) goto fail_no_handles;
