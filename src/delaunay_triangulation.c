@@ -86,7 +86,7 @@ enum error_code_e indexed_mesh_init_in_place_faces_as_boundaries(
     for(size_t f = 0; f < n_faces; f++){
         indexed_mesh_face_increment_bounds(indexed_mesh, f, &min, &max);
     }
-    static int32_t n_bkts = 100;
+    int32_t n_bkts = array_length(mesh->vertices) / 10;
     double x_cell_size = (max.v[0] - min.v[0]) / n_bkts;
     indexed_mesh->x_cell_size = x_cell_size;
     double y_cell_size = (max.v[1] - min.v[1]) / n_bkts;
