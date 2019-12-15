@@ -96,6 +96,7 @@ void spatial_hash_cleanup(
 {
     array_delete(&sph->buckets);
     array_delete(&sph->registers);
+    free(sph->levels);
     memset(sph, 0, sizeof(struct spatial_hash_st));
 }
 
@@ -362,6 +363,8 @@ void spatial_hash_remove(
         if(reg->prev_bkt_reg == INVALID_INDEX){
             sph->buckets[reg->bucket] = reg->next_bkt_reg;
         }
+        G_ASSERT(sph->levels[reg->level] > 0,
+                "There is already no objects at this level");
         sph->levels[reg->level] -= 1;
         // Setting obviously wrong value than can
         // be sanity checked later on
