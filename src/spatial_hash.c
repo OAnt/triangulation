@@ -22,18 +22,87 @@ struct grid_register_st{
 };
 
 /**
+ * Collects the underlying array's unused elements to
+ * reuse them when needed.
+ */
+struct grid_register_list_st{
+    struct grid_register_st * registers; /** Array of registers (not iterable
+                                           some may have been collected) */
+    size_t collected_registers; /** Index of the first register in the
+                                  linked list of unused registers */
+};
+
+enum error_code_e grid_register_list_init(
+        struct grid_register_list_st * grs)
+{
+    enum error_code_e err = array_new(
+            struct grid_register_st, 0, &grs->registers);
+    if(err != ec_no_error) return err;
+    grs->collected_registers = INVALID_INDEX;
+    return ec_no_error;
+}
+
+void grid_register_list_cleanup(
+        struct grid_register_list_st * grs)
+{
+    array_delete(&grs->registers);
+    memset(grs, 0, sizeof(struct grid_register_list_st));
+}
+
+void grid_register_remove_from_list(
+        struct grid_register_list_st * grs,
+        struct grid_register_st * reg)
+{
+    size_t previous_index = reg->prev_bkt_reg;
+    size_t next_index = reg->next_bkt_reg;
+    if(next_index != INVALID_INDEX){
+        grs->registers[next_index].prev_bkt_reg = previous_index;
+    }
+    if(previous_index != INVALID_INDEX){
+        grs->registers[previous_index].next_bkt_reg = next_index;
+    }
+}
+
+//spatial_hash_new_register
+enum error_code_e grid_register_list_new_register(
+        struct grid_register_list_st * grs,
+        size_t * _reg)
+{
+    struct grid_register_st * reg;
+    // a register is available (already removed)
+    if(grs->collected_registers != INVALID_INDEX){
+        reg = &grs->registers[grs->collected_registers];
+        G_ASSERT(reg->prev_bkt_reg == INVALID_INDEX &&
+                reg->next_obj_reg == INVALID_INDEX &&
+                reg->index == INVALID_INDEX &&
+                reg->bucket == INVALID_INDEX,
+                "A collected element was not uninitialized");
+        *_reg = grs->collected_registers;;
+        // removing the object from the list is in (list of unused)
+        grs->collected_registers = reg->next_bkt_reg;
+        grid_register_remove_from_list(grs, reg);
+    // No register available in the list of previously removed
+    // allocating
+    }else{
+        size_t index = array_length(grs->registers);
+        enum error_code_e err = array_resize(&grs->registers, index + 1);
+        if(err != ec_no_error) return err;
+        *_reg = index;
+    }
+    return ec_no_error;
+}
+
+/**
  * Object representing the spatial hash
  */
 struct spatial_hash_st {
-    struct grid_register_st * registers; /** Storage of registers. */
+    struct grid_register_list_st grid_registers; /** Storage of registers. */
     size_t * buckets; /** List of buckets, index of the first
                         register in the bucket. */
     int32_t n_x_bkts; /** Number of buckets along x */
     int32_t n_y_bkts; /** Number of buckets along y */
     double x_cell_size; /** Size of a bucket along x */
     double y_cell_size; /** Size of a bucket along y */
-    size_t collected_registers; /** Index of the first register in the
-                                  linked list of unused registers */
     int32_t n_levels; /** Number of levels in the hierarchical grid */
     size_t * levels;/** Number of register at each level */
 };
@@ -45,8 +114,7 @@ enum error_code_e spatial_hash_init(
         double x_cell_size,
         double y_cell_size)
 {
-    enum error_code_e err = array_new(
-            struct grid_register_st, 0, &sph->registers);
+    enum error_code_e err = grid_register_list_init(&sph->grid_registers);
     if(err != ec_no_error) goto fail_no_reg;
     err = array_new(size_t, n_x_bkts * n_y_bkts, &sph->buckets);
     for(size_t i = 0; i < array_length(sph->buckets); i++){
@@ -57,7 +125,6 @@ enum error_code_e spatial_hash_init(
     sph->n_y_bkts = n_y_bkts;
     sph->x_cell_size = x_cell_size;
     sph->y_cell_size = y_cell_size;
-    sph->collected_registers = INVALID_INDEX;
     double n_bkts = (double)MAX(n_x_bkts, n_y_bkts);
     sph->n_levels = (int32_t)ceil(log(n_bkts) / log(2));
     sph->levels = calloc(sph->n_levels, sizeof(size_t));
@@ -66,7 +133,7 @@ enum error_code_e spatial_hash_init(
 fail_no_levels:
     array_delete(&sph->buckets);
 fail_no_bkt:
-    array_delete(&sph->registers);
+    grid_register_list_cleanup(&sph->grid_registers);
 fail_no_reg:
     return err;
 }
@@ -95,7 +162,7 @@ void spatial_hash_cleanup(
         struct spatial_hash_st * sph)
 {
     array_delete(&sph->buckets);
-    array_delete(&sph->registers);
+    grid_register_list_cleanup(&sph->grid_registers);
     free(sph->levels);
     memset(sph, 0, sizeof(struct spatial_hash_st));
 }
@@ -106,48 +173,6 @@ void spatial_hash_delete(
     spatial_hash_cleanup(*sph);
     free(*sph);
     *sph = NULL;
-}
-
-void grid_register_remove_from_list(
-        struct spatial_hash_st * sph,
-        struct grid_register_st * reg)
-{
-    size_t previous_index = reg->prev_bkt_reg;
-    size_t next_index = reg->next_bkt_reg;
-    if(next_index != INVALID_INDEX){
-        sph->registers[next_index].prev_bkt_reg = previous_index;
-    }
-    if(previous_index != INVALID_INDEX){
-        sph->registers[previous_index].next_bkt_reg = next_index;
-    }
-}
-
-enum error_code_e spatial_hash_new_register(
-        struct spatial_hash_st * sph,
-        size_t * _reg)
-{
-    struct grid_register_st * reg;
-    // a register is available (already removed)
-    if(sph->collected_registers != INVALID_INDEX){
-        reg = &sph->registers[sph->collected_registers];
-        G_ASSERT(reg->prev_bkt_reg == INVALID_INDEX &&
-                reg->next_obj_reg == INVALID_INDEX &&
-                reg->index == INVALID_INDEX &&
-                reg->bucket == INVALID_INDEX,
-                "A collected element was not uninitialized");
-        *_reg = sph->collected_registers;;
-        // removing the object from the list is in (list of unused)
-        sph->collected_registers = reg->next_bkt_reg;
-        grid_register_remove_from_list(sph, reg);
-    // No register available in the list of previously removed
-    // allocating
-    }else{
-        size_t index = array_length(sph->registers);
-        enum error_code_e err = array_resize(&sph->registers, index + 1);
-        if(err != ec_no_error) return err;
-        *_reg = index;
-    }
-    return ec_no_error;
 }
 
 typedef enum error_code_e (*spatial_hash_bucket_iterator_callback_f)(
@@ -209,9 +234,10 @@ enum error_code_e spatial_hash_add_iterator_callback(
     size_t reg_index;
     // A new register is needed, if it cannot be allocated stop
     // a forward the error to the caller
-    enum error_code_e err = spatial_hash_new_register(sph, &reg_index);
+    enum error_code_e err = grid_register_list_new_register(
+            &sph->grid_registers, &reg_index);
     if(err != ec_no_error) return err;
-    struct grid_register_st * reg = &sph->registers[reg_index];
+    struct grid_register_st * reg = &sph->grid_registers.registers[reg_index];
     // Storing user supplied index
     reg->index = data->index;
     // Adding the object to the one way linked list
@@ -231,7 +257,7 @@ enum error_code_e spatial_hash_add_iterator_callback(
     reg->prev_bkt_reg = INVALID_INDEX;
     reg->bucket = bucket;
     if(reg->next_bkt_reg != INVALID_INDEX){
-        sph->registers[reg->next_bkt_reg].prev_bkt_reg = reg_index;
+        sph->grid_registers.registers[reg->next_bkt_reg].prev_bkt_reg = reg_index;
     }
     reg->level = data->level;
     sph->buckets[bucket] = reg_index;
@@ -305,20 +331,20 @@ enum error_code_e spatial_hash_get_iterator_callback(
     // place)
     size_t next_bkt_reg = sph->buckets[bucket_index];
     while(next_bkt_reg != INVALID_INDEX){
-        if(sph->registers[next_bkt_reg].level != data->level){
-            next_bkt_reg = sph->registers[next_bkt_reg].next_bkt_reg;
+        if(sph->grid_registers.registers[next_bkt_reg].level != data->level){
+            next_bkt_reg = sph->grid_registers.registers[next_bkt_reg].next_bkt_reg;
             G_ASSERT(next_bkt_reg != sph->buckets[bucket_index],
                     "Loop detected");
             continue;
         }
-        G_ASSERT(sph->registers[next_bkt_reg].bucket != INVALID_INDEX,
+        G_ASSERT(sph->grid_registers.registers[next_bkt_reg].bucket != INVALID_INDEX,
                 "Unset register in linked list");
         bool stop = data->get_callback(
-                sph->registers[next_bkt_reg].index,
+                sph->grid_registers.registers[next_bkt_reg].index,
                 data->data);
         // The caller asked to stop, complying
         if(stop) return ec_error;
-        next_bkt_reg = sph->registers[next_bkt_reg].next_bkt_reg;
+        next_bkt_reg = sph->grid_registers.registers[next_bkt_reg].next_bkt_reg;
         G_ASSERT(next_bkt_reg != sph->buckets[bucket_index],
                 "Loop detected");
     }
@@ -348,15 +374,15 @@ void spatial_hash_remove(
         struct spatial_hash_st * sph,
         size_t handle)
 {
-    G_ASSERT(handle < array_length(sph->registers),
+    G_ASSERT(handle < array_length(sph->grid_registers.registers),
             "Handle is not in the list of registers");
     size_t next_obj_reg = handle;
     while(next_obj_reg != INVALID_INDEX){
-        struct grid_register_st * reg = &sph->registers[next_obj_reg];
+        struct grid_register_st * reg = &sph->grid_registers.registers[next_obj_reg];
         G_ASSERT(reg->bucket != INVALID_INDEX,
                 "Handle was already removed");
-        grid_register_remove_from_list(sph, reg);
-        size_t collected_list = sph->collected_registers;
+        grid_register_remove_from_list(&sph->grid_registers, reg);
+        size_t collected_list = sph->grid_registers.collected_registers;
         // This is the first in the list, it is pointed
         // by the bucket index, if it is being removed
         // the bucket must point to something valid
@@ -375,9 +401,9 @@ void spatial_hash_remove(
         // Adding the register to the list of collected
         // registers
         if(collected_list != INVALID_INDEX){
-            sph->registers[collected_list].prev_bkt_reg = next_obj_reg;
+            sph->grid_registers.registers[collected_list].prev_bkt_reg = next_obj_reg;
         }
-        sph->collected_registers = next_obj_reg;
+        sph->grid_registers.collected_registers = next_obj_reg;
         // Next register in the list
         next_obj_reg = reg->next_obj_reg;
         G_ASSERT(next_obj_reg != handle,
