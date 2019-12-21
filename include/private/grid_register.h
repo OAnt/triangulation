@@ -63,12 +63,14 @@ void grid_register_remove_from_list(
  * param grs List reg and head belongs to.
  * param reg_index Index of the register to add.
  * param reg_index Index of the first register in the list.
+ * param obj_list Head of the linked list of registers that an inserted object
  * return nothing
  */
-void grid_register_prepend_to_list(
+void grid_register_prepend_to_lists(
         struct grid_register_list_st * grs,
         size_t reg_index,
-        size_t head_index);
+        size_t head_index,
+        size_t * obj_list);
 
 /**
  * Allocates a new register or reuse a collected one.

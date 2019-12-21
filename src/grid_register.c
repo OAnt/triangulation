@@ -64,10 +64,11 @@ enum error_code_e grid_register_list_new_register(
     return ec_no_error;
 }
 
-void grid_register_prepend_to_list(
+void grid_register_prepend_to_lists(
         struct grid_register_list_st * grs,
         size_t reg_index,
-        size_t head_index)
+        size_t head_index,
+        size_t * obj_list)
 {
     G_ASSERT(reg_index < array_length(grs->registers) && 
             (head_index < array_length(grs->registers) ||
@@ -85,5 +86,14 @@ void grid_register_prepend_to_list(
                 "Not the head");
         grs->registers[reg->next_bkt_reg].prev_bkt_reg = reg_index;
     }
+    // Adding the object to the one way linked list
+    // of objects that corresponds to the index
+    reg->next_obj_reg = *obj_list;
+    // An handle (head of the list)
+    // is returned to the caller in order to allow
+    // removal of the object from the spatial hash
+    // as the object (index) may be spread over
+    // several buckets
+    *obj_list = reg_index;
 }
 

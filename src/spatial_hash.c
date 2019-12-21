@@ -153,25 +153,10 @@ enum error_code_e spatial_hash_add_iterator_callback(
     struct grid_register_st * reg = &sph->grid_registers.registers[reg_index];
     // Storing user supplied index
     reg->index = data->index;
-    // Adding the object to the one way linked list
-    // of objects that corresponds to the index
-    reg->next_obj_reg = *data->handle;
-    // An handle (head of the list)
-    // is returned to the caller in order to allow
-    // removal of the object from the spatial hash
-    // as the object (index) may be spread over
-    // several buckets
-    *data->handle = reg_index;
-    grid_register_prepend_to_list(
-            &sph->grid_registers, reg_index, sph->buckets[bucket]);
+    grid_register_prepend_to_lists(
+            &sph->grid_registers, reg_index, sph->buckets[bucket], data->handle);
     reg->bucket = bucket;
     reg->level = data->level;
-    // An handle (head of the list)
-    // is returned to the caller in order to allow
-    // removal of the object from the spatial hash
-    // as the object (index) may be spread over
-    // several buckets
-    *data->handle = reg_index;
     sph->buckets[bucket] = reg_index;
     sph->levels[data->level] += 1;
     return ec_no_error;
