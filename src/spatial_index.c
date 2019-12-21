@@ -1,9 +1,9 @@
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <private/debug.h>
 #include <private/spatial_index.h>
 #include <private/spatial_index_declarations.h>
-#include <stdint.h>
 
 /**
  * Root structure for a 2D spatial index.
