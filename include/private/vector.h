@@ -16,8 +16,8 @@ struct vector_st {
  */
 struct box_st{
     struct vector_st min; /** Bottom left point. */
-    struct vector_st max; /** Top right point.
-}
+    struct vector_st max; /** Top right point. */
+};
 
 /** Computes the subtraction in_a - in_b.
  * Works even if out points to either in_a or in_b,
