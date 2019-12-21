@@ -64,13 +64,26 @@ enum error_code_e grid_register_list_new_register(
     return ec_no_error;
 }
 
-void grid_register_list_init_register(
-        size_t index,
-        size_t bucket,
-        uint32_t level,
-        size_t reg_head)
+void grid_register_prepend_to_list(
+        struct grid_register_list_st * grs,
+        size_t reg_index,
+        size_t head_index)
 {
-
+    G_ASSERT(reg_index < array_length(grs->registers) && 
+            (head_index < array_length(grs->registers) ||
+             head_index == INVALID_INDEX),
+            "Registers are out of bounds");
+    struct grid_register_st * reg = &grs->registers[reg_index];
+    // Adding (prepending) the register to the bucket that 
+    // was found to intersect it, this is a
+    // two way list to allow easy removal for the
+    // bucket list.
+    reg->next_bkt_reg = head_index;
+    reg->prev_bkt_reg = INVALID_INDEX;
+    if(reg->next_bkt_reg != INVALID_INDEX){
+        G_ASSERT(grs->registers[head_index].prev_bkt_reg == INVALID_INDEX,
+                "Not the head");
+        grs->registers[reg->next_bkt_reg].prev_bkt_reg = reg_index;
+    }
 }
-
 

@@ -58,6 +58,19 @@ void grid_register_remove_from_list(
         _IN struct grid_register_st * reg);
 
 /**
+ * Adds the register at reg_index at the beginning of the linked list of
+ * registers that starts at head_index.
+ * param grs List reg and head belongs to.
+ * param reg_index Index of the register to add.
+ * param reg_index Index of the first register in the list.
+ * return nothing
+ */
+void grid_register_prepend_to_list(
+        struct grid_register_list_st * grs,
+        size_t reg_index,
+        size_t head_index);
+
+/**
  * Allocates a new register or reuse a collected one.
  * param grs List the register is created from.
  * param _reg Index of the allocated register.

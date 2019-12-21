@@ -162,17 +162,16 @@ enum error_code_e spatial_hash_add_iterator_callback(
     // as the object (index) may be spread over
     // several buckets
     *data->handle = reg_index;
-    // Adding (prepending) the register to the bucket that 
-    // was found to intersect it, this is a
-    // two way list to allow easy removal for the
-    // bucket list.
-    reg->next_bkt_reg = sph->buckets[bucket];
-    reg->prev_bkt_reg = INVALID_INDEX;
+    grid_register_prepend_to_list(
+            &sph->grid_registers, reg_index, sph->buckets[bucket]);
     reg->bucket = bucket;
-    if(reg->next_bkt_reg != INVALID_INDEX){
-        sph->grid_registers.registers[reg->next_bkt_reg].prev_bkt_reg = reg_index;
-    }
     reg->level = data->level;
+    // An handle (head of the list)
+    // is returned to the caller in order to allow
+    // removal of the object from the spatial hash
+    // as the object (index) may be spread over
+    // several buckets
+    *data->handle = reg_index;
     sph->buckets[bucket] = reg_index;
     sph->levels[data->level] += 1;
     return ec_no_error;
