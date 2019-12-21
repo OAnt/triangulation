@@ -16,7 +16,7 @@ struct spatial_hash_st {
     int32_t n_y_bkts; /** Number of buckets along y */
     double x_cell_size; /** Size of a bucket along x */
     double y_cell_size; /** Size of a bucket along y */
-    int32_t n_levels; /** Number of levels in the hierarchical grid */
+    uint32_t n_levels; /** Number of levels in the hierarchical grid */
     size_t * levels;/** Number of register at each level */
 };
 
@@ -39,7 +39,7 @@ enum error_code_e spatial_hash_init(
     sph->x_cell_size = x_cell_size;
     sph->y_cell_size = y_cell_size;
     double n_bkts = (double)MAX(n_x_bkts, n_y_bkts);
-    sph->n_levels = (int32_t)ceil(log(n_bkts) / log(2));
+    sph->n_levels = (uint32_t)ceil(log(n_bkts) / log(2));
     sph->levels = calloc(sph->n_levels, sizeof(size_t));
     if(sph->levels == NULL) goto fail_no_levels;
     return err;
@@ -95,7 +95,7 @@ static inline enum error_code_e spatial_hash_iterate_over_buckets(
         struct spatial_hash_st * sph,
         struct vector_st min,
         struct vector_st max,
-        int32_t _level,
+        uint32_t _level,
         spatial_hash_bucket_iterator_callback_f iterator_callback,
         void * data)
 {
@@ -106,7 +106,7 @@ static inline enum error_code_e spatial_hash_iterate_over_buckets(
     // (a grid of x_cell_size x y_cell_size cells)
     // Objects that are out of the grid bounds can be handled (the % ensures
     // that the grid is infinite)
-    int32_t level = 1 << _level;
+    uint32_t level = 1 << _level;
     double x_cell_size = sph->x_cell_size * level;
     double y_cell_size = sph->y_cell_size * level;
     int32_t orig_x = ((int32_t)trunc(min.v[0] / x_cell_size) % sph->n_x_bkts);
@@ -134,7 +134,7 @@ static inline enum error_code_e spatial_hash_iterate_over_buckets(
 struct spatial_hash_add_callback_data_st{
     size_t index;
     size_t * handle;
-    int32_t level;
+    uint32_t level;
 };
 
 enum error_code_e spatial_hash_add_iterator_callback(
@@ -178,7 +178,7 @@ enum error_code_e spatial_hash_add_iterator_callback(
     return ec_no_error;
 }
 
-int32_t spatial_hash_find_level(
+uint32_t spatial_hash_find_level(
         struct spatial_hash_st * sph,
         struct vector_st min,
         struct vector_st max)
@@ -186,8 +186,8 @@ int32_t spatial_hash_find_level(
     double x_size = max.v[0] - min.v[0];
     double y_size = max.v[1] - min.v[1];
     double previous_n_cells = DBL_MAX;
-    int32_t previous_level = 0;
-    int32_t level = 0;
+    uint32_t previous_level = 0;
+    uint32_t level = 0;
     while(level < sph->n_levels){
         double n_x_cells = ceil(x_size / (sph->x_cell_size * (1 << level)));
         double n_y_cells = ceil(y_size / (sph->y_cell_size * (1 << level)));
@@ -213,7 +213,7 @@ enum error_code_e spatial_hash_add(
     G_ASSERT(handle != NULL,
             "This function needs a valid pointer to an handle");
     *handle = INVALID_INDEX;
-    int32_t level = spatial_hash_find_level(sph, min, max);
+    uint32_t level = spatial_hash_find_level(sph, min, max);
     G_ASSERT(level < sph->n_levels,
             "The computed level is out of bounds");
     struct spatial_hash_add_callback_data_st data = {index, handle, level};
@@ -224,7 +224,7 @@ enum error_code_e spatial_hash_add(
 struct spatial_hash_get_callback_data_st{
     spatial_hash_get_callback_f get_callback;
     void * data;
-    int32_t level;
+    uint32_t level;
 };
 
 enum error_code_e spatial_hash_get_iterator_callback(
@@ -273,7 +273,7 @@ void spatial_hash_get(
 {
     struct spatial_hash_get_callback_data_st get_data = {
         get_callback, data, 0};
-    for(int32_t l = 0; l < sph->n_levels; l++){
+    for(uint32_t l = 0; l < sph->n_levels; l++){
         if(!sph->levels[l]) continue;
         get_data.level = l;
         enum error_code_e err = spatial_hash_iterate_over_buckets(

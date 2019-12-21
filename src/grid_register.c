@@ -64,3 +64,13 @@ enum error_code_e grid_register_list_new_register(
     return ec_no_error;
 }
 
+void grid_register_list_init_register(
+        size_t index,
+        size_t bucket,
+        uint32_t level,
+        size_t reg_head)
+{
+
+}
+
+

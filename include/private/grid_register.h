@@ -17,7 +17,7 @@ struct grid_register_st{
     size_t prev_bkt_reg; /** Index of the previous register
                            in the bucket. */
     size_t bucket; /** The register is in this bucket. */
-    int32_t level; /** The level this register belongs to. */
+    uint32_t level; /** The level this register belongs to. */
 };
 
 /**
