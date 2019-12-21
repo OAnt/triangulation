@@ -209,7 +209,7 @@ END_TEST
 START_TEST(test_delaunay_triangulation_performance)
 {
     size_t _n_points = 100;
-    for(int32_t i = 1; i < 12; i++){
+    for(int32_t i = 1; i < 11; i++){
         size_t n_points = i * _n_points;
         if(i == 11) n_points = 10000;
         if(i == 12) n_points = 100000;

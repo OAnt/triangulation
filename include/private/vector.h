@@ -19,6 +19,8 @@ struct box_st{
     struct vector_st max; /** Top right point. */
 };
 
+#define box_size_along(box, axis) (box).max.v[(axis)] - (box).min.v[(axis)]
+
 /** Computes the subtraction in_a - in_b.
  * Works even if out points to either in_a or in_b,
  * or both.
