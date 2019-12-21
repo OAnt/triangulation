@@ -8,7 +8,7 @@
  * Member of the linked list of objects stored in
  * a bucket.
  */
-struct spatial_hash_register_st{
+struct grid_register_st{
     size_t index; /** Index of the stored object. */
     size_t next_obj_reg; /** Index of the next register
                            for the inserted object if it
@@ -25,7 +25,7 @@ struct spatial_hash_register_st{
  * Object representing the spatial hash
  */
 struct spatial_hash_st {
-    struct spatial_hash_register_st * registers; /** Storage of registers. */
+    struct grid_register_st * registers; /** Storage of registers. */
     size_t * buckets; /** List of buckets, index of the first
                         register in the bucket. */
     int32_t n_x_bkts; /** Number of buckets along x */
@@ -46,7 +46,7 @@ enum error_code_e spatial_hash_init(
         double y_cell_size)
 {
     enum error_code_e err = array_new(
-            struct spatial_hash_register_st, 0, &sph->registers);
+            struct grid_register_st, 0, &sph->registers);
     if(err != ec_no_error) goto fail_no_reg;
     err = array_new(size_t, n_x_bkts * n_y_bkts, &sph->buckets);
     for(size_t i = 0; i < array_length(sph->buckets); i++){
@@ -108,9 +108,9 @@ void spatial_hash_delete(
     *sph = NULL;
 }
 
-void spatial_hash_register_remove_from_list(
+void grid_register_remove_from_list(
         struct spatial_hash_st * sph,
-        struct spatial_hash_register_st * reg)
+        struct grid_register_st * reg)
 {
     size_t previous_index = reg->prev_bkt_reg;
     size_t next_index = reg->next_bkt_reg;
@@ -126,7 +126,7 @@ enum error_code_e spatial_hash_new_register(
         struct spatial_hash_st * sph,
         size_t * _reg)
 {
-    struct spatial_hash_register_st * reg;
+    struct grid_register_st * reg;
     // a register is available (already removed)
     if(sph->collected_registers != INVALID_INDEX){
         reg = &sph->registers[sph->collected_registers];
@@ -138,7 +138,7 @@ enum error_code_e spatial_hash_new_register(
         *_reg = sph->collected_registers;;
         // removing the object from the list is in (list of unused)
         sph->collected_registers = reg->next_bkt_reg;
-        spatial_hash_register_remove_from_list(sph, reg);
+        grid_register_remove_from_list(sph, reg);
     // No register available in the list of previously removed
     // allocating
     }else{
@@ -211,7 +211,7 @@ enum error_code_e spatial_hash_add_iterator_callback(
     // a forward the error to the caller
     enum error_code_e err = spatial_hash_new_register(sph, &reg_index);
     if(err != ec_no_error) return err;
-    struct spatial_hash_register_st * reg = &sph->registers[reg_index];
+    struct grid_register_st * reg = &sph->registers[reg_index];
     // Storing user supplied index
     reg->index = data->index;
     // Adding the object to the one way linked list
@@ -352,10 +352,10 @@ void spatial_hash_remove(
             "Handle is not in the list of registers");
     size_t next_obj_reg = handle;
     while(next_obj_reg != INVALID_INDEX){
-        struct spatial_hash_register_st * reg = &sph->registers[next_obj_reg];
+        struct grid_register_st * reg = &sph->registers[next_obj_reg];
         G_ASSERT(reg->bucket != INVALID_INDEX,
                 "Handle was already removed");
-        spatial_hash_register_remove_from_list(sph, reg);
+        grid_register_remove_from_list(sph, reg);
         size_t collected_list = sph->collected_registers;
         // This is the first in the list, it is pointed
         // by the bucket index, if it is being removed
