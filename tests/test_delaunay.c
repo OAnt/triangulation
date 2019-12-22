@@ -214,6 +214,12 @@ START_TEST(test_triangulation_on_invalid_mesh)
 }
 END_TEST
 
+struct vector_st vector_distribution_non_uniform(struct vector_st v){
+    static double cst = 2.0;
+    struct vector_st nv = {{pow(v.v[0], cst), pow(v.v[1], cst)}};
+    return nv;
+}
+
 START_TEST(test_delaunay_triangulation_performance)
 {
     size_t _n_points = 100;
@@ -224,7 +230,7 @@ START_TEST(test_delaunay_triangulation_performance)
         if(i == 12) n_points = 100000;
         unsigned int state = time(NULL);
         struct mesh_st mesh = _generate_pointcloud_2d(size, n_points, state,
-                vector_distribution_uniform);
+                vector_distribution_non_uniform);
         clock_t clk_start = clock();
         enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
         clock_t clk_end = clock();
@@ -249,8 +255,12 @@ Suite * mk_delaunay_suite(void){
     tcase_add_test(tc, test_triangulation_on_invalid_mesh);
     tcase_add_test(tc, test_triangulation_on_limits);
     tcase_add_test(tc, test_triangulation_with_vertex_on_edge);
-    tcase_add_test(tc, test_delaunay_triangulation_performance);
     suite_add_tcase(s, tc);
+    TCase * tc2 = tcase_create(
+            "Delaunay Performance");
+    tcase_set_timeout(tc2, 0);
+    tcase_add_test(tc2, test_delaunay_triangulation_performance);
+    suite_add_tcase(s, tc2);
     return s;
 }
 
