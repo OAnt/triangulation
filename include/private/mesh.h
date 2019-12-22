@@ -46,7 +46,9 @@ struct mesh_st {
                                   face index */
     /** Lists of faces neighboring vertices */
     struct vertex_adjacent_face_st * vertex_adjacent_faces; 
-    struct mesh_private_st * private;
+    struct mesh_private_st * private; /** mesh private member. Contains
+                                        information about topology that must
+                                        not be tempered with */
 };
 
 /**
