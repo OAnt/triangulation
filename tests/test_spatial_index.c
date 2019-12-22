@@ -204,6 +204,50 @@ START_TEST(test_get_match)
     spatial_index_get(spi, smaller2, get_callback, NULL);
     ck_assert_int_eq(n_indices, 1);
     ck_assert_int_eq(indices[0], 1);
+    spatial_index_delete(spi);
+}
+END_TEST
+
+START_TEST(test_get_smaller)
+{
+    struct spatial_index_st * spi;
+    spatial_index_new(bounds, &spi);
+    size_t handle;
+    spatial_index_add(spi, smaller, 1, &handle);
+    reset_indices();
+    spatial_index_get(spi, smaller, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 2);
+    ck_assert_int_eq(indices[0], 1);
+    ck_assert_int_eq(indices[1], 1);
+    spatial_index_delete(spi);
+}
+END_TEST
+
+START_TEST(test_get_bigger)
+{
+    struct spatial_index_st * spi;
+    spatial_index_new(bounds, &spi);
+    size_t handle;
+    spatial_index_add(spi, bigger, 1, &handle);
+    reset_indices();
+    spatial_index_get(spi, bigger, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 12);
+    ck_assert_int_eq(indices[0], 1);
+    ck_assert_int_eq(indices[1], 1);
+    spatial_index_delete(spi);
+}
+END_TEST
+
+START_TEST(test_get_nothing)
+{
+    struct spatial_index_st * spi;
+    spatial_index_new(bounds2, &spi);
+    size_t handle;
+    spatial_index_add(spi, smaller2, 1, &handle);
+    reset_indices();
+    spatial_index_get(spi, smaller, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 0);
+    spatial_index_delete(spi);
 }
 END_TEST
 
@@ -223,6 +267,9 @@ Suite * mk_spatial_index_suite(void){
     tcase_add_test(sph_tc, test_locate_bigger);
     tcase_add_test(sph_tc, test_add_object_to_index);
     tcase_add_test(sph_tc, test_get_match);
+    tcase_add_test(sph_tc, test_get_smaller);
+    tcase_add_test(sph_tc, test_get_bigger);
+    tcase_add_test(sph_tc, test_get_nothing);
     suite_add_tcase(s, sph_tc);
     return s;
 }
