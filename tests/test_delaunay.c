@@ -239,7 +239,7 @@ START_TEST(test_delaunay_triangulation_performance)
         }
         validate_mesh_is_delaunay_conformant(&mesh);
         ck_assert_int_eq(err, ec_no_error);
-        debug_print("Triangulation of %ld points done in %f seconds\n",
+        printf("Triangulation of %ld points done in %f seconds\n",
                 n_points, ((float)(clk_end - clk_start))/CLOCKS_PER_SEC);
         mesh_cleanup(&mesh);
     }

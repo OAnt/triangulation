@@ -98,7 +98,8 @@ enum point_position_e {
 /**
  * Computes the position of a point relative to a segment.
  * param point Point for which the position is to be computed.
- * param segment Segment relative to which the point is to be positioned.
+ * param seg0 First point of the segment relative to which the point is to be positioned.
+ * param seg1 Second point of the segment relative to which the point is to be positioned.
  * param x Index of the axis that should be considered as first.
  * param y Index of the axis that should be considered as second. System must
  * be direct.
@@ -106,7 +107,8 @@ enum point_position_e {
  */
 enum point_position_e _vector_position_relative_to_segment(
         _IN struct vector_st * point, 
-        _IN struct segment_st * segment,
+        _IN struct vector_st * seg0, 
+        _IN struct vector_st * seg1, 
         _IN int32_t x,
         _IN int32_t y);
 

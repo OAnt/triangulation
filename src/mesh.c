@@ -581,18 +581,19 @@ enum intersection_type_e{
  */
 enum intersection_type_e  edge_determine_intersection_type(
         struct vector_st * point,
-        struct segment_st * seg,
+        struct vector_st * seg0,
+        struct vector_st * seg1,
         int32_t y)
 {
     //point is between seg[0] and seg[1], edge is
     //pointing upward and there is an intersection
-    if(seg->s[0].v[y] <= point->v[y] && \
-            point->v[y] < seg->s[1].v[y]){
+    if(seg0->v[y] <= point->v[y] && \
+            point->v[y] < seg1->v[y]){
         return it_upward;
     //point is between seg[1] and seg[0], edge is
     //pointing downward and there is an intersection
-    }else if(seg->s[1].v[y] <= point->v[y] && \
-            point->v[y] < seg->s[0].v[y]){
+    }else if(seg1->v[y] <= point->v[y] && \
+            point->v[y] < seg0->v[y]){
         return it_downward;
     //point is not between the segment vertical bounds
     //there cannot be an intersection with an horizontal
@@ -602,10 +603,10 @@ enum intersection_type_e  edge_determine_intersection_type(
     }
 }
 
-#define point_is_left_of(p, s, x, y) \
-    _vector_position_relative_to_segment(p, s, x, y) == pt_left
-#define point_is_right_of(p, s, x, y) \
-    _vector_position_relative_to_segment(p, s, x, y) == pt_right
+#define point_is_left_of(p, s0, s1, x, y) \
+    _vector_position_relative_to_segment(p, s0, s1, x, y) == pt_left
+#define point_is_right_of(p, s0, s1, x, y) \
+    _vector_position_relative_to_segment(p, s0, s1, x, y) == pt_right
 
 /**
  * Increments or decrements the winding number
@@ -622,7 +623,8 @@ enum intersection_type_e  edge_determine_intersection_type(
  */
 void winding_number_modify(
         struct vector_st * point,
-        struct segment_st * seg,
+        struct vector_st * seg0,
+        struct vector_st * seg1,
         int32_t x,
         int32_t y,
         int32_t * winding_number)
@@ -632,16 +634,16 @@ void winding_number_modify(
     // determines if there is an intersection and what kind
     // of intersection it is
     enum intersection_type_e it = edge_determine_intersection_type(
-            point, seg, y);
+            point, seg0, seg1, y);
     // Edge is going upward, an oriented polygon turns
     // counterclockwise, if the point is left of the edge,
     // it is inside once
-    if(it == it_upward && point_is_left_of(point, seg, x, y)){
+    if(it == it_upward && point_is_left_of(point, seg0, seg1, x, y)){
         (*winding_number)++;
     // Edge is going downward, an oriented polygon turns
     // counterclockwise, if the point is right of the edge,
     // it is outside once
-    }else if(it == it_downward && point_is_right_of(point, seg, x, y)){
+    }else if(it == it_downward && point_is_right_of(point, seg0, seg1, x, y)){
         (*winding_number)--;
     }
     /*printf("%d, %d, %d -> [%f, %f], [[%f, %f], [%f, %f]], %d, %d, %d -> %d\n",*/
@@ -740,10 +742,16 @@ static inline enum point_polygon_position_e _polygon_point_position(
     for(size_t i = 0; i < n_vertices; i++){
         size_t v = polygon[i];
         size_t next_v = polygon[(i + 1) % n_vertices];
-        struct segment_st seg = {{
-            vertices[v], vertices[next_v]
-        }};
-        winding_number_modify(point, &seg, x, y, &winding_number);
+        /*struct segment_st seg = {{*/
+            /*vertices[v], vertices[next_v]*/
+        /*}};*/
+        winding_number_modify(
+                point,
+                vertices + v,
+                vertices + next_v,
+                x,
+                y,
+                &winding_number);
     }
     if(winding_number > 0){
         return ppol_in;
