@@ -215,7 +215,7 @@ START_TEST(test_triangulation_on_invalid_mesh)
 END_TEST
 
 struct vector_st vector_distribution_non_uniform(struct vector_st v){
-    static double cst = 2.0;
+    static double cst = 4.0;
     struct vector_st nv = {{pow(v.v[0], cst), pow(v.v[1], cst)}};
     return nv;
 }
@@ -258,7 +258,7 @@ Suite * mk_delaunay_suite(void){
     suite_add_tcase(s, tc);
     TCase * tc2 = tcase_create(
             "Delaunay Performance");
-    tcase_set_timeout(tc2, 0);
+    tcase_set_timeout(tc2, 20);
     tcase_add_test(tc2, test_delaunay_triangulation_performance);
     suite_add_tcase(s, tc2);
     return s;
