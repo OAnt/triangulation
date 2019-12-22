@@ -40,7 +40,7 @@ void indexed_mesh_face_increment_bounds(
 {
     for(int32_t v = 0; v < FACE_SIZE; v++){
         size_t vertex_index = mesh->mesh->faces[face_index].f[v];
-        struct vector_st * point = &mesh->mesh->vertices[vertex_index].point;
+        struct vector_st * point = mesh->mesh->points + vertex_index;
         if(point->v[mesh->x_index] > max->v[0])
             max->v[0] = point->v[mesh->x_index];
         if(point->v[mesh->y_index] > max->v[1])
@@ -266,10 +266,12 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     indexed_mesh_replace_face((mesh), (face), (index)) 
 #define delaunay_mesh_find_first_enclosing_triangular_face(mesh, p, pp, i) \
     indexed_mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
+#define delaunay_mesh_vertex_is_in_face(mesh, index) \
+    mesh_vertex_is_in_face((mesh)->mesh, (index))
 #define delaunay_mesh_st indexed_mesh_st
 #define delaunay_mesh_faces(mesh_) (mesh_)->mesh->faces
 #define delaunay_mesh_neighbor(mesh_, index) (mesh_)->mesh->neighbors[(index)]
-#define delaunay_mesh_vertices(mesh_) (mesh_)->mesh->vertices
+#define delaunay_mesh_vertices(mesh_) (mesh_)->mesh->points
 
 #else
 
@@ -281,10 +283,12 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     mesh_replace_face((mesh), (face), (index)) 
 #define delaunay_mesh_find_first_enclosing_triangular_face(mesh, p, pp, i) \
     unindexed_mesh_find_first_enclosing_triangular_face((mesh), (p), (pp), (i))
+#define delaunay_mesh_vertex_is_in_face(mesh, index) \
+    mesh_vertex_is_in_face((mesh), (index))
 #define delaunay_mesh_st mesh_st
 #define delaunay_mesh_faces(mesh) (mesh)->faces
 #define delaunay_mesh_neighbor(mesh, index) (mesh)->neighbors[(index)]
-#define delaunay_mesh_vertices(mesh) (mesh)->vertices
+#define delaunay_mesh_vertices(mesh) (mesh)->points
 
 #endif
 
@@ -334,9 +338,9 @@ bool mesh_triangle_would_be_regular(
         enum projection_plane_e pp)
 {
     struct vector_st v[FACE_SIZE] = {
-        delaunay_mesh_vertex(mesh, face->face.f[0]).point,
-        delaunay_mesh_vertex(mesh, face->face.f[1]).point,
-        delaunay_mesh_vertex(mesh, face->face.f[2]).point};
+        delaunay_mesh_vertex(mesh, face->face.f[0]),
+        delaunay_mesh_vertex(mesh, face->face.f[1]),
+        delaunay_mesh_vertex(mesh, face->face.f[2])};
 #ifdef USE_PREDICATES
     bool is_regular = triangle_is_regular(v, pp);
 #else
@@ -415,7 +419,7 @@ enum error_code_e insert_vertex_in_triangulation(
         enum projection_plane_e pp)
 {
     size_t face_index;
-    struct vector_st point = delaunay_mesh_vertex(mesh, vertex_index).point;
+    struct vector_st point = delaunay_mesh_vertex(mesh, vertex_index);
     enum error_code_e err = delaunay_mesh_find_first_enclosing_triangular_face(
             mesh, point, pp, &face_index);
     // This should not happen because of the super triangle.
@@ -515,9 +519,9 @@ enum error_code_e insert_vertex_in_triangulation(
     while(face_stack_pop(&face_stack, &quad) == ec_no_error){
         struct face_st * face = &delaunay_mesh_face(mesh, quad.face_index_1);
         struct triangle_st tr = {{
-            delaunay_mesh_vertex(mesh, face->f[0]).point,
-            delaunay_mesh_vertex(mesh, face->f[1]).point,
-            delaunay_mesh_vertex(mesh, face->f[2]).point,
+            delaunay_mesh_vertex(mesh, face->f[0]),
+            delaunay_mesh_vertex(mesh, face->f[1]),
+            delaunay_mesh_vertex(mesh, face->f[2]),
         }};
 #ifdef USE_PREDICATES
         bool is_in_circumcenter = vertex_is_in_triangle_circumcenter(
@@ -566,7 +570,7 @@ bool is_super_face(
         struct mesh_st * mesh,
         size_t face_index)
 {
-    size_t n_vertices = array_length(mesh->vertices) - 3;
+    size_t n_vertices = array_length(mesh->points) - 3;
     for(int32_t i = 0; i < FACE_SIZE; i++){
         if(mesh->faces[face_index].f[i] >= n_vertices){
             return true;
@@ -586,11 +590,10 @@ void mesh_super_triangle_cleanup(
         if(index == 0) break;
         else index--;
     };
-    size_t n_vertices = array_length(mesh->vertices);
     // all the adjacent faces have been removed, the vertex are isolated
     // feature, rewinding the vertex array will finish the
     // removal
-    array_resize(&mesh->vertices, n_vertices - 3);
+    mesh_vertex_forget_last_n(mesh, 3);
 }
 
 struct triangle_st compute_triangulation_super_triangle(
@@ -598,16 +601,16 @@ struct triangle_st compute_triangulation_super_triangle(
         enum projection_plane_e pp)
 {
     G_ASSERT(pp == pp_xy || pp == pp_yz || pp == pp_zx, "Unknown projection plane");
-    size_t n_vertices = array_length(mesh->vertices);
+    size_t n_points = array_length(mesh->points);
     // Initializing super triangle
     struct vector_st min = {{DBL_MAX, DBL_MAX, DBL_MAX}};
     struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
-    for(size_t v = 0; v < n_vertices; v++){
+    for(size_t v = 0; v < n_points; v++){
         for(int32_t i = 0; i < 3; i++){
-            if(mesh->vertices[v].point.v[i] > max.v[i])
-                max.v[i] = mesh->vertices[v].point.v[i];
-            if(mesh->vertices[v].point.v[i] < min.v[i])
-                min.v[i] = mesh->vertices[v].point.v[i];
+            if(mesh->points[v].v[i] > max.v[i])
+                max.v[i] = mesh->points[v].v[i];
+            if(mesh->points[v].v[i] < min.v[i])
+                min.v[i] = mesh->points[v].v[i];
         }
     }
     struct vector_st sizes = {
@@ -666,7 +669,7 @@ enum error_code_e __mesh_delaunay_triangulation(
     for(size_t i = 0; i < n_vertices; i++){
         // vertex is already in triangulation, possible
         // if boundaries are user defined
-        if(delaunay_mesh_vertex(mesh, i).adjacent_faces != INVALID_INDEX)
+        if(delaunay_mesh_vertex_is_in_face(mesh, i))
             continue;
         err = insert_vertex_in_triangulation(mesh, i, pp);
         // still try to clean something upon failure, this does
@@ -700,7 +703,7 @@ enum error_code_e mesh_delaunay_triangulation(
         struct mesh_st * mesh,
         enum projection_plane_e pp)
 {
-    size_t n_vertices = array_length(mesh->vertices);
+    size_t n_vertices = array_length(mesh->points);
     if(n_vertices < 3){
         return ec_topology_error;
     }else if(array_length(mesh->faces) != 0){
@@ -727,7 +730,7 @@ enum error_code_e mesh_delaunay_triangulation_user_defined_boundaries(
         struct mesh_st * mesh,
         enum projection_plane_e pp)
 {
-    size_t n_vertices = array_length(mesh->vertices);
+    size_t n_vertices = array_length(mesh->points);
     if(n_vertices < 3) return ec_topology_error;
     G_ASSERT(pp == pp_xy || pp == pp_yz || pp == pp_zx, "Unknown projection plane");
     return _mesh_delaunay_triangulation(mesh, pp);

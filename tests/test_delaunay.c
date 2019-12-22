@@ -19,9 +19,9 @@ void validate_triangle_is_delaunay_conformant(
 {
     struct face_st * face = &mesh->faces[face_index];
     struct triangle_st tr = {{
-        mesh->vertices[face->f[0]].point,
-        mesh->vertices[face->f[1]].point,
-        mesh->vertices[face->f[2]].point,
+        mesh->points[face->f[0]],
+        mesh->points[face->f[1]],
+        mesh->points[face->f[2]],
     }};
     for(int32_t i = 0; i < FACE_SIZE; i++){
         size_t ngb_index = mesh->neighbors[face_index].f[i];
@@ -30,14 +30,14 @@ void validate_triangle_is_delaunay_conformant(
         for(int32_t j = 0; j < FACE_SIZE; j++){
             size_t v_index = neighbor->f[j];
             if(v_index != face->f[0] && v_index != face->f[1] && v_index != face->f[2]){
-                /*vector_subtraction(&mesh->vertices[v_index].point, &cc_center, &cc_to_vertex);*/
+                /*vector_subtraction(&mesh->points[v_index], &cc_center, &cc_to_vertex);*/
                 /*double sq_dist = vector_dot_product(&cc_to_vertex, &cc_to_vertex);*/
                 /*ck_assert_float_gt(sq_dist, sq_cc_radius);*/
                 bool is_in_circumcenter = vertex_is_in_triangle_circumcenter(
-                            mesh->vertices[v_index].point, tr, pp_xy);
+                            mesh->points[v_index], tr, pp_xy);
                 if(is_in_circumcenter){
                     _vertex_is_in_triangle_circumcenter(
-                            mesh->vertices[v_index].point, tr, pp_xy, true);
+                            mesh->points[v_index], tr, pp_xy, true);
                 }
                 ck_assert(!is_in_circumcenter);
             }
@@ -99,7 +99,7 @@ START_TEST(test_triangulation_is_clean)
     ck_assert_int_lt(array_length(mesh.faces), 10000);
     export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
-    ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
+    ck_assert_int_eq(array_length(mesh.points), N_VERTEX);
     validate_mesh_is_delaunay_conformant(&mesh);
     mesh_cleanup(&mesh);
 }
@@ -108,7 +108,7 @@ END_TEST
 START_TEST(test_triangulation_on_duplicated)
 {
     struct mesh_st mesh = generate_pointcloud_2d(10);
-    mesh.vertices[9] = mesh.vertices[4];
+    mesh.points[9] = mesh.points[4];
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
     export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
@@ -131,14 +131,14 @@ struct vector_st boundary_vertices[N_BOUNDARIES] = {
 START_TEST(test_triangulation_on_limits)
 {
     struct mesh_st mesh = generate_pointcloud_2d(10);
-    mesh.vertices[0].point.v[0] = 0.0;
-    mesh.vertices[1].point.v[0] = 0.0;
-    mesh.vertices[2].point.v[1] = 0.0;
-    mesh.vertices[3].point.v[1] = 0.0;
-    mesh.vertices[5].point.v[1] = 0.0;
-    mesh.vertices[5].point.v[0] = 0.0;
-    mesh.vertices[10].point.v[1] = 0.0;
-    mesh.vertices[15].point.v[0] = 0.0;
+    mesh.points[0].v[0] = 0.0;
+    mesh.points[1].v[0] = 0.0;
+    mesh.points[2].v[1] = 0.0;
+    mesh.points[3].v[1] = 0.0;
+    mesh.points[5].v[1] = 0.0;
+    mesh.points[5].v[0] = 0.0;
+    mesh.points[10].v[1] = 0.0;
+    mesh.points[15].v[0] = 0.0;
     size_t boundary_vertices_indexes[N_BOUNDARIES];
     for(int32_t i = 0; i < N_BOUNDARIES; i++){
         mesh_add_vertex(&mesh, boundary_vertices[i],
@@ -178,16 +178,16 @@ START_TEST(test_triangulation_with_vertex_on_edge)
     struct mesh_st mesh = generate_pointcloud_2d(10);
     for(size_t i = 2; i < N_VERTEX; i += 2){
         vector_addition(
-                &mesh.vertices[i-2].point,
-                &mesh.vertices[i-1].point,
-                &mesh.vertices[i].point);
-        vector_scale_by_scalar(&mesh.vertices[i].point, 0.5,
-                &mesh.vertices[i].point);
+                &mesh.points[i-2],
+                &mesh.points[i-1],
+                &mesh.points[i]);
+        vector_scale_by_scalar(&mesh.points[i], 0.5,
+                &mesh.points[i]);
     }
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
     export_triangulation(&mesh);
     ck_assert_int_eq(err, ec_no_error);
-    ck_assert_int_eq(array_length(mesh.vertices), N_VERTEX);
+    ck_assert_int_eq(array_length(mesh.points), N_VERTEX);
     validate_mesh_is_delaunay_conformant(&mesh);
     mesh_cleanup(&mesh);
 }

@@ -15,6 +15,7 @@ struct mesh_collector_st{
 
 /** Contains private date the user should not care about */
 struct mesh_private_st {
+    struct vertex_st * vertices; /** vertices of the mesh */
     /** Lists of faces neighboring vertices */
     struct vertex_adjacent_face_st * vertex_adjacent_faces; 
     struct mesh_collector_st col; /** Collects removed feature so they
@@ -28,9 +29,9 @@ enum error_code_e mesh_cleanup(
     if(!mesh) return ec_error;
     // Deleting dynamically allocated arrays
     array_delete(&mesh->private->vertex_adjacent_faces);
+    array_delete(&mesh->private->vertices);
     free(mesh->private);
     array_delete(&mesh->faces);
-    array_delete(&mesh->vertices);
     array_delete(&mesh->neighbors);
     // Setting everything to zero for good measure
     memset(mesh, 0, sizeof(struct mesh_st));
@@ -52,7 +53,9 @@ enum error_code_e mesh_init(
     // This assumes that array_new does the same.
     if(array_new(struct face_st, 0, &mesh->faces) != ec_no_error)
         goto fail_no_faces;
-    if(array_new(struct vertex_st, 0, &mesh->vertices) != ec_no_error)
+    if(array_new(struct vector_st, 0, &mesh->points) != ec_no_error)
+        goto fail_no_points;
+    if(array_new(struct vertex_st, 0, &mesh->private->vertices) != ec_no_error)
         goto fail_no_vec;
     if(array_new(struct face_st, 0, &mesh->neighbors) != ec_no_error)
         goto fail_no_neighbors;
@@ -65,9 +68,11 @@ fail_no_adj:
     array_delete(&mesh->private->vertex_adjacent_faces);
     // Faces and vertices were allocated
 fail_no_neighbors:
-    array_delete(&mesh->vertices);
-    // Only the faces were allocated
+    array_delete(&mesh->private->vertices);
 fail_no_vec:
+    array_delete(&mesh->points);
+    // Only the faces were allocated
+fail_no_points:
     array_delete(&mesh->faces);
 fail_no_faces:
     free(mesh->private);
@@ -107,8 +112,8 @@ enum error_code_e mesh_vertex_add_adjacent_face(
     priv->vertex_adjacent_faces[adj_index].opposite_vertex = 
         opposite_vertex_index;
     priv->vertex_adjacent_faces[adj_index].next_adjacent_faces = 
-        mesh->vertices[vertex_index].adjacent_faces;
-    mesh->vertices[vertex_index].adjacent_faces = adj_index;
+        priv->vertices[vertex_index].adjacent_faces;
+    priv->vertices[vertex_index].adjacent_faces = adj_index;
     return ec_no_error;
 }
 
@@ -131,15 +136,15 @@ enum error_code_e mesh_face_add_adajcent_face(
     size_t opposite_vertex_offset = (vertex_offset + 2) % FACE_SIZE;
     size_t opposite_vertex_index = 
         mesh->faces[face_index].f[opposite_vertex_offset];
+    struct mesh_private_st * priv = mesh->private;
     size_t next_adjacent_faces = 
-        mesh->vertices[vertex_index].adjacent_faces;
+        priv->vertices[vertex_index].adjacent_faces;
     size_t neighbor_face = INVALID_INDEX;
 #ifndef NDEBUG
     size_t initial_adjacent_face = next_adjacent_faces;
 #endif
     // Iterating over the list of adjacent faces until
     // we find the corresponding one
-    struct mesh_private_st * priv = mesh->private;
     while(next_adjacent_faces != INVALID_INDEX){
         struct vertex_adjacent_face_st * vadj = 
             priv->vertex_adjacent_faces + next_adjacent_faces;
@@ -188,7 +193,7 @@ static inline enum error_code_e mesh_face_check(
         struct mesh_st * mesh,
         struct face_st face)
 {
-    size_t n_vertices = array_length(mesh->vertices);
+    size_t n_vertices = array_length(mesh->points);
     // Ensuring we are not adding a face that references
     // unknown vertices
     for(size_t i = 0; i < FACE_SIZE; i++){
@@ -313,18 +318,18 @@ void mesh_face_remove_from_vertex_adjacent_faces(
     struct mesh_collector_st * col = &mesh->private->col;
     if(vertex_index == INVALID_INDEX)
         return;
+    struct mesh_private_st * priv = mesh->private;
     G_ASSERT(face_index < array_length(mesh->faces),
             "Face is out of bounds");
-    G_ASSERT(vertex_index < array_length(mesh->vertices),
+    G_ASSERT(vertex_index < array_length(priv->vertices),
             "Vertex is out of bounds");
     size_t next_adjacent_faces = 
-        mesh->vertices[vertex_index].adjacent_faces;
+        priv->vertices[vertex_index].adjacent_faces;
 #ifndef NDEBUG
     size_t initial_adjacent_face = next_adjacent_faces;
 #endif
     size_t * previous_adj_index = 
-        &mesh->vertices[vertex_index].adjacent_faces;
-    struct mesh_private_st * priv = mesh->private;
+        &priv->vertices[vertex_index].adjacent_faces;
     while(next_adjacent_faces != INVALID_INDEX){
         struct vertex_adjacent_face_st * vadj = 
             priv->vertex_adjacent_faces + next_adjacent_faces;
@@ -521,17 +526,40 @@ enum error_code_e mesh_add_vertex(
         struct vector_st v,
         size_t * index)
 {
-    size_t n_vertices = array_length(mesh->vertices);
+    struct mesh_private_st * priv = mesh->private;
+    size_t n_vertices = array_length(priv->vertices);
+    G_ASSERT(n_vertices == array_length(mesh->points),
+            "Not the same number of points and vertices");
     // Resizing the array, now it can holds the correct number of
     // features
-    if(array_resize(&mesh->vertices, n_vertices + 1) != ec_no_error)
+    if(array_resize(&priv->vertices, n_vertices + 1) != ec_no_error)
+        return ec_memory_error;
+    if(array_resize(&mesh->points, n_vertices + 1) != ec_no_error)
         return ec_memory_error;
     // appending the vertex and returns its index
-    mesh->vertices[n_vertices].point = v;
-    mesh->vertices[n_vertices].adjacent_faces = INVALID_INDEX;
+    mesh->points[n_vertices] = v;
+    priv->vertices[n_vertices].adjacent_faces = INVALID_INDEX;
     if(index) *index = n_vertices;
     return ec_no_error;
 }
+
+bool mesh_vertex_is_in_face(
+        struct mesh_st * mesh,
+        size_t index)
+{
+    G_ASSERT(index < array_length(mesh->points), "Vertex is out of bounds");
+    return mesh->private->vertices[index].adjacent_faces != INVALID_INDEX;
+}
+
+void mesh_vertex_forget_last_n(
+        struct mesh_st * mesh,
+        size_t n)
+{
+    size_t n_vertices = array_length(mesh->points);
+    array_resize(&mesh->private->vertices, n_vertices - n);
+    array_resize(&mesh->points, n_vertices - n);
+}
+
 
 /**
  * Type of intersection between an infinite ray along the
@@ -762,13 +790,8 @@ enum point_polygon_position_e projected_face_point_position(
         struct vector_st * point,
         enum projection_plane_e pp)
 {
-    size_t polygon[3] = {0, 1, 2};
-    struct vector_st points[FACE_SIZE];
-    for(int32_t i = 0; i < FACE_SIZE; i++){
-        points[i] = mesh->vertices[mesh->faces[face_index].f[i]].point;
-    }
     return projected_polygon_point_position(
-            polygon, FACE_SIZE, points, point, pp);
+            mesh->faces[face_index].f, FACE_SIZE, mesh->points, point, pp);
 }
 
 enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(

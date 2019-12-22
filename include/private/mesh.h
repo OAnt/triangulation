@@ -1,6 +1,7 @@
 #ifndef GEOMETRY_MESH_H
 #define GEOMETRY_MESH_H
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <private/vector.h>
 #include <public/mesh.h>
@@ -16,12 +17,10 @@ struct face_st {
 };
 
 /** 
- * Structure representing a vertex. It is defined and one
- * of the face it belongs to.
+ * Structure containing topological information about a vertex. 
  */
 struct vertex_st {
-    struct vector_st point; /** Supporting point. */
-    size_t adjacent_faces; /** Face the vertex belongs to. */
+    size_t adjacent_faces; /** Head of of the liked list of faces the vertex belongs to. */
 };
 
 /**
@@ -41,7 +40,7 @@ struct mesh_private_st;
  */
 struct mesh_st {
     struct face_st * faces; /** faces of the mesh */
-    struct vertex_st * vertices; /** vertices of the mesh */
+    struct vector_st * points; /** Points supporting the vertices of the mesh */
     struct face_st * neighbors; /** neighboring faces for a given
                                   face index */
     struct mesh_private_st * private; /** mesh private member. Contains
@@ -158,6 +157,26 @@ enum error_code_e mesh_add_vertex(
         _IN struct mesh_st * mesh,
         _IN struct vector_st v,
         _OUT size_t * index);
+
+/** 
+ * Tells if a vertex belongs to a faces.
+ * param mesh Mesh the vertex belongs to.
+ * param index Index of the vertex to check.
+ * return true if it belongs to a face, false otherwise.
+ */
+bool mesh_vertex_is_in_face(
+        _IN struct mesh_st * mesh,
+        _IN size_t index);
+
+/**
+ * Mark the last n vertices as free to reuse.
+ * param mesh Mesh from which the vertices will be removed.
+ * param n Number of vertices to remove.
+ * return nothing.
+ */
+void mesh_vertex_forget_last_n(
+        struct mesh_st * mesh,
+        size_t n);
 
 /**
  * computes the normal of a polygon assuming it is planar
