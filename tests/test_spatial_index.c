@@ -187,6 +187,7 @@ size_t n_indices = 0;
 
 void reset_indices(void){
     memset(indices, 345, sizeof(indices));
+    n_indices = 0;
 }
 
 bool get_callback(size_t index, void *data){
