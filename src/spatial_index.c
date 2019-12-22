@@ -56,6 +56,8 @@ void spatial_index_delete(
     free(spi);
 }
 
+#define HIGHEST_LEVEL 32
+
 /**
  * Computes the level at which box should be inserted. The higher
  * the level, the finer the grid.
@@ -78,7 +80,7 @@ uint32_t spatial_index_compute_level(
             "Invalid box size");
     uint32_t level = 0;
     uint32_t previous_n_cells = UINT32_MAX;
-    while(true){
+    while(level < HIGHEST_LEVEL){
         uint32_t factor = 1 << level;
         double x_max_cell_size_at_level = x_max_cell_size / factor;
         double y_max_cell_size_at_level = y_max_cell_size / factor;
@@ -94,6 +96,7 @@ uint32_t spatial_index_compute_level(
             level += 1;
         }
     }
+    return level;
 }
 
 /**
