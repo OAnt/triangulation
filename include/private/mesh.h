@@ -247,14 +247,17 @@ enum point_polygon_position_e projected_polygon_point_position(
  * param mesh Mesh the face belongs to.
  * param face_index Index of the face in the mesh face array.
  * param point coordinates of the point to classify.
- * param pp Projection plane to use. 
+ * param x Index of the axis that should be considered as first.
+ * param y Index of the axis that should be considered as second. System must
+ * be direct.
  * returns whether the point is in the polygon or not.
  */
 enum point_polygon_position_e projected_face_point_position(
         _IN const struct mesh_st * mesh,
         _IN size_t face_index,
         _IN struct vector_st * point,
-        _IN enum projection_plane_e pp);
+        _IN int32_t x,
+        _IN int32_t y);
 
 /**
  * Iterates over all the faces in the mesh to find a face

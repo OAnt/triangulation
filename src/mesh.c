@@ -733,11 +733,10 @@ static inline enum point_polygon_position_e _polygon_point_position(
         _IN size_t n_vertices,
         _IN struct vector_st * vertices,
         _IN struct vector_st * point,
-        _IN enum projection_plane_e pp)
+        _IN int32_t x,
+        _IN int32_t y)
 {
     int32_t winding_number = 0;
-    int32_t x, y;
-    get_axis_system_from_projection_plane(pp, &x, &y);
     for(size_t i = 0; i < n_vertices; i++){
         size_t v = polygon[i];
         size_t next_v = polygon[(i + 1) % n_vertices];
@@ -767,8 +766,10 @@ enum point_polygon_position_e polygon_point_position(
     if(planar_polygon_best_projection(
                 polygon, n_vertices, vertices, &pp) != ec_no_error)
         return ppol_out;
+    int32_t x, y;
+    get_axis_system_from_projection_plane(pp, &x, &y);
     return _polygon_point_position(
-            polygon, n_vertices, vertices, point, pp);
+            polygon, n_vertices, vertices, point, x, y);
 }
 
 enum point_polygon_position_e projected_polygon_point_position(
@@ -782,18 +783,21 @@ enum point_polygon_position_e projected_polygon_point_position(
     // it computes its normal by taking the first
     // three vertices
     if(n_vertices <= 2) return ppol_out;
+    int32_t x, y;
+    get_axis_system_from_projection_plane(pp, &x, &y);
     return _polygon_point_position(
-            polygon, n_vertices, vertices, point, pp);
+            polygon, n_vertices, vertices, point, x, y);
 }
 
 enum point_polygon_position_e projected_face_point_position(
         const struct mesh_st * mesh,
         size_t face_index,
         struct vector_st * point,
-        enum projection_plane_e pp)
+        _IN int32_t x,
+        _IN int32_t y)
 {
-    return projected_polygon_point_position(
-            mesh->faces[face_index].f, FACE_SIZE, mesh->points, point, pp);
+    return _polygon_point_position(
+            mesh->faces[face_index].f, FACE_SIZE, mesh->points, point, x, y);
 }
 
 enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
@@ -802,8 +806,10 @@ enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
         enum projection_plane_e pp,
         size_t * face_index)
 {
+    int32_t x, y;
+    get_axis_system_from_projection_plane(pp, &x, &y);
     for(size_t f = 0; f < array_length(mesh->faces); f++){
-        if(projected_face_point_position(mesh, f, &point, pp) == ppol_in){
+        if(projected_face_point_position(mesh, f, &point, x, y) == ppol_in){
             *face_index = f;
             return ec_no_error;
         }

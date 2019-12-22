@@ -217,7 +217,8 @@ bool indexed_mesh_hash_get_callback(
             mesh->mesh,
             face_index,
             data->point,
-            data->pp);
+            mesh->x_index,
+            mesh->y_index);
     /*debug_print("index %ld, intersection: %d\n",*/
             /*face_index, data->pos);*/
     if(data->pos == ppol_in){
