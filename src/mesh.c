@@ -635,15 +635,18 @@ void winding_number_modify(
     // of intersection it is
     enum intersection_type_e it = edge_determine_intersection_type(
             point, seg0, seg1, y);
+    if(it == it_no) return;
+    enum point_position_e pos = _vector_position_relative_to_segment(
+           point, seg0, seg1, x, y); 
     // Edge is going upward, an oriented polygon turns
     // counterclockwise, if the point is left of the edge,
     // it is inside once
-    if(it == it_upward && point_is_left_of(point, seg0, seg1, x, y)){
+    if(it == it_upward && pos == pt_left){
         (*winding_number)++;
     // Edge is going downward, an oriented polygon turns
     // counterclockwise, if the point is right of the edge,
     // it is outside once
-    }else if(it == it_downward && point_is_right_of(point, seg0, seg1, x, y)){
+    }else if(it == it_downward && pos == pt_right){
         (*winding_number)--;
     }
     /*printf("%d, %d, %d -> [%f, %f], [[%f, %f], [%f, %f]], %d, %d, %d -> %d\n",*/
