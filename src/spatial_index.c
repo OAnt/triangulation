@@ -50,7 +50,7 @@ enum error_code_e spatial_index_new(
 void spatial_index_delete(
         struct spatial_index_st * spi)
 {
-    spatial_index_grid_clean(spi->grid);
+    spatial_index_grid_clear(spi->grid);
     grid_register_list_cleanup(&spi->grs);
     array_delete(&spi->levels);
     free(spi);
