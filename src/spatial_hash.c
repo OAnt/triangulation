@@ -1,3 +1,4 @@
+#include "private/spatial_index_declarations.h"
 #include <float.h>
 #include <math.h>
 #include <private/array.h>
@@ -89,7 +90,9 @@ void spatial_hash_delete(
 }
 
 typedef enum error_code_e (*spatial_hash_bucket_iterator_callback_f)(
-        struct spatial_hash_st * sph, size_t bucket_index, void * data);
+        struct spatial_hash_st * sph,
+        struct spatial_index_key_st key,
+        void * data);
 
 static inline enum error_code_e spatial_hash_iterate_over_buckets(
         struct spatial_hash_st * sph,
@@ -121,8 +124,8 @@ static inline enum error_code_e spatial_hash_iterate_over_buckets(
     do{
         int32_t y = orig_y;
         do{
-            size_t bucket = y * sph->n_x_bkts + x;
-            enum error_code_e err = iterator_callback(sph, bucket, data);
+            struct spatial_index_key_st key = {_level, {x, y}};
+            enum error_code_e err = iterator_callback(sph, key, data);
             if(err != ec_no_error) return err;
             y = (y + 1) % sph->n_y_bkts;
         }while(y != end_y);
@@ -137,9 +140,11 @@ struct spatial_hash_add_callback_data_st{
     uint32_t level;
 };
 
+#define get_bucket(sph, key) (key).cell.y * (sph)->n_x_bkts + (key).cell.x
+
 enum error_code_e spatial_hash_add_iterator_callback(
         struct spatial_hash_st * sph,
-        size_t bucket,
+        struct spatial_index_key_st key,
         void * _data)
 {
     struct spatial_hash_add_callback_data_st * data = 
@@ -153,10 +158,10 @@ enum error_code_e spatial_hash_add_iterator_callback(
     struct grid_register_st * reg = &sph->grid_registers.registers[reg_index];
     // Storing user supplied index
     reg->index = data->index;
+    size_t bucket = get_bucket(sph, key);
     grid_register_prepend_to_lists(
             &sph->grid_registers, reg_index, sph->buckets[bucket], data->handle);
-    reg->bucket = bucket;
-    reg->level = data->level;
+    reg->key = key;
     sph->buckets[bucket] = reg_index;
     sph->levels[data->level] += 1;
     return ec_no_error;
@@ -213,9 +218,10 @@ struct spatial_hash_get_callback_data_st{
 
 enum error_code_e spatial_hash_get_iterator_callback(
         struct spatial_hash_st * sph,
-        size_t bucket_index,
+        struct spatial_index_key_st key,
         void * _data)
 {
+    size_t bucket_index = get_bucket(sph, key);
     struct spatial_hash_get_callback_data_st * data =
         (struct spatial_hash_get_callback_data_st *)_data;
     G_ASSERT(bucket_index < array_length(sph->buckets),
@@ -228,13 +234,13 @@ enum error_code_e spatial_hash_get_iterator_callback(
     // place)
     size_t next_bkt_reg = sph->buckets[bucket_index];
     while(next_bkt_reg != INVALID_INDEX){
-        if(sph->grid_registers.registers[next_bkt_reg].level != data->level){
+        if(sph->grid_registers.registers[next_bkt_reg].key.level != data->level){
             next_bkt_reg = sph->grid_registers.registers[next_bkt_reg].next_bkt_reg;
             G_ASSERT(next_bkt_reg != sph->buckets[bucket_index],
                     "Loop detected");
             continue;
         }
-        G_ASSERT(sph->grid_registers.registers[next_bkt_reg].bucket != INVALID_INDEX,
+        G_ASSERT(sph->grid_registers.registers[next_bkt_reg].key.level != INVALID_LEVEL,
                 "Unset register in linked list");
         bool stop = data->get_callback(
                 sph->grid_registers.registers[next_bkt_reg].index,
@@ -267,44 +273,31 @@ void spatial_hash_get(
     }
 }
 
+void spatial_hash_remove_callback(
+        struct grid_register_st * reg,
+        void * data)
+{
+    struct spatial_hash_st * sph = (struct spatial_hash_st*)data;
+    size_t bucket = get_bucket(sph, reg->key);
+    // This is the first in the list, it is pointed
+    // by the bucket index, if it is being removed
+    // the bucket must point to something valid
+    if(reg->prev_bkt_reg == INVALID_INDEX){
+        sph->buckets[bucket] = reg->next_bkt_reg;
+    }
+    G_ASSERT(sph->levels[reg->key.level] > 0,
+            "There is already no objects at this level");
+    sph->levels[reg->key.level] -= 1;
+}
+
 void spatial_hash_remove(
         struct spatial_hash_st * sph,
         size_t handle)
 {
-    G_ASSERT(handle < array_length(sph->grid_registers.registers),
-            "Handle is not in the list of registers");
-    size_t next_obj_reg = handle;
-    while(next_obj_reg != INVALID_INDEX){
-        struct grid_register_st * reg = &sph->grid_registers.registers[next_obj_reg];
-        G_ASSERT(reg->bucket != INVALID_INDEX,
-                "Handle was already removed");
-        grid_register_remove_from_list(&sph->grid_registers, reg);
-        size_t collected_list = sph->grid_registers.collected_registers;
-        // This is the first in the list, it is pointed
-        // by the bucket index, if it is being removed
-        // the bucket must point to something valid
-        if(reg->prev_bkt_reg == INVALID_INDEX){
-            sph->buckets[reg->bucket] = reg->next_bkt_reg;
-        }
-        G_ASSERT(sph->levels[reg->level] > 0,
-                "There is already no objects at this level");
-        sph->levels[reg->level] -= 1;
-        // Setting obviously wrong value than can
-        // be sanity checked later on
-        reg->index = INVALID_INDEX;
-        reg->bucket = INVALID_INDEX;
-        reg->next_bkt_reg = collected_list;
-        reg->prev_bkt_reg = INVALID_INDEX;
-        // Adding the register to the list of collected
-        // registers
-        if(collected_list != INVALID_INDEX){
-            sph->grid_registers.registers[collected_list].prev_bkt_reg = next_obj_reg;
-        }
-        sph->grid_registers.collected_registers = next_obj_reg;
-        // Next register in the list
-        next_obj_reg = reg->next_obj_reg;
-        G_ASSERT(next_obj_reg != handle,
-                "Loop detected");
-        reg->next_obj_reg = INVALID_INDEX;
-    };
+    grid_register_list_remove_registers_by_handle(
+            &sph->grid_registers,
+            handle,
+            spatial_hash_remove_callback,
+            sph);
 }
+

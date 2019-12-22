@@ -21,6 +21,8 @@ struct spatial_index_key_st {
     struct cell_index_st cell; /** Position in the grid at level. */
 };
 
+#define INVALID_LEVEL (uint32_t)-1
+
 /**
  * Provide the caller with a key that represents the box the caller
  * is inserting in the grid.

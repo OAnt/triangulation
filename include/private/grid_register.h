@@ -1,6 +1,7 @@
 #ifndef GEOMETRY_GRID_REGISTER_H
 #define  GEOMETRY_GRID_REGISTER_H
 #include <stdlib.h>
+#include <private/spatial_index_declarations.h>
 #include <public/common.h>
 
 /**
@@ -16,8 +17,10 @@ struct grid_register_st{
                            in the bucket. */
     size_t prev_bkt_reg; /** Index of the previous register
                            in the bucket. */
-    size_t bucket; /** The register is in this bucket. */
-    uint32_t level; /** The level this register belongs to. */
+    struct spatial_index_key_st key; /** Holds information about
+                                       were this register is */
+    //size_t bucket; [>* The register is in this bucket. <]
+    //uint32_t level; [>* The level this register belongs to. <]
 };
 
 /**
@@ -81,5 +84,31 @@ void grid_register_prepend_to_lists(
 enum error_code_e grid_register_list_new_register(
         _IN struct grid_register_list_st * grs,
         _OUT size_t * _reg);
+
+/**
+ * Prototype for a caller issued function. Called upon
+ * removing a register.
+ * param reg Register that is being removed
+ * param data Caller issued pointer
+ * return nothing.
+ */
+typedef void (*register_remove_by_handle_callback_f)(
+        struct grid_register_st * reg,
+        void * data);
+
+/**
+ * Removes all the registers that corresponds to a given
+ * handle.
+ * param grs List the registers belong to.
+ * param handle Handle of the registers to remove.
+ * param callback Function called upon removing a register.
+ * param data Caller issued pointer forwarded to the callback.
+ * return nothing.
+ */
+void grid_register_list_remove_registers_by_handle(
+        struct grid_register_list_st * grs,
+        size_t handle,
+        register_remove_by_handle_callback_f callback,
+        void * data);
 
 #endif

@@ -47,7 +47,7 @@ enum error_code_e grid_register_list_new_register(
         G_ASSERT(reg->prev_bkt_reg == INVALID_INDEX &&
                 reg->next_obj_reg == INVALID_INDEX &&
                 reg->index == INVALID_INDEX &&
-                reg->bucket == INVALID_INDEX,
+                reg->key.level == INVALID_LEVEL,
                 "A collected element was not uninitialized");
         *_reg = grs->collected_registers;;
         // removing the object from the list is in (list of unused)
@@ -95,5 +95,41 @@ void grid_register_prepend_to_lists(
     // as the object (index) may be spread over
     // several buckets
     *obj_list = reg_index;
+}
+
+void grid_register_list_remove_registers_by_handle(
+        struct grid_register_list_st * grs,
+        size_t handle,
+        register_remove_by_handle_callback_f callback,
+        void * data)
+{
+    G_ASSERT(handle < array_length(grs->registers),
+            "Handle is not in the list of registers");
+    size_t next_obj_reg = handle;
+    while(next_obj_reg != INVALID_INDEX){
+        struct grid_register_st * reg = &grs->registers[next_obj_reg];
+        G_ASSERT(reg->key.level != INVALID_LEVEL,
+                "Handle was already removed");
+        grid_register_remove_from_list(grs, reg);
+        size_t collected_list = grs->collected_registers;
+        callback(reg, data);
+        // Setting obviously wrong value than can
+        // be sanity checked later on
+        reg->index = INVALID_INDEX;
+        reg->key.level = INVALID_LEVEL;
+        reg->next_bkt_reg = collected_list;
+        reg->prev_bkt_reg = INVALID_INDEX;
+        // Adding the register to the list of collected
+        // registers
+        if(collected_list != INVALID_INDEX){
+            grs->registers[collected_list].prev_bkt_reg = next_obj_reg;
+        }
+        grs->collected_registers = next_obj_reg;
+        // Next register in the list
+        next_obj_reg = reg->next_obj_reg;
+        G_ASSERT(next_obj_reg != handle,
+                "Loop detected");
+        reg->next_obj_reg = INVALID_INDEX;
+    };
 }
 
