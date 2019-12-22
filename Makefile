@@ -1,7 +1,7 @@
 EXTRA_BIN:=
 EXTRA_CFLAGS="-DNDEBUG"
-INCLUDES=-I include
-CFLAGS=-Wall -g -fPIC -x c $(EXTRA_CFLAGS)
+INCLUDES=-I include -I dependencies/include
+CFLAGS=-Wall -g -fPIC -x c $(EXTRA_CFLAGS) 
 SRCDIR=src
 OBJDIR=build/objects
 SODIR=build/lib

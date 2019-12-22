@@ -1,14 +1,27 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+
+#include <m-dict.h>
+
+#include <private/array.h>
 #include <private/debug.h>
+#include <private/grid_register.h>
 #include <private/spatial_index.h>
 #include <private/spatial_index_declarations.h>
+
+DICT_DEF2(spatial_index_grid, struct spatial_index_key_st, M_POD_OPLIST, size_t, M_DEFAULT_OPLIST)
 
 /**
  * Root structure for a 2D spatial index.
  */
 struct spatial_index_st {
+    spatial_index_grid_t grid; /** Dictionary representing the 
+                                 index grid, this way it can grow as
+                                 needed (especially down) */
+    struct grid_register_list_st grs; /** Lists of objects
+                                        that have been added to the index */
+    int32_t * levels;
     struct box_st soft_boundaries; /** Boundaries of the index, an object
                                      outside of the can still be inserted
                                      thus the "soft" in the name */
@@ -20,6 +33,16 @@ enum error_code_e spatial_index_new(
 {
     *spi = calloc(1, sizeof(struct spatial_index_st));
     if(!*spi) return ec_memory_error;
+    if(grid_register_list_init(&(*spi)->grs) == ec_memory_error){
+        free(*spi);
+        return ec_memory_error;
+    }
+    if(array_new(int32_t, 0, &(*spi)->levels) == ec_memory_error){
+        free(*spi);
+        grid_register_list_cleanup(&(*spi)->grs);
+        return ec_memory_error;
+    }
+    spatial_index_grid_init((*spi)->grid);
     (*spi)->soft_boundaries = soft_boundaries;
     return ec_no_error;
 }
@@ -27,6 +50,9 @@ enum error_code_e spatial_index_new(
 void spatial_index_delete(
         struct spatial_index_st * spi)
 {
+    spatial_index_grid_clean(spi->grid);
+    grid_register_list_cleanup(&spi->grs);
+    array_delete(&spi->levels);
     free(spi);
 }
 
@@ -110,6 +136,92 @@ enum error_code_e spatial_index_locate_on_grid(
     }
     return ec_no_error;
 }
+
+struct spatial_index_add_data_st{
+    struct spatial_index_st * spi;
+    size_t * handle;
+    size_t index;
+};
+
+static enum error_code_e spatial_index_add_iterator_callback(
+        struct spatial_index_key_st key,
+        void * _data)
+{
+    struct spatial_index_add_data_st * data = 
+        (struct spatial_index_add_data_st *)_data;
+    struct spatial_index_st * spi = data->spi;
+    size_t reg_index;
+    // A new register is needed, if it cannot be allocated stop
+    // a forward the error to the caller
+    enum error_code_e err = grid_register_list_new_register(
+            &spi->grs, &reg_index);
+    if(err != ec_no_error) return err;
+    struct grid_register_st * reg = &spi->grs.registers[reg_index];
+    // Storing user supplied index
+    reg->index = data->index;
+    reg->key = key;
+    // Increment the count of objects at level
+    spi->levels[key.level] += 1;
+    // probing the grid to see if the grid cell corresponding to key
+    // exists
+    size_t * bucket_ptr = spatial_index_grid_get(spi->grid, key);
+    size_t bucket;
+    // The grid cell does not exist, reg_index is its first element,
+    // By providing INVALID_INDEX prepend will understand that this
+    // is the first element
+    if(bucket_ptr == NULL){
+        bucket = INVALID_INDEX;    
+    }else{
+    // Grid cell exits, simply adding another element
+        bucket = *bucket_ptr;
+    }
+    grid_register_prepend_to_lists(
+            &spi->grs, reg_index, bucket, data->handle);
+    // Updating the grid to point at the new head;
+    spatial_index_grid_set_at(spi->grid, key, bucket);
+    return ec_no_error;
+}
+
+enum error_code_e spatial_index_add(
+        struct spatial_index_st * spi,
+        struct box_st box,
+        size_t index,
+        size_t * handle)
+{
+    G_ASSERT(handle != NULL,
+            "This function needs a valid pointer to an handle");
+    *handle = INVALID_INDEX;
+    uint32_t level = spatial_index_compute_level(
+            spi->soft_boundaries,
+            box);
+    size_t n_levels = array_length(spi->levels);
+    // there are new levels (an object at least 2 x smaller than everything
+    // that was inserted beforehand) is being inserted
+    // Adding levels and zeroing because nothing is there yet
+    if(level >= n_levels){
+        enum error_code_e err = array_resize(&spi->levels, level + 1);
+        if(err != ec_no_error) return err;
+        memset(
+                spi->levels + n_levels,
+                0,
+                (level - n_levels + 1) * sizeof(uint32_t));
+    }
+    struct spatial_index_add_data_st data = {spi, handle, index};
+    return spatial_index_locate_on_grid(
+            spi->soft_boundaries, 
+            box,
+            level,
+            spatial_index_add_iterator_callback,
+            &data);
+}
+
+struct spatial_index_get_data_st{
+    struct spatial_index_st * spi;
+    spatial_index_get_callback_f get_callback;
+    void * data; 
+};
+
+/*enum error_code_e spatial_index_get_iterator_callback*/
 
 /**
  * Computes the eventual list of cell keys that represents a given box.

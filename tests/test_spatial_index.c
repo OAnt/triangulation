@@ -162,6 +162,26 @@ START_TEST(test_locate_bigger)
 }
 END_TEST
 
+START_TEST(test_add_object_to_index)
+{
+    struct spatial_index_st * spi;
+    spatial_index_new(bounds, &spi);
+    size_t handle;
+    spatial_index_add(spi, smaller, 1, &handle);
+    // Testing this actually requires insider knowledge, but i think
+    // this is acceptable during tests, notably, as long as handle
+    // have not been removed (by removing an object) they are 
+    // incremented and there is one handle by cell used (you can get
+    // those value by looking at the tests above)
+    ck_assert_int_eq(handle, 1);
+    spatial_index_add(spi, bigger, 2, &handle);
+    ck_assert_int_eq(handle, 13);
+    spatial_index_add(spi, smaller2, 3, &handle);
+    ck_assert_int_eq(handle, 14);
+    spatial_index_delete(spi);
+}
+END_TEST
+
 Suite * mk_spatial_index_suite(void){
     Suite * s = suite_create("Spatial Index");
     TCase * sph_tc = tcase_create(
@@ -176,6 +196,7 @@ Suite * mk_spatial_index_suite(void){
     tcase_add_test(sph_tc, test_locate_smaller);
     tcase_add_test(sph_tc, test_locate_outside);
     tcase_add_test(sph_tc, test_locate_bigger);
+    tcase_add_test(sph_tc, test_add_object_to_index);
     suite_add_tcase(s, sph_tc);
     return s;
 }
