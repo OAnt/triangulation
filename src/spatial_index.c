@@ -281,3 +281,31 @@ void spatial_index_get(
     }
 }
 
+void spatial_index_remove_callback(
+        struct grid_register_st * reg,
+        void * data)
+{
+    struct spatial_index_st * spi = 
+        (struct spatial_index_st *)data;
+    G_ASSERT(spi->levels[reg->key.level] > 0,
+            "There is already no objects at this level");
+    spi->levels[reg->key.level] -= 1;
+    // This is the first in the list, it is pointed
+    // by the bucket index, if it is being removed
+    // the bucket must point to something valid
+    if(reg->prev_bkt_reg == INVALID_INDEX){
+        spatial_index_grid_erase(spi->grid, reg->key);
+    }
+}
+
+void spatial_index_remove(
+        struct spatial_index_st * spi,
+        size_t handle)
+{
+    grid_register_list_remove_registers_by_handle(
+            &spi->grs,
+            handle,
+            spatial_index_remove_callback,
+            spi);
+}
+

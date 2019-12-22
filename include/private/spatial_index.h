@@ -73,4 +73,14 @@ void spatial_index_get(
         _IN spatial_index_get_callback_f get_callback,
         _IN void * data);
 
+/**
+ * Remove all the objects that corresponds to handle (output of the add method).
+ * param spi Spatial index the objects should be removed from.
+ * param handle Values describing the objects to remove.
+ * return nothing.
+ */
+void spatial_index_remove(
+        struct spatial_index_st * spi,
+        size_t handle);
+
 #endif

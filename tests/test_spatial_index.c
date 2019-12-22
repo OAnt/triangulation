@@ -251,6 +251,30 @@ START_TEST(test_get_nothing)
 }
 END_TEST
 
+START_TEST(test_remove_objects_from_index)
+{
+    struct spatial_index_st * spi;
+    spatial_index_new(bounds, &spi);
+    size_t handle_0;
+    spatial_index_add(spi, smaller, 1, &handle_0);
+    size_t handle_1;
+    spatial_index_add(spi, bigger, 2, &handle_1);
+    size_t handle_2;
+    spatial_index_add(spi, smaller2, 3, &handle_2);
+    spatial_index_remove(spi, handle_1);
+    spatial_index_remove(spi, handle_0);
+    spatial_index_remove(spi, handle_2);
+    reset_indices();
+    spatial_index_get(spi, smaller2, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 0);
+    spatial_index_get(spi, smaller, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 0);
+    spatial_index_get(spi, bigger, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 0);
+    spatial_index_delete(spi);
+}
+END_TEST
+
 Suite * mk_spatial_index_suite(void){
     Suite * s = suite_create("Spatial Index");
     TCase * sph_tc = tcase_create(
@@ -270,6 +294,7 @@ Suite * mk_spatial_index_suite(void){
     tcase_add_test(sph_tc, test_get_smaller);
     tcase_add_test(sph_tc, test_get_bigger);
     tcase_add_test(sph_tc, test_get_nothing);
+    tcase_add_test(sph_tc, test_remove_objects_from_index);
     suite_add_tcase(s, sph_tc);
     return s;
 }
