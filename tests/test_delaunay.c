@@ -215,7 +215,7 @@ START_TEST(test_triangulation_on_invalid_mesh)
 END_TEST
 
 struct vector_st vector_distribution_non_uniform(struct vector_st v){
-    static double cst = 4.0;
+    static double cst = 8.0;
     struct vector_st nv = {{pow(v.v[0], cst), pow(v.v[1], cst)}};
     return nv;
 }
