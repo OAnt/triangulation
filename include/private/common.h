@@ -16,4 +16,6 @@
 #define INVALID_INDEX (size_t)-1
 #endif
 
+#define USE_PREDICATES 
+
 #endif

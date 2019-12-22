@@ -13,7 +13,6 @@
 #include <private/triangle.h>
 #include <public/common.h>
 
-#define USE_PREDICATES 
 /*#define UNINDEXED_DELAUNAY*/
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY

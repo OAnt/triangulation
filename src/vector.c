@@ -1,4 +1,5 @@
 #include <private/vector.h>
+#include <private/predicates.h>
 
 void vector_subtraction(
         _IN struct vector_st * in_a,
@@ -69,10 +70,17 @@ enum point_position_e vector_position_relative_to_segment(
      * %3 is to convert (Z + 1) = 4 into 1 = X*/
     int32_t d0, d1;
     get_axis_system_from_projection_plane(pp, &d0, &d1);
+#ifdef USE_PREDICATES
+    double pa[2] = {segment->s[0].v[d0], segment->s[0].v[d1]};
+    double pb[2] = {segment->s[1].v[d0], segment->s[1].v[d1]};
+    double pc[2] = {point->v[d0], point->v[d1]};
+    double position = orient2d(pa, pb, pc);
+#else
     double position = (segment->s[1].v[d0] - segment->s[0].v[d0]) *
         (point->v[d1] - segment->s[0].v[d1]) -
         (point->v[d0] - segment->s[0].v[d0]) *
         (segment->s[1].v[d1] - segment->s[0].v[d1]);
+#endif
     if(position < 0){
         return pt_right;
     }else if(position > 0){
