@@ -56,7 +56,7 @@ void spatial_index_delete(
     free(spi);
 }
 
-#define HIGHEST_LEVEL 32
+#define HIGHEST_LEVEL 64
 
 /**
  * Computes the level at which box should be inserted. The higher
@@ -81,7 +81,7 @@ uint32_t spatial_index_compute_level(
     uint32_t level = 0;
     uint32_t previous_n_cells = UINT32_MAX;
     while(level < HIGHEST_LEVEL){
-        uint32_t factor = 1 << level;
+        uint64_t factor = 1 << level;
         double x_max_cell_size_at_level = x_max_cell_size / factor;
         double y_max_cell_size_at_level = y_max_cell_size / factor;
         uint32_t n_x_cells = (uint32_t)ceil(x_cell_size / x_max_cell_size_at_level); 
@@ -123,7 +123,7 @@ enum error_code_e spatial_index_locate_on_grid(
             "Max must be greater or equal than min");
     G_ASSERT(box.max.v[1] >= box.min.v[1],
             "Max must be greater or equal than min");
-    uint32_t factor = 1 << level;
+    uint64_t factor = 1 << level;
     double x_cell_size = (box_size_along(soft_boundaries, 0)) / factor;
     double y_cell_size = (box_size_along(soft_boundaries, 1)) / factor;
     int32_t orig_x = (int32_t)floor(box.min.v[0] / x_cell_size);
