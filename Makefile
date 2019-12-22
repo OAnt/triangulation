@@ -22,6 +22,9 @@ build:
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	cc $(CFLAGS) $(INCLUDES) -c $< -o $@
 
+$(OBJDIR)/spatial_index.o: $(SRCDIR)/spatial_index.c
+	cc $(CFLAGS) -Wno-unused-function $(INCLUDES) -c $< -o $@
+
 $(SOOUT): $(OBJECTS)
 	cc -shared $(OBJECTS) -o $@ $(EXTRA_CFLAGS)
 
