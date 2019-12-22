@@ -6,6 +6,7 @@
 #include <private/array.h>
 #include <private/debug.h>
 #include <private/delaunay_triangulation.h>
+#include <private/predicates.h>
 #include <private/triangle.h>
 #include <private/vector.h>
 #include <public/mesh.h>
@@ -22,11 +23,6 @@ void validate_triangle_is_delaunay_conformant(
         mesh->vertices[face->f[1]].point,
         mesh->vertices[face->f[2]].point,
     }};
-    struct vector_st cc_center, cc_to_vertex, cc_to_triangle_vertex;
-    ck_assert_int_eq(triangle_compute_circumcircle_center(&tr, &cc_center), ec_no_error);
-    vector_subtraction(tr.t, &cc_center, &cc_to_triangle_vertex);
-    double sq_cc_radius = vector_dot_product(
-            &cc_to_triangle_vertex, &cc_to_triangle_vertex);
     for(int32_t i = 0; i < FACE_SIZE; i++){
         size_t ngb_index = mesh->neighbors[face_index].f[i];
         if(ngb_index == INVALID_INDEX) continue;
@@ -34,9 +30,16 @@ void validate_triangle_is_delaunay_conformant(
         for(int32_t j = 0; j < FACE_SIZE; j++){
             size_t v_index = neighbor->f[j];
             if(v_index != face->f[0] && v_index != face->f[1] && v_index != face->f[2]){
-                vector_subtraction(&mesh->vertices[v_index].point, &cc_center, &cc_to_vertex);
-                double sq_dist = vector_dot_product(&cc_to_vertex, &cc_to_vertex);
-                ck_assert_float_gt(sq_dist, sq_cc_radius);
+                /*vector_subtraction(&mesh->vertices[v_index].point, &cc_center, &cc_to_vertex);*/
+                /*double sq_dist = vector_dot_product(&cc_to_vertex, &cc_to_vertex);*/
+                /*ck_assert_float_gt(sq_dist, sq_cc_radius);*/
+                bool is_in_circumcenter = vertex_is_in_triangle_circumcenter(
+                            mesh->vertices[v_index].point, tr, pp_xy);
+                if(is_in_circumcenter){
+                    _vertex_is_in_triangle_circumcenter(
+                            mesh->vertices[v_index].point, tr, pp_xy, true);
+                }
+                ck_assert(!is_in_circumcenter);
             }
         }
     }
@@ -214,12 +217,13 @@ END_TEST
 START_TEST(test_delaunay_triangulation_performance)
 {
     size_t _n_points = 100;
-    for(int32_t i = 1; i < 11; i++){
+    for(int32_t i = 1; i < 12; i++){
         size_t n_points = i * _n_points;
+        double size = 10.0;
         if(i == 11) n_points = 10000;
         if(i == 12) n_points = 100000;
         unsigned int state = time(NULL);
-        struct mesh_st mesh = _generate_pointcloud_2d(10, n_points, state,
+        struct mesh_st mesh = _generate_pointcloud_2d(size, n_points, state,
                 vector_distribution_uniform);
         clock_t clk_start = clock();
         enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);

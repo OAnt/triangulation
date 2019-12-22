@@ -7,11 +7,13 @@
 #include <private/debug.h>
 #include <private/delaunay_triangulation.h>
 #include <private/mesh.h>
+#include <private/predicates.h>
 #include <private/spatial_hash.h>
 #include <private/spatial_index.h>
 #include <private/triangle.h>
 #include <public/common.h>
 
+#define USE_PREDICATES 
 /*#define UNINDEXED_DELAUNAY*/
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY
@@ -329,16 +331,22 @@ struct face_test_st {
 
 bool mesh_triangle_would_be_regular(
         struct delaunay_mesh_st * mesh,
-        struct face_test_st * face)
+        struct face_test_st * face,
+        enum projection_plane_e pp)
 {
-    size_t p[FACE_SIZE] = {0, 1, 2};
     struct vector_st v[FACE_SIZE] = {
         delaunay_mesh_vertex(mesh, face->face.f[0]).point,
         delaunay_mesh_vertex(mesh, face->face.f[1]).point,
         delaunay_mesh_vertex(mesh, face->face.f[2]).point};
+#ifdef USE_PREDICATES
+    bool is_regular = triangle_is_regular(v, pp);
+#else
+    size_t p[FACE_SIZE] = {0, 1, 2};
     struct vector_st normal;
     enum error_code_e err = planar_polygon_normal(p, FACE_SIZE, v, &normal);
-    if(err == ec_no_error){
+    bool is_regular = err == ec_no_error;
+#endif
+    if(is_regular){
         face->is_regular = true;
         return true;
     }else{
@@ -430,7 +438,7 @@ enum error_code_e insert_vertex_in_triangulation(
     size_t regular_count = 0;
     for(size_t i = 0; i < n_new_faces; i++){
         bool regular = mesh_triangle_would_be_regular(
-                mesh, &new_triangles[i]);
+                mesh, &new_triangles[i], pp);
         if(regular) regular_count++;
     }
     size_t new_face_indexes[N_NEW_FACES_MAX] = {
@@ -512,6 +520,10 @@ enum error_code_e insert_vertex_in_triangulation(
             delaunay_mesh_vertex(mesh, face->f[1]).point,
             delaunay_mesh_vertex(mesh, face->f[2]).point,
         }};
+#ifdef USE_PREDICATES
+        bool is_in_circumcenter = vertex_is_in_triangle_circumcenter(
+                point, tr, pp);
+#else
         struct vector_st cc_center, cc_to_vertex, cc_to_triangle_vertex;
         err = triangle_compute_circumcircle_center(&tr, &cc_center);
         if(err != ec_no_error){
@@ -524,7 +536,9 @@ enum error_code_e insert_vertex_in_triangulation(
                 &cc_to_triangle_vertex, &cc_to_triangle_vertex);
         vector_subtraction(&point, &cc_center, &cc_to_vertex);
         double sq_dist = vector_dot_product(&cc_to_vertex, &cc_to_vertex);
-        if(sq_dist < sq_cc_radius){
+        bool is_in_circumcenter = sq_dist < sq_cc_radius;
+#endif
+        if(is_in_circumcenter){
             // swap make sure that the vertex we are inserting is 
             // still in third position
             err = delaunay_mesh_swap_edge(
