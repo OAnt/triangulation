@@ -556,6 +556,7 @@ void mesh_vertex_forget_last_n(
         size_t n)
 {
     size_t n_vertices = array_length(mesh->points);
+    G_ASSERT(n_vertices == array_length(mesh->private->vertices), "Vertex count mismatch");
     array_resize(&mesh->private->vertices, n_vertices - n);
     array_resize(&mesh->points, n_vertices - n);
 }
