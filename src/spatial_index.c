@@ -281,23 +281,3 @@ void spatial_index_get(
     }
 }
 
-/**
- * Computes the eventual list of cell keys that represents a given box.
- * param spi Spatial index inside which the box will be ultimately inserted.
- * param box Box for which the keys will be computed.
- * param callback Caller supplied function that will be called to forward
- * any eventual key that will be found.
- * param data Caller supplied pointer forwarded to the callback.
- */
-void spatial_index_compute_keys(
-        struct spatial_index_st * spi,
-        struct box_st box,
-        spatial_index_key_computation_callback_f callback,
-        void * data)
-{
-    uint32_t level = spatial_index_compute_level(
-            spi->soft_boundaries,
-            box);
-    spatial_index_locate_on_grid(
-            spi->soft_boundaries, box, level, callback, data);
-}
