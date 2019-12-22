@@ -134,9 +134,8 @@ void validate_mesh(struct mesh_st mesh){
     struct mesh_st unchanged_mesh = create_cube_mesh();
     ck_assert_mem_eq(mesh.faces, unchanged_mesh.faces ,
             array_length(unchanged_mesh.faces) * sizeof(struct face_st)); 
-    ck_assert_mem_eq(mesh.faces, unchanged_mesh.faces ,
-            array_length(unchanged_mesh.faces) * sizeof(struct face_st)); 
-    ck_assert(array_length(mesh.vertex_adjacent_faces) == array_length(unchanged_mesh.vertex_adjacent_faces));
+    ck_assert_mem_eq(mesh.neighbors, unchanged_mesh.neighbors ,
+            array_length(unchanged_mesh.neighbors) * sizeof(struct face_st)); 
     mesh_cleanup(&unchanged_mesh);
 }
 

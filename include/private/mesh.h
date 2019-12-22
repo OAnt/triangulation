@@ -44,8 +44,6 @@ struct mesh_st {
     struct vertex_st * vertices; /** vertices of the mesh */
     struct face_st * neighbors; /** neighboring faces for a given
                                   face index */
-    /** Lists of faces neighboring vertices */
-    struct vertex_adjacent_face_st * vertex_adjacent_faces; 
     struct mesh_private_st * private; /** mesh private member. Contains
                                         information about topology that must
                                         not be tempered with */

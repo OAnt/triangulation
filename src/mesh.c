@@ -15,6 +15,8 @@ struct mesh_collector_st{
 
 /** Contains private date the user should not care about */
 struct mesh_private_st {
+    /** Lists of faces neighboring vertices */
+    struct vertex_adjacent_face_st * vertex_adjacent_faces; 
     struct mesh_collector_st col; /** Collects removed feature so they
                                     can be reused */
 };
@@ -25,11 +27,11 @@ enum error_code_e mesh_cleanup(
     // Mesh is null not doing anything
     if(!mesh) return ec_error;
     // Deleting dynamically allocated arrays
+    array_delete(&mesh->private->vertex_adjacent_faces);
     free(mesh->private);
     array_delete(&mesh->faces);
     array_delete(&mesh->vertices);
     array_delete(&mesh->neighbors);
-    array_delete(&mesh->vertex_adjacent_faces);
     // Setting everything to zero for good measure
     memset(mesh, 0, sizeof(struct mesh_st));
     return ec_no_error;
@@ -55,12 +57,12 @@ enum error_code_e mesh_init(
     if(array_new(struct face_st, 0, &mesh->neighbors) != ec_no_error)
         goto fail_no_neighbors;
     if(array_new(struct vertex_adjacent_face_st,
-                0, &mesh->vertex_adjacent_faces) != ec_no_error)
+                0, &mesh->private->vertex_adjacent_faces) != ec_no_error)
         goto fail_no_adj;
     return ec_no_error;
     // Faces, vertices and neighbors were allocated
 fail_no_adj:
-    array_delete(&mesh->vertex_adjacent_faces);
+    array_delete(&mesh->private->vertex_adjacent_faces);
     // Faces and vertices were allocated
 fail_no_neighbors:
     array_delete(&mesh->vertices);
@@ -85,24 +87,26 @@ enum error_code_e mesh_vertex_add_adjacent_face(
             "Vertex is out of bounds");
     size_t adj_index;
     struct mesh_collector_st * col = &mesh->private->col;
+    struct mesh_private_st * priv = mesh->private;
     // There something in the linked list, pop it
     if(col && col->removed_adjacent_faces != INVALID_INDEX){
         adj_index = col->removed_adjacent_faces;
-        col->removed_adjacent_faces = mesh->vertex_adjacent_faces[adj_index].next_adjacent_faces;
+        col->removed_adjacent_faces =
+            priv->vertex_adjacent_faces[adj_index].next_adjacent_faces;
     }else{
-        size_t n_adj = array_length(mesh->vertex_adjacent_faces);
+        size_t n_adj = array_length(priv->vertex_adjacent_faces);
         enum error_code_e err = array_resize(
-                &mesh->vertex_adjacent_faces, n_adj + 1);
+                &priv->vertex_adjacent_faces, n_adj + 1);
         if(err != ec_no_error) return err;
         adj_index = n_adj;
     }
     size_t vertex_index = mesh->faces[face_index].f[vertex_offset];
     size_t opposite_vertex_index =
          mesh->faces[face_index].f[(vertex_offset + 1) % FACE_SIZE];
-    mesh->vertex_adjacent_faces[adj_index].face = face_index;
-    mesh->vertex_adjacent_faces[adj_index].opposite_vertex = 
+    priv->vertex_adjacent_faces[adj_index].face = face_index;
+    priv->vertex_adjacent_faces[adj_index].opposite_vertex = 
         opposite_vertex_index;
-    mesh->vertex_adjacent_faces[adj_index].next_adjacent_faces = 
+    priv->vertex_adjacent_faces[adj_index].next_adjacent_faces = 
         mesh->vertices[vertex_index].adjacent_faces;
     mesh->vertices[vertex_index].adjacent_faces = adj_index;
     return ec_no_error;
@@ -135,9 +139,10 @@ enum error_code_e mesh_face_add_adajcent_face(
 #endif
     // Iterating over the list of adjacent faces until
     // we find the corresponding one
+    struct mesh_private_st * priv = mesh->private;
     while(next_adjacent_faces != INVALID_INDEX){
         struct vertex_adjacent_face_st * vadj = 
-            mesh->vertex_adjacent_faces + next_adjacent_faces;
+            priv->vertex_adjacent_faces + next_adjacent_faces;
         next_adjacent_faces = vadj->next_adjacent_faces;
         if(vadj->opposite_vertex == opposite_vertex_index){
             neighbor_face = vadj->face;
@@ -231,13 +236,14 @@ static inline enum error_code_e _mesh_add_or_replace_face(
     // appending the face and returns its index
     mesh->faces[face_index] = face;
     mesh->neighbors[face_index] = invalid_face;
-    size_t n_adj = array_length(mesh->vertex_adjacent_faces);
+    struct mesh_private_st * priv = mesh->private;
+    size_t n_adj = array_length(priv->vertex_adjacent_faces);
     err = mesh_face_add_topology(mesh, face_index);
     if(err != ec_no_error) goto fail_no_adj;
     if(index) *index = face_index;
     return ec_no_error;
 fail_no_adj:
-    array_resize(&mesh->vertex_adjacent_faces, n_adj);
+    array_resize(&priv->vertex_adjacent_faces, n_adj);
     // If something fails and face was not allocated
     // (reused from collector) this does nothing
     array_resize(&mesh->neighbors, n_faces);
@@ -318,9 +324,10 @@ void mesh_face_remove_from_vertex_adjacent_faces(
 #endif
     size_t * previous_adj_index = 
         &mesh->vertices[vertex_index].adjacent_faces;
+    struct mesh_private_st * priv = mesh->private;
     while(next_adjacent_faces != INVALID_INDEX){
         struct vertex_adjacent_face_st * vadj = 
-            mesh->vertex_adjacent_faces + next_adjacent_faces;
+            priv->vertex_adjacent_faces + next_adjacent_faces;
         // this list element is the one to be removed, bypassing it
         if(vadj->face == face_index){
             *previous_adj_index = vadj->next_adjacent_faces;
