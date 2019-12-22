@@ -1,5 +1,6 @@
 #ifndef GEOMETRY_GRID_REGISTER_H
 #define  GEOMETRY_GRID_REGISTER_H
+#include <stdint.h>
 #include <stdlib.h>
 #include <private/spatial_index_declarations.h>
 #include <public/common.h>
