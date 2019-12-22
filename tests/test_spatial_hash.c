@@ -64,10 +64,10 @@ void spatial_hash_fill(
         size_t handles[N_OBJECTS])
 {
     for(int32_t i = 0; i < N_OBJECTS; i++){
+        struct box_st box = {objects[i].min, objects[i].max};
         ck_assert(spatial_hash_add(
                     sph,
-                    objects[i].min,
-                    objects[i].max,
+                    box,
                     objects[i].index,
                     handles + i) == ec_no_error);
     }
@@ -92,7 +92,8 @@ START_TEST(test_spatial_hash_get)
     struct spatial_hash_st * sph = spatial_hash_create(handles);
     for(int32_t i = 0; i < N_QUERIES; i++){
         int32_t count = 0;
-        spatial_hash_get(sph, queries[i].min, queries[i].max,
+        struct box_st box = {queries[i].min, queries[i].max};
+        spatial_hash_get(sph, box,
                 queries[i].get_callback, &count);
         ck_assert_int_eq(count, queries[i].expected_count);
     }
@@ -106,26 +107,31 @@ START_TEST(test_spatial_hash_remove)
     struct spatial_hash_st * sph = spatial_hash_create(handles);
     spatial_hash_remove(sph, handles[0]);
     int32_t count = 0;
+    struct box_st box = {queries[0].min, queries[0].max};
     spatial_hash_get(sph,
-            queries[0].min, queries[0].max, get_object_2, &count);
+            box, get_object_2, &count);
     ck_assert_int_eq(count, 1);
     count = 0;
+    struct box_st box_1 = {queries[1].min, queries[1].max};
     spatial_hash_get(sph,
-            queries[1].min, queries[1].max, get_object_0, &count);
+            box_1, get_object_0, &count);
     ck_assert_int_eq(count, 0);
     count = 0;
+    struct box_st box_4 = {queries[4].min, queries[4].max};
     spatial_hash_get(sph,
-            queries[4].min, queries[4].max, get_object_2, &count);
+            box_4, get_object_2, &count);
     ck_assert_int_eq(count, 2);
     spatial_hash_remove(sph, handles[1]);
     count = 0;
+    struct box_st box_3 = {queries[3].min, queries[3].max};
     spatial_hash_get(sph,
-            queries[3].min, queries[3].max, get_object_1, &count);
+            box_3, get_object_1, &count);
     ck_assert_int_eq(count, 0);
     spatial_hash_remove(sph, handles[2]);
     count = 0;
+    struct box_st box_2 = {queries[2].min, queries[2].max};
     spatial_hash_get(sph,
-            queries[2].min, queries[2].max, get_object_2, &count);
+            box_2, get_object_2, &count);
     ck_assert_int_eq(count, 0);
     spatial_hash_delete(&sph);
 }

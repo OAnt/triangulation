@@ -48,8 +48,7 @@ void spatial_hash_delete(
  */
 enum error_code_e spatial_hash_add(
         _IN struct spatial_hash_st * sph,
-        _IN struct vector_st min,
-        _IN struct vector_st max,
+        _IN struct box_st box,
         _IN size_t index,
         _OUT size_t * handle);
 
@@ -82,8 +81,7 @@ typedef bool (*spatial_hash_get_callback_f)(size_t index, void * data);
  */
 void spatial_hash_get(
         _IN struct spatial_hash_st * sph,
-        _IN struct vector_st min,
-        _IN struct vector_st max,
+        _IN struct box_st box,
         _IN spatial_hash_get_callback_f get_callback,
         _IN void * data);
 

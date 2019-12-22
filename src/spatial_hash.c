@@ -193,11 +193,12 @@ uint32_t spatial_hash_find_level(
 
 enum error_code_e spatial_hash_add(
         struct spatial_hash_st * sph,
-        struct vector_st min,
-        struct vector_st max,
+        struct box_st box,
         size_t index,
         size_t * handle)
 {
+    struct vector_st min = box.min;
+    struct vector_st max = box.max;
     G_ASSERT(handle != NULL,
             "This function needs a valid pointer to an handle");
     *handle = INVALID_INDEX;
@@ -255,11 +256,12 @@ enum error_code_e spatial_hash_get_iterator_callback(
 
 void spatial_hash_get(
         struct spatial_hash_st * sph,
-        struct vector_st min,
-        struct vector_st max,
+        struct box_st box,
         spatial_hash_get_callback_f get_callback,
         void * data)
 {
+    struct vector_st min = box.min;
+    struct vector_st max = box.max;
     struct spatial_hash_get_callback_data_st get_data = {
         get_callback, data, 0};
     for(uint32_t l = 0; l < sph->n_levels; l++){

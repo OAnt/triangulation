@@ -56,8 +56,9 @@ enum error_code_e indexed_mesh_insert_into_spatial_hash(
     struct vector_st min = {{DBL_MAX, DBL_MAX, DBL_MAX}};
     struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
     indexed_mesh_face_increment_bounds(mesh, face_index, &min, &max);
+    struct box_st box = {min, max};
     return spatial_hash_add(
-            mesh->sph, min, max, face_index, &mesh->handles[face_index]);
+            mesh->sph, box, face_index, &mesh->handles[face_index]);
 }
 
 void indexed_mesh_remove_from_spatial_hash(
@@ -208,10 +209,10 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     struct vector_st min, max;
     vector_subtraction(&point, &delta, &min);
     vector_addition(&point, &delta, &max);
+    struct box_st box = {min, max};
     spatial_hash_get(
             mesh->sph,
-            min,
-            max,
+            box,
             indexed_mesh_hash_get_callback,
             &data);
     if(data.pos == ppol_in){
