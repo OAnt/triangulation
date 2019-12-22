@@ -637,11 +637,12 @@ enum error_code_e planar_polygon_normal(
     // groups of three points until we
     // find a group where they are not aligned
     for(size_t i = 0; i < n_vertices; i++){
-        size_t next = (i + 1) % n_vertices;
-        size_t next_over = (i + 2) % n_vertices;
+        size_t v = polygon[i];
+        size_t next = polygon[(i + 1) % n_vertices];
+        size_t next_over = polygon[(i + 2) % n_vertices];
         struct vector_st edge_a, edge_b;
-        vector_subtraction(&vertices[next], &vertices[i], &edge_a);
-        vector_subtraction(&vertices[next_over], &vertices[i], &edge_b);
+        vector_subtraction(&vertices[next], &vertices[v], &edge_a);
+        vector_subtraction(&vertices[next_over], &vertices[v], &edge_b);
         vector_cross_product(&edge_a, &edge_b, normal);
         double sq_norm = vector_dot_product(normal, normal);
         // found a normal with non zero norm, non collinear edges
@@ -701,8 +702,10 @@ static inline enum point_polygon_position_e _polygon_point_position(
 {
     int32_t winding_number = 0;
     for(size_t i = 0; i < n_vertices; i++){
+        size_t v = polygon[i];
+        size_t next_v = polygon[(i + 1) % n_vertices];
         struct segment_st seg = {{
-            vertices[i], vertices[(i+1) % n_vertices]
+            vertices[v], vertices[next_v]
         }};
         winding_number_modify(point, &seg, pp, &winding_number);
     }
