@@ -602,10 +602,10 @@ enum intersection_type_e  edge_determine_intersection_type(
     }
 }
 
-#define point_is_left_of(p, s, pp) \
-    vector_position_relative_to_segment(p, s, pp) == pt_left
-#define point_is_right_of(p, s, pp) \
-    vector_position_relative_to_segment(p, s, pp) == pt_right
+#define point_is_left_of(p, s, x, y) \
+    _vector_position_relative_to_segment(p, s, x, y) == pt_left
+#define point_is_right_of(p, s, x, y) \
+    _vector_position_relative_to_segment(p, s, x, y) == pt_right
 
 /**
  * Increments or decrements the winding number
@@ -623,13 +623,12 @@ enum intersection_type_e  edge_determine_intersection_type(
 void winding_number_modify(
         struct vector_st * point,
         struct segment_st * seg,
-        enum projection_plane_e pp,
+        int32_t x,
+        int32_t y,
         int32_t * winding_number)
 {
     // determines what is the vertical axis 
     // for a given projection plane
-    int32_t x, y;
-    get_axis_system_from_projection_plane(pp, &x, &y);
     // determines if there is an intersection and what kind
     // of intersection it is
     enum intersection_type_e it = edge_determine_intersection_type(
@@ -637,12 +636,12 @@ void winding_number_modify(
     // Edge is going upward, an oriented polygon turns
     // counterclockwise, if the point is left of the edge,
     // it is inside once
-    if(it == it_upward && point_is_left_of(point, seg, pp)){
+    if(it == it_upward && point_is_left_of(point, seg, x, y)){
         (*winding_number)++;
     // Edge is going downward, an oriented polygon turns
     // counterclockwise, if the point is right of the edge,
     // it is outside once
-    }else if(it == it_downward && point_is_right_of(point, seg, pp)){
+    }else if(it == it_downward && point_is_right_of(point, seg, x, y)){
         (*winding_number)--;
     }
     /*printf("%d, %d, %d -> [%f, %f], [[%f, %f], [%f, %f]], %d, %d, %d -> %d\n",*/
@@ -737,13 +736,15 @@ static inline enum point_polygon_position_e _polygon_point_position(
         _IN enum projection_plane_e pp)
 {
     int32_t winding_number = 0;
+    int32_t x, y;
+    get_axis_system_from_projection_plane(pp, &x, &y);
     for(size_t i = 0; i < n_vertices; i++){
         size_t v = polygon[i];
         size_t next_v = polygon[(i + 1) % n_vertices];
         struct segment_st seg = {{
             vertices[v], vertices[next_v]
         }};
-        winding_number_modify(point, &seg, pp, &winding_number);
+        winding_number_modify(point, &seg, x, y, &winding_number);
     }
     if(winding_number > 0){
         return ppol_in;

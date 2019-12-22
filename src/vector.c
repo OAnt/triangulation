@@ -61,15 +61,12 @@ void get_axis_system_from_projection_plane(
     }
 }
 
-enum point_position_e vector_position_relative_to_segment(
+enum point_position_e _vector_position_relative_to_segment(
         _IN struct vector_st * point, 
         _IN struct segment_st * segment,
-        _IN enum projection_plane_e pp)
+        _IN int32_t d0,
+        _IN int32_t d1)
 {
-    /* pp is the first dimension the next one is pp + 1, 
-     * %3 is to convert (Z + 1) = 4 into 1 = X*/
-    int32_t d0, d1;
-    get_axis_system_from_projection_plane(pp, &d0, &d1);
 #ifdef USE_PREDICATES
     double pa[2] = {segment->s[0].v[d0], segment->s[0].v[d1]};
     double pb[2] = {segment->s[1].v[d0], segment->s[1].v[d1]};
@@ -88,6 +85,18 @@ enum point_position_e vector_position_relative_to_segment(
     }else{
         return pt_on;
     }
+}
+
+enum point_position_e vector_position_relative_to_segment(
+        _IN struct vector_st * point, 
+        _IN struct segment_st * segment,
+        _IN enum projection_plane_e projection_plane)
+{
+    /* pp is the first dimension the next one is pp + 1, 
+     * %3 is to convert (Z + 1) = 4 into 1 = X*/
+    int32_t d0, d1;
+    get_axis_system_from_projection_plane(projection_plane, &d0, &d1);
+    return _vector_position_relative_to_segment(point, segment, d0, d1);
 }
 
 void vector_cross_product(
