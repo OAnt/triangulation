@@ -130,13 +130,17 @@ enum error_code_e spatial_index_locate_on_grid(
     int32_t orig_y = (int32_t)floor(box.min.v[1] / y_cell_size);
     int32_t end_x = (int32_t)ceil(box.max.v[0] / x_cell_size);
     int32_t end_y = (int32_t)ceil(box.max.v[1] / y_cell_size);
-    for(int32_t x = orig_x; x < end_x; x++){
-        for(int32_t y = orig_y; y < end_y; y++){
+    int32_t x = orig_x;
+    do{
+        int32_t y = orig_y;
+        do{
             struct spatial_index_key_st key = {level, {x, y}};
             enum error_code_e err = callback(key, data);
             if(err != ec_no_error) return err;
-        }
-    }
+            y += 1;
+        }while(y < end_y);
+        x += 1;
+    }while(x < end_x);
     return ec_no_error;
 }
 
@@ -220,12 +224,14 @@ enum error_code_e spatial_index_add(
                 (level - n_levels + 1) * sizeof(uint32_t));
     }
     struct spatial_index_add_data_st data = {spi, handle, index};
-    return spatial_index_locate_on_grid(
+    enum error_code_e err = spatial_index_locate_on_grid(
             spi->soft_boundaries, 
             box,
             level,
             spatial_index_add_iterator_callback,
             &data);
+    G_ASSERT(*handle != INVALID_INDEX, "Object was not inserted");
+    return err;
 }
 
 struct spatial_index_get_data_st{
