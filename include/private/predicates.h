@@ -38,7 +38,7 @@ static inline bool _vertex_is_in_triangle_circumcenter(
         debug_print("p: {%f, %f}, tr: {{%f, %f}, {%f, %f}, {%f, %f}} => %f\n",
                 p[0], p[1], pa[0], pa[1], pb[0], pb[1], pc[0], pc[1], incircle(pa, pb, pc, p));
     }
-    return incircle(pa, pb, pc, p) >= 0;
+    return incircle(pa, pb, pc, p) > 0;
 }
 
 static inline bool vertex_is_in_triangle_circumcenter(
