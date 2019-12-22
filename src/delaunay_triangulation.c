@@ -8,17 +8,23 @@
 #include <private/delaunay_triangulation.h>
 #include <private/mesh.h>
 #include <private/spatial_hash.h>
+#include <private/spatial_index.h>
 #include <private/triangle.h>
 #include <public/common.h>
 
 /*#define UNINDEXED_DELAUNAY*/
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY
+#define DELAUNAY_USE_SPATIAL_INDEX
 
 struct indexed_mesh_st{
     mesh_st * mesh;
     size_t * handles;
+#ifdef DELAUNAY_USE_SPATIAL_INDEX
+    struct spatial_index_st * spi;
+#else
     struct spatial_hash_st * sph;
+#endif
     int32_t x_index;
     int32_t y_index;
     double x_cell_size;
@@ -57,8 +63,13 @@ enum error_code_e indexed_mesh_insert_into_spatial_hash(
     struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
     indexed_mesh_face_increment_bounds(mesh, face_index, &min, &max);
     struct box_st box = {min, max};
+#ifdef DELAUNAY_USE_SPATIAL_INDEX
+    return spatial_index_add(
+            mesh->spi, box, face_index, &mesh->handles[face_index]);
+#else
     return spatial_hash_add(
             mesh->sph, box, face_index, &mesh->handles[face_index]);
+#endif
 }
 
 void indexed_mesh_remove_from_spatial_hash(
@@ -69,7 +80,11 @@ void indexed_mesh_remove_from_spatial_hash(
             "Face is out of bounds");
     G_ASSERT(mesh->handles[face_index] != INVALID_INDEX,
             "Face is already removed");
+#ifdef DELAUNAY_USE_SPATIAL_INDEX
+    spatial_index_remove(mesh->spi, mesh->handles[face_index]);
+#else
     spatial_hash_remove(mesh->sph, mesh->handles[face_index]);
+#endif
     mesh->handles[face_index] = INVALID_INDEX;
 }
 
@@ -87,16 +102,21 @@ enum error_code_e indexed_mesh_init_in_place_faces_as_boundaries(
     for(size_t f = 0; f < n_faces; f++){
         indexed_mesh_face_increment_bounds(indexed_mesh, f, &min, &max);
     }
+    enum error_code_e err = array_new(
+            size_t, n_faces, &indexed_mesh->handles);
+    if(err != ec_no_error) goto fail_no_handles;
+#ifdef DELAUNAY_USE_SPATIAL_INDEX
+    struct box_st bounds = {min, max};
+    err = spatial_index_new(bounds, &indexed_mesh->spi);
+#else
     int32_t n_bkts = array_length(mesh->vertices) / 10;
     double x_cell_size = (max.v[0] - min.v[0]) / n_bkts;
     indexed_mesh->x_cell_size = x_cell_size;
     double y_cell_size = (max.v[1] - min.v[1]) / n_bkts;
     indexed_mesh->y_cell_size = y_cell_size;
-    enum error_code_e err = array_new(
-            size_t, n_faces, &indexed_mesh->handles);
-    if(err != ec_no_error) goto fail_no_handles;
     err = spatial_hash_new(
             n_bkts, n_bkts, x_cell_size, y_cell_size, &indexed_mesh->sph);
+#endif
     if(err != ec_no_error) goto fail_no_sph;
     for(size_t f = 0; f < n_faces; f++){
         indexed_mesh->handles[f] = INVALID_INDEX;
@@ -105,7 +125,11 @@ enum error_code_e indexed_mesh_init_in_place_faces_as_boundaries(
     }
     return ec_no_error;
 fail_face_insert:
+#ifdef DELAUNAY_USE_SPATIAL_INDEX
+    spatial_index_delete(indexed_mesh->spi);
+#else
     spatial_hash_delete(&indexed_mesh->sph);
+#endif
 fail_no_sph:
     array_delete(&indexed_mesh->handles);
 fail_no_handles:
@@ -115,7 +139,11 @@ fail_no_handles:
 void indexed_mesh_cleanup(
         struct indexed_mesh_st * mesh)
 {
+#ifdef DELAUNAY_USE_SPATIAL_INDEX
+    spatial_index_delete(mesh->spi);
+#else
     spatial_hash_delete(&mesh->sph);
+#endif
     array_delete(&mesh->handles);
     memset(mesh, 0, sizeof(struct indexed_mesh_st));
 }
@@ -189,6 +217,8 @@ bool indexed_mesh_hash_get_callback(
             face_index,
             data->point,
             data->pp);
+    /*debug_print("index %ld, intersection: %d\n",*/
+            /*face_index, data->pos);*/
     if(data->pos == ppol_in){
         *data->face_index = face_index;
         return true;
@@ -210,8 +240,13 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     vector_subtraction(&point, &delta, &min);
     vector_addition(&point, &delta, &max);
     struct box_st box = {min, max};
+#ifdef DELAUNAY_USE_SPATIAL_INDEX
+    spatial_index_get(
+            mesh->spi,
+#else
     spatial_hash_get(
             mesh->sph,
+#endif
             box,
             indexed_mesh_hash_get_callback,
             &data);

@@ -187,6 +187,8 @@ static enum error_code_e spatial_index_add_iterator_callback(
             &spi->grs, reg_index, bucket, data->handle);
     // Updating the grid to point at the new head;
     spatial_index_grid_set_at(spi->grid, key, reg_index);
+    /*debug_print("index %ld registered at <%d, <%d, %d> (%ld)>\n",*/
+            /*reg->index, key.level, key.cell.x, key.cell.y, reg_index);*/
     return ec_no_error;
 }
 
@@ -247,6 +249,9 @@ static enum error_code_e spatial_index_get_iterator_callback(
     while(next_bkt_reg != INVALID_INDEX){
         G_ASSERT(spi->grs.registers[next_bkt_reg].key.level != INVALID_LEVEL,
                 "Unset register in linked list");
+        /*struct grid_register_st * reg = &spi->grs.registers[next_bkt_reg];*/
+        /*debug_print("index %ld got from <%d, <%d, %d>> (%ld)\n",*/
+                /*reg->index, reg->key.level, reg->key.cell.x, reg->key.cell.y, next_bkt_reg);*/
         bool stop = data->get_callback(
                 spi->grs.registers[next_bkt_reg].index,
                 data->data);
@@ -294,8 +299,15 @@ void spatial_index_remove_callback(
     // by the bucket index, if it is being removed
     // the bucket must point to something valid
     if(reg->prev_bkt_reg == INVALID_INDEX){
-        spatial_index_grid_erase(spi->grid, reg->key);
+        if(reg->next_bkt_reg == INVALID_INDEX){
+            spatial_index_grid_erase(spi->grid, reg->key);
+        }else{
+            spatial_index_grid_set_at(spi->grid, reg->key, reg->next_bkt_reg);
+        }
     }
+    /*debug_print("index %ld unregistered from <%d, <%d, %d>> (%ld)\n",*/
+            /*reg->index, reg->key.level, reg->key.cell.x, reg->key.cell.y,*/
+            /*reg - spi->grs.registers);*/
 }
 
 void spatial_index_remove(
