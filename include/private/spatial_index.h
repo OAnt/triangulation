@@ -28,7 +28,7 @@ enum error_code_e spatial_index_new(
  * return nothing
  */
 void spatial_index_delete(
-        struct spatial_index_st * spi);
+        _IN struct spatial_index_st * spi);
 
 /**
  * Adds an object delimited by box and determined by index
@@ -43,10 +43,10 @@ void spatial_index_delete(
  * return ec_no_error on success, ec_memory_error otherwise.
  */
 enum error_code_e spatial_index_add(
-        struct spatial_index_st * spi,
-        struct box_st box,
-        size_t index,
-        size_t * handle);
+        _IN struct spatial_index_st * spi,
+        _IN struct box_st box,
+        _IN size_t index,
+        _OUT size_t * handle);
 
 /**
  * Prototype of a callback function used to returned matching references.
@@ -54,6 +54,23 @@ enum error_code_e spatial_index_add(
  * param data Caller supplied data.
  * return true if the caller wishes to stop the search, false otherwise.
  */
-typedef bool (*spatial_index_get_callback_f)(size_t index, void * data);
+typedef bool (*spatial_index_get_callback_f)(
+        _IN size_t index,
+        _IN void * data);
+
+/**
+ * Iterates over the list of objects that may intersects box. Their indices
+ * are returned by calling caller issued get_callback.
+ * param spi Saptial index to query.
+ * param box Query box.
+ * param get_callback Function upon finding a potentially intersecting object.
+ * param data Caller issued pointer, forwarded to get_callback.
+ * return nothing
+ */
+void spatial_index_get(
+        _IN struct spatial_index_st * spi,
+        _IN struct box_st box,
+        _IN spatial_index_get_callback_f get_callback,
+        _IN void * data);
 
 #endif

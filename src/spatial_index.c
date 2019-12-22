@@ -143,6 +143,24 @@ struct spatial_index_add_data_st{
     size_t index;
 };
 
+static inline size_t get_bucket(
+        struct spatial_index_st * spi,
+        struct spatial_index_key_st key)
+{
+    size_t * bucket_ptr = spatial_index_grid_get(spi->grid, key);
+    size_t bucket;
+    // The grid cell does not exist, reg_index is its first element,
+    // By providing INVALID_INDEX subsequent functions will
+    // understand that this bucket is empty
+    if(bucket_ptr == NULL){
+        bucket = INVALID_INDEX;    
+    }else{
+    // Grid cell exits, simply adding another element
+        bucket = *bucket_ptr;
+    }
+    return bucket;
+}
+
 static enum error_code_e spatial_index_add_iterator_callback(
         struct spatial_index_key_st key,
         void * _data)
@@ -164,21 +182,11 @@ static enum error_code_e spatial_index_add_iterator_callback(
     spi->levels[key.level] += 1;
     // probing the grid to see if the grid cell corresponding to key
     // exists
-    size_t * bucket_ptr = spatial_index_grid_get(spi->grid, key);
-    size_t bucket;
-    // The grid cell does not exist, reg_index is its first element,
-    // By providing INVALID_INDEX prepend will understand that this
-    // is the first element
-    if(bucket_ptr == NULL){
-        bucket = INVALID_INDEX;    
-    }else{
-    // Grid cell exits, simply adding another element
-        bucket = *bucket_ptr;
-    }
+    size_t bucket = get_bucket(spi, key);
     grid_register_prepend_to_lists(
             &spi->grs, reg_index, bucket, data->handle);
     // Updating the grid to point at the new head;
-    spatial_index_grid_set_at(spi->grid, key, bucket);
+    spatial_index_grid_set_at(spi->grid, key, reg_index);
     return ec_no_error;
 }
 
@@ -221,7 +229,57 @@ struct spatial_index_get_data_st{
     void * data; 
 };
 
-/*enum error_code_e spatial_index_get_iterator_callback*/
+static enum error_code_e spatial_index_get_iterator_callback(
+        struct spatial_index_key_st key,
+        void * _data)
+{
+    struct spatial_index_get_data_st * data = 
+        (struct spatial_index_get_data_st *) _data;
+    struct spatial_index_st * spi = data->spi;
+    size_t bucket = get_bucket(spi, key);
+    size_t next_bkt_reg = bucket;
+    // The queried box intersects the bucket pointed
+    // by bucket, iterating over its list of
+    // register, for each one, notify the caller that
+    // there is something in there by forwarding the 
+    // register index (which was supplied in the first
+    // place)
+    while(next_bkt_reg != INVALID_INDEX){
+        G_ASSERT(spi->grs.registers[next_bkt_reg].key.level != INVALID_LEVEL,
+                "Unset register in linked list");
+        bool stop = data->get_callback(
+                spi->grs.registers[next_bkt_reg].index,
+                data->data);
+        // The caller asked to stop, complying
+        if(stop) return ec_error;
+        next_bkt_reg = spi->grs.registers[next_bkt_reg].next_bkt_reg;
+        G_ASSERT(next_bkt_reg != bucket,
+                "Loop detected");
+    }
+    return ec_no_error;
+}
+
+void spatial_index_get(
+        struct spatial_index_st * spi,
+        struct box_st box,
+        spatial_index_get_callback_f get_callback,
+        void * data)
+{
+    struct spatial_index_get_data_st get_data = {
+        spi, get_callback, data};
+    size_t n_levels = array_length(spi->levels);
+    for(uint32_t i = 0; i < n_levels; i++){
+        if(!spi->levels[i]) continue;
+        enum error_code_e err = spatial_index_locate_on_grid(
+                spi->soft_boundaries,
+                box,
+                i,
+                spatial_index_get_iterator_callback,
+                &get_data);
+        // caller asked for a stop
+        if(err != ec_no_error) return;
+    }
+}
 
 /**
  * Computes the eventual list of cell keys that represents a given box.

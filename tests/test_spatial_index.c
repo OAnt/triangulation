@@ -76,7 +76,7 @@ enum error_code_e spatial_index_cb(
 static struct spatial_index_key_st keys[15];
 
 void reset_keys(void){
-    memset(keys, 345, 10*sizeof(struct spatial_index_key_st));
+    memset(keys, 345, sizeof(keys));
 }
 
 START_TEST(test_locate_match)
@@ -182,6 +182,31 @@ START_TEST(test_add_object_to_index)
 }
 END_TEST
 
+size_t indices[15];
+size_t n_indices = 0;
+
+void reset_indices(void){
+    memset(indices, 345, sizeof(indices));
+}
+
+bool get_callback(size_t index, void *data){
+    indices[n_indices++] = index;
+    return false;
+}
+
+START_TEST(test_get_match)
+{
+    struct spatial_index_st * spi;
+    spatial_index_new(bounds2, &spi);
+    size_t handle;
+    spatial_index_add(spi, smaller2, 1, &handle);
+    reset_indices();
+    spatial_index_get(spi, smaller2, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 1);
+    ck_assert_int_eq(indices[0], 1);
+}
+END_TEST
+
 Suite * mk_spatial_index_suite(void){
     Suite * s = suite_create("Spatial Index");
     TCase * sph_tc = tcase_create(
@@ -197,6 +222,7 @@ Suite * mk_spatial_index_suite(void){
     tcase_add_test(sph_tc, test_locate_outside);
     tcase_add_test(sph_tc, test_locate_bigger);
     tcase_add_test(sph_tc, test_add_object_to_index);
+    tcase_add_test(sph_tc, test_get_match);
     suite_add_tcase(s, sph_tc);
     return s;
 }

@@ -1,4 +1,3 @@
-#include "private/spatial_index_declarations.h"
 #include <float.h>
 #include <math.h>
 #include <private/array.h>
