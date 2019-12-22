@@ -50,7 +50,12 @@ void validate_mesh_is_delaunay_conformant(
     }
 }
 
-struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices, unsigned int state)
+struct vector_st vector_distribution_uniform(struct vector_st v){
+    return v;
+}
+
+struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices, unsigned int state,
+        struct vector_st vector_distribution_f(struct vector_st))
 {
     struct mesh_st mesh;
     mesh_init(&mesh);
@@ -61,14 +66,14 @@ struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices, unsigned
             ((double)rand_r(&state)/(double)(RAND_MAX)) * range,
             0.0
         }};
-        mesh_add_vertex(&mesh, v, NULL);
+        mesh_add_vertex(&mesh, vector_distribution_f(v), NULL);
     }
     return mesh;
 }
 
 struct mesh_st generate_pointcloud_2d(double range)
 {
-    return _generate_pointcloud_2d(range, N_VERTEX, 1575405021);
+    return _generate_pointcloud_2d(range, N_VERTEX, 1575405021, vector_distribution_uniform);
 }
 
 #define MAX_TRI_PATH 1024
@@ -214,7 +219,8 @@ START_TEST(test_delaunay_triangulation_performance)
         if(i == 11) n_points = 10000;
         if(i == 12) n_points = 100000;
         unsigned int state = time(NULL);
-        struct mesh_st mesh = _generate_pointcloud_2d(10, n_points, state);
+        struct mesh_st mesh = _generate_pointcloud_2d(10, n_points, state,
+                vector_distribution_uniform);
         clock_t clk_start = clock();
         enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
         clock_t clk_end = clock();
