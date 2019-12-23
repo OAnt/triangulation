@@ -124,14 +124,6 @@ START_TEST(test_2D_boxes_intersect)
 }
 END_TEST
 
-START_TEST(test_2D_box_intersects_corner)
-{
-    struct box_st a = {{{1.0, 3.0, 0.0}}, {{3.0, 6.0, 0.0}}};
-    struct box_st b = {{{3.0, 6.0, 0.0}}, {{3.0, 6.0, 0.0}}};
-    ck_assert(box_intersection_2D(&a, &b) && box_intersection_2D(&b, &a));
-}
-END_TEST
-
 START_TEST(test_2D_boxes_do_not_intersect)
 {
     struct box_st a = {{{1.0, 3.0, 0.0}}, {{3.0, 6.0, 0.0}}};
@@ -153,7 +145,6 @@ Suite * mk_vector_suite(void){
     tcase_add_test(tc, vector_test_cross_product);
     tcase_add_test(tc, test_axis_system);
     tcase_add_test(tc, test_2D_boxes_intersect);
-    tcase_add_test(tc, test_2D_box_intersects_corner);
     tcase_add_test(tc, test_2D_boxes_do_not_intersect);
     suite_add_tcase(s, tc);
     return s;

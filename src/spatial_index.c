@@ -243,7 +243,6 @@ struct spatial_index_get_data_st{
     struct spatial_index_st * spi;
     spatial_index_get_callback_f get_callback;
     void * data; 
-    struct box_st box;
 };
 
 static enum error_code_e spatial_index_get_iterator_callback(
@@ -268,7 +267,7 @@ static enum error_code_e spatial_index_get_iterator_callback(
         /*struct grid_register_st * reg = &spi->grs.registers[next_bkt_reg];*/
         /*debug_print("index %ld got from <%d, <%d, %d>> (%ld)\n",*/
                 /*reg->index, reg->key.level, reg->key.cell.x, reg->key.cell.y, next_bkt_reg);*/
-        if(box_intersection_2D(&data->box, &spi->grs.registers[next_bkt_reg].location)){
+        if(box_intersection_2D(&box, &spi->grs.registers[next_bkt_reg].location)){
             bool stop = data->get_callback(
                     spi->grs.registers[next_bkt_reg].index,
                     data->data);
@@ -290,8 +289,6 @@ void spatial_index_get(
 {
     struct spatial_index_get_data_st get_data = {
         spi, get_callback, data};
-    vector_subtraction(&box.min, &spi->soft_boundaries.min, &get_data.box.min);
-    vector_subtraction(&box.max, &spi->soft_boundaries.min, &get_data.box.max);
     size_t n_levels = array_length(spi->levels);
     for(uint32_t i = 0; i < n_levels; i++){
         if(!spi->levels[i]) continue;
