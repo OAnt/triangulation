@@ -216,6 +216,7 @@ END_TEST
 
 struct vector_st vector_distribution_non_uniform(struct vector_st v){
     static double cst = 12.0;
+    /*static double cst = 1.0;*/
     struct vector_st nv = {{pow(v.v[0], cst), pow(v.v[1], cst)}};
     return nv;
 }
@@ -228,6 +229,7 @@ START_TEST(test_delaunay_triangulation_performance)
         double size = 1.0;
         if(i == 11) n_points = 10000;
         if(i == 12) n_points = 100000;
+        if(i == 13) n_points = 1000000;
         unsigned int state = time(NULL);
         struct mesh_st mesh = _generate_pointcloud_2d(size, n_points, state,
                 vector_distribution_non_uniform);
@@ -258,7 +260,7 @@ Suite * mk_delaunay_suite(void){
     suite_add_tcase(s, tc);
     TCase * tc2 = tcase_create(
             "Delaunay Performance");
-    tcase_set_timeout(tc2, 20);
+    tcase_set_timeout(tc2, 40);
     tcase_add_test(tc2, test_delaunay_triangulation_performance);
     suite_add_tcase(s, tc2);
     return s;
