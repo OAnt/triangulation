@@ -1,3 +1,4 @@
+#include "private/predicates.h"
 #include <math.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -807,8 +808,20 @@ enum point_polygon_position_e projected_face_point_position(
         _IN int32_t x,
         _IN int32_t y)
 {
-    return _polygon_point_position(
-            mesh->faces[face_index].f, FACE_SIZE, mesh->points, point, x, y);
+    struct face_st * face = mesh->faces + face_index;
+    double p[2] = {point->v[x], point->v[y]};
+    double pa[2] = {
+        mesh->points[face->f[0]].v[x], mesh->points[face->f[0]].v[y]};
+    double pb[2] = {
+        mesh->points[face->f[1]].v[x], mesh->points[face->f[1]].v[y]};
+    if(orient2d(pa, pb, p) < 0) return ppol_out;
+    double pc[2] = {
+        mesh->points[face->f[2]].v[x], mesh->points[face->f[2]].v[y]};
+    if(orient2d(pb, pc, p) < 0) return ppol_out;
+    if(orient2d(pc, pa, p) < 0) return ppol_out;
+    return ppol_in;
+    /*return _polygon_point_position(*/
+            /*mesh->faces[face_index].f, FACE_SIZE, mesh->points, point, x, y);*/
 }
 
 enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
