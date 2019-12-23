@@ -290,9 +290,14 @@ void spatial_index_get(
     size_t n_levels = array_length(spi->levels);
     for(uint32_t i = 0; i < n_levels; i++){
         if(!spi->levels[i]) continue;
+        uint64_t factor = 1 << i;
+        struct vector_st delta = {{EPSILON/factor, EPSILON/factor, EPSILON/factor}};
+        struct box_st _box;
+        vector_subtraction(&box.min, &delta, &_box.min);
+        vector_addition(&box.max, &delta, &_box.max);
         enum error_code_e err = spatial_index_locate_on_grid(
                 spi->soft_boundaries,
-                box,
+                _box,
                 i,
                 spatial_index_get_iterator_callback,
                 &get_data);

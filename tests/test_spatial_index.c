@@ -253,6 +253,32 @@ START_TEST(test_get_nothing)
 }
 END_TEST
 
+START_TEST(test_get_limit_points)
+{
+    struct spatial_index_st * spi;
+    spatial_index_new(bounds2, &spi);
+    size_t handle;
+    spatial_index_add(spi, smaller2, 1, &handle);
+    reset_indices();
+    struct box_st bottom_left_corner = {smaller2.min, smaller2.min};
+    spatial_index_get(spi, bottom_left_corner, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 1);
+    struct box_st bottom_right_corner = {
+        {{smaller2.max.v[0], smaller2.min.v[1], 0.0}},
+        {{smaller2.max.v[0], smaller2.min.v[1], 0.0}}};
+    spatial_index_get(spi, bottom_right_corner, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 2);
+    struct box_st top_left_corner = {
+        {{smaller2.min.v[0], smaller2.max.v[1], 0.0}},
+        {{smaller2.min.v[0], smaller2.max.v[1], 0.0}}};
+    spatial_index_get(spi, top_left_corner, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 3);
+    struct box_st top_right_corner = {smaller2.max, smaller2.max};
+    spatial_index_get(spi, top_right_corner, get_callback, NULL);
+    ck_assert_int_eq(n_indices, 4);
+}
+END_TEST
+
 START_TEST(test_remove_objects_from_index)
 {
     struct spatial_index_st * spi;
@@ -297,6 +323,7 @@ Suite * mk_spatial_index_suite(void){
     tcase_add_test(sph_tc, test_get_bigger);
     tcase_add_test(sph_tc, test_get_nothing);
     tcase_add_test(sph_tc, test_remove_objects_from_index);
+    tcase_add_test(sph_tc, test_get_limit_points);
     suite_add_tcase(s, sph_tc);
     return s;
 }

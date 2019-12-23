@@ -237,6 +237,13 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
 {
     struct indexed_mesh_hash_get_callback_data_st data = {
         mesh, &point, pp, ppol_out, face_index};
+#ifdef DELAUNAY_USE_SPATIAL_INDEX
+    struct box_st box = {
+        {{point.v[mesh->x_index], point.v[mesh->y_index], 0.0}},
+        {{point.v[mesh->x_index], point.v[mesh->y_index], 0.0}}};
+    spatial_index_get(
+            mesh->spi,
+#else
     struct vector_st delta = {{EPSILON, EPSILON, EPSILON}};
     struct vector_st min, max;
     vector_subtraction(&point, &delta, &min);
@@ -244,10 +251,6 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     struct box_st box = {
         {{min.v[mesh->x_index], min.v[mesh->y_index], 0.0}},
         {{max.v[mesh->x_index], max.v[mesh->y_index], 0.0}}};
-#ifdef DELAUNAY_USE_SPATIAL_INDEX
-    spatial_index_get(
-            mesh->spi,
-#else
     spatial_hash_get(
             mesh->sph,
 #endif
