@@ -57,7 +57,7 @@ void spatial_index_delete(
     free(spi);
 }
 
-#define HIGHEST_LEVEL 63
+#define HIGHEST_LEVEL 32
 
 /**
  * Computes the level at which box should be inserted. The higher
