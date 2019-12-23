@@ -253,6 +253,14 @@ START_TEST(test_get_nothing)
 }
 END_TEST
 
+START_TEST(test_uint64_t)
+{
+    ck_assert(sizeof(uint64_t) > sizeof(uint32_t));
+    uint64_t u = 1UL << 63;
+    ck_assert(u == 1UL << 63);
+}
+END_TEST
+
 START_TEST(test_get_limit_points)
 {
     struct spatial_index_st * spi;
@@ -324,6 +332,7 @@ Suite * mk_spatial_index_suite(void){
     tcase_add_test(sph_tc, test_get_nothing);
     tcase_add_test(sph_tc, test_remove_objects_from_index);
     tcase_add_test(sph_tc, test_get_limit_points);
+    tcase_add_test(sph_tc, test_uint64_t);
     suite_add_tcase(s, sph_tc);
     return s;
 }
