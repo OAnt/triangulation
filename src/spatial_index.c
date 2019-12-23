@@ -50,13 +50,14 @@ enum error_code_e spatial_index_new(
 void spatial_index_delete(
         struct spatial_index_st * spi)
 {
+    debug_print("Max level achieved: %ld\n", array_length(spi->levels));
     spatial_index_grid_clear(spi->grid);
     grid_register_list_cleanup(&spi->grs);
     array_delete(&spi->levels);
     free(spi);
 }
 
-#define HIGHEST_LEVEL 64
+#define HIGHEST_LEVEL 63
 
 /**
  * Computes the level at which box should be inserted. The higher
