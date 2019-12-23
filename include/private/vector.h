@@ -156,7 +156,7 @@ void get_axis_system_from_projection_plane(
  * return true if there is an intersection, false otherwise.
  */
 bool box_intersection_2D(
-        struct box_st * a,
-        struct box_st * b);
+        const struct box_st * a,
+        const struct box_st * b);
 
 #endif

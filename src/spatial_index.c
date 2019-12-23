@@ -174,7 +174,7 @@ static inline size_t get_bucket(
 static enum error_code_e spatial_index_add_iterator_callback(
         struct spatial_index_key_st key,
         struct box_st box,
-        void * _data)
+        const void * _data)
 {
     struct spatial_index_add_data_st * data = 
         (struct spatial_index_add_data_st *)_data;
@@ -248,7 +248,7 @@ struct spatial_index_get_data_st{
 static enum error_code_e spatial_index_get_iterator_callback(
         struct spatial_index_key_st key,
         struct box_st box,
-        void * _data)
+        const void * _data)
 {
     struct spatial_index_get_data_st * data = 
         (struct spatial_index_get_data_st *) _data;
