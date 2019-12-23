@@ -31,6 +31,7 @@ enum error_code_e mesh_cleanup(
     // Deleting dynamically allocated arrays
     array_delete(&mesh->private->vertex_adjacent_faces);
     array_delete(&mesh->private->vertices);
+    array_delete(&mesh->points);
     free(mesh->private);
     array_delete(&mesh->faces);
     array_delete(&mesh->neighbors);
