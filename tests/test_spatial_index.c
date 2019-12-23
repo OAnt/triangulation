@@ -67,7 +67,7 @@ struct key_array_st{
 enum error_code_e spatial_index_cb(
         struct spatial_index_key_st key,
         struct box_st box,
-        void * data)
+        const void * data)
 {
     struct key_array_st * array = (struct key_array_st*)data;
     array->keys[array->n_keys++] = key;
@@ -284,6 +284,7 @@ START_TEST(test_get_limit_points)
     struct box_st top_right_corner = {smaller2.max, smaller2.max};
     spatial_index_get(spi, top_right_corner, get_callback, NULL);
     ck_assert_int_eq(n_indices, 4);
+    spatial_index_delete(spi);
 }
 END_TEST
 
