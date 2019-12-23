@@ -1,6 +1,7 @@
 #ifndef GEOMETRY_VECTOR_H
 #define GEOMETRY_VECTOR_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <private/common.h>
 
@@ -147,5 +148,15 @@ void get_axis_system_from_projection_plane(
         _IN enum projection_plane_e pp,
         _OUT int32_t * x,
         _OUT int32_t * y);
+
+/**
+ * Tells if two 2D boxes intersects (only x and y coordinate)
+ * param a First box
+ * param b Second box
+ * return true if there is an intersection, false otherwise.
+ */
+bool box_intersection_2D(
+        struct box_st * a,
+        struct box_st * b);
 
 #endif

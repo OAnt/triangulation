@@ -135,7 +135,7 @@ enum error_code_e spatial_index_locate_on_grid(
         int32_t y = orig_y;
         do{
             struct spatial_index_key_st key = {level, {x, y}};
-            enum error_code_e err = callback(key, data);
+            enum error_code_e err = callback(key, box, data);
             if(err != ec_no_error) return err;
             y += 1;
         }while(y < end_y);
@@ -170,6 +170,7 @@ static inline size_t get_bucket(
 
 static enum error_code_e spatial_index_add_iterator_callback(
         struct spatial_index_key_st key,
+        struct box_st box,
         void * _data)
 {
     struct spatial_index_add_data_st * data = 
@@ -185,6 +186,7 @@ static enum error_code_e spatial_index_add_iterator_callback(
     // Storing user supplied index
     reg->index = data->index;
     reg->key = key;
+    reg->location = box;
     // Increment the count of objects at level
     spi->levels[key.level] += 1;
     // probing the grid to see if the grid cell corresponding to key
@@ -242,6 +244,7 @@ struct spatial_index_get_data_st{
 
 static enum error_code_e spatial_index_get_iterator_callback(
         struct spatial_index_key_st key,
+        struct box_st box,
         void * _data)
 {
     struct spatial_index_get_data_st * data = 
@@ -261,11 +264,13 @@ static enum error_code_e spatial_index_get_iterator_callback(
         /*struct grid_register_st * reg = &spi->grs.registers[next_bkt_reg];*/
         /*debug_print("index %ld got from <%d, <%d, %d>> (%ld)\n",*/
                 /*reg->index, reg->key.level, reg->key.cell.x, reg->key.cell.y, next_bkt_reg);*/
-        bool stop = data->get_callback(
-                spi->grs.registers[next_bkt_reg].index,
-                data->data);
-        // The caller asked to stop, complying
-        if(stop) return ec_error;
+        if(box_intersection_2D(&box, &spi->grs.registers[next_bkt_reg].location)){
+            bool stop = data->get_callback(
+                    spi->grs.registers[next_bkt_reg].index,
+                    data->data);
+            // The caller asked to stop, complying
+            if(stop) return ec_error;
+        }
         next_bkt_reg = spi->grs.registers[next_bkt_reg].next_bkt_reg;
         G_ASSERT(next_bkt_reg != bucket,
                 "Loop detected");

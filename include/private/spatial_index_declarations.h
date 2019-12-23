@@ -2,6 +2,7 @@
 #define GEOMETRY_SPATIAL_INDEX_DECL_H
 
 #include <stdlib.h>
+#include <private/vector.h>
 
 /*
  * Structure representing a position in an integer grid.
@@ -33,6 +34,7 @@ struct spatial_index_key_st {
  */
 typedef enum error_code_e (*spatial_index_key_computation_callback_f)(
         struct spatial_index_key_st key,
+        struct box_st box,
         void * data);
 
 #endif

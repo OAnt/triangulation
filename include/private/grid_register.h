@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <private/spatial_index_declarations.h>
+#include <private/vector.h>
 #include <public/common.h>
 
 /**
@@ -20,8 +21,7 @@ struct grid_register_st{
                            in the bucket. */
     struct spatial_index_key_st key; /** Holds information about
                                        were this register is */
-    //size_t bucket; [>* The register is in this bucket. <]
-    //uint32_t level; [>* The level this register belongs to. <]
+    struct box_st location; /** Location of the object that is stored */
 };
 
 /**
