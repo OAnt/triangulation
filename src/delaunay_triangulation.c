@@ -241,7 +241,9 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     struct vector_st min, max;
     vector_subtraction(&point, &delta, &min);
     vector_addition(&point, &delta, &max);
-    struct box_st box = {min, max};
+    struct box_st box = {
+        {{min.v[mesh->x_index], min.v[mesh->y_index], 0.0}},
+        {{max.v[mesh->x_index], max.v[mesh->y_index], 0.0}}};
 #ifdef DELAUNAY_USE_SPATIAL_INDEX
     spatial_index_get(
             mesh->spi,
