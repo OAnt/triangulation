@@ -50,6 +50,8 @@ enum error_code_e spatial_index_new(
 void spatial_index_delete(
         struct spatial_index_st * spi)
 {
+    struct spatial_index_key_st key = {0, {0, 0}};
+    (void)key;
     /*debug_print("Max level achieved: %ld\n", array_length(spi->levels));*/
     spatial_index_grid_clear(spi->grid);
     grid_register_list_cleanup(&spi->grs);
@@ -278,6 +280,7 @@ static enum error_code_e spatial_index_get_iterator_callback(
         G_ASSERT(next_bkt_reg != bucket,
                 "Loop detected");
     }
+    /*debug_print("cell: <%d, <%d, %d>>: %d\n", key.level, key.cell.x, key.cell.y,n);*/
     return ec_no_error;
 }
 
@@ -291,8 +294,9 @@ void spatial_index_get(
         spi, get_callback, data};
     size_t n_levels = array_length(spi->levels);
     for(uint32_t i = 0; i < n_levels; i++){
-        if(!spi->levels[i]) continue;
-        uint64_t factor = get_factor(i);
+        uint32_t l = n_levels - 1 - i;
+        if(!spi->levels[l]) continue;
+        uint64_t factor = get_factor(l);
         struct vector_st delta = {{EPSILON/factor, EPSILON/factor, EPSILON/factor}};
         struct box_st _box;
         vector_subtraction(&box.min, &delta, &_box.min);
@@ -300,7 +304,7 @@ void spatial_index_get(
         enum error_code_e err = spatial_index_locate_on_grid(
                 spi->soft_boundaries,
                 _box,
-                i,
+                l,
                 spatial_index_get_iterator_callback,
                 &get_data);
         // caller asked for a stop
