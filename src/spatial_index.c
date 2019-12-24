@@ -77,11 +77,11 @@ uint32_t spatial_index_compute_level(
 {
     double x_max_cell_size = box_size_along(soft_boundaries, 0);
     double y_max_cell_size = box_size_along(soft_boundaries, 1);
-    double x_cell_size = box_size_along(box, 0);
-    double y_cell_size = box_size_along(box, 1);
+    double x_size = box_size_along(box, 0);
+    double y_size = box_size_along(box, 1);
     G_ASSERT(x_max_cell_size > 0 && y_max_cell_size > 0,
             "Invalid index size");
-    G_ASSERT(x_cell_size && y_cell_size,
+    G_ASSERT(x_size && y_size,
             "Invalid box size");
     uint32_t level = 0;
     uint64_t previous_n_cells = UINT64_MAX;
@@ -89,8 +89,8 @@ uint32_t spatial_index_compute_level(
         uint64_t factor = get_factor(level);
         double x_max_cell_size_at_level = x_max_cell_size / factor;
         double y_max_cell_size_at_level = y_max_cell_size / factor;
-        uint32_t n_x_cells = (uint32_t)ceil(x_cell_size / x_max_cell_size_at_level); 
-        uint32_t n_y_cells = (uint32_t)ceil(y_cell_size / y_max_cell_size_at_level);
+        uint32_t n_x_cells = (uint32_t)ceil(x_size / x_max_cell_size_at_level); 
+        uint32_t n_y_cells = (uint32_t)ceil(y_size / y_max_cell_size_at_level);
         uint64_t n_cells = n_x_cells * n_y_cells;
         // The box is bigger than the cell stop here (level = 1)
         // The correct level is at an inflexion point
