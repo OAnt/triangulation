@@ -50,9 +50,6 @@ enum error_code_e spatial_index_new(
 void spatial_index_delete(
         struct spatial_index_st * spi)
 {
-    struct spatial_index_key_st key = {0, {0, 0}};
-    (void)key;
-    /*debug_print("Max level achieved: %ld\n", array_length(spi->levels));*/
     spatial_index_grid_clear(spi->grid);
     grid_register_list_cleanup(&spi->grs);
     array_delete(&spi->levels);
