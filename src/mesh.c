@@ -9,6 +9,23 @@
 #include <private/array.h>
 #include <private/mesh.h>
 
+/** 
+ * Structure containing topological information about a vertex. 
+ */
+struct vertex_st {
+    size_t adjacent_faces; /** Head of of the liked list of faces the vertex belongs to. */
+};
+
+/**
+ * Structure representing a member of a list of faces adjacent to
+ * a vertex.
+ */
+struct vertex_adjacent_face_st{
+    size_t face; /** Face adjacent to the vertex. */
+    size_t opposite_vertex; /** Second vertex of the edge. */
+    size_t next_adjacent_faces; /** Index of the next in list. */
+};
+
 struct mesh_collector_st{
     /** First element of the removed adjacent faces (linked) list */
     size_t removed_adjacent_faces;

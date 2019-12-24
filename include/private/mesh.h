@@ -16,23 +16,6 @@ struct face_st {
     size_t f[FACE_SIZE];/** vertices composing the face. */
 };
 
-/** 
- * Structure containing topological information about a vertex. 
- */
-struct vertex_st {
-    size_t adjacent_faces; /** Head of of the liked list of faces the vertex belongs to. */
-};
-
-/**
- * Structure representing a member of a list of faces adjacent to
- * a vertex.
- */
-struct vertex_adjacent_face_st{
-    size_t face; /** Face adjacent to the vertex. */
-    size_t opposite_vertex; /** Second vertex of the edge. */
-    size_t next_adjacent_faces; /** Index of the next in list. */
-};
-
 struct mesh_private_st;
 
 /**
