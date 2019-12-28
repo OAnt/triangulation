@@ -202,6 +202,7 @@ enum error_code_e mesh_face_add_adajcent_face(
         next_adjacent_faces = vadj->next_adjacent_faces;
         if(vadj->opposite_vertex == opposite_vertex_index){
             neighbor_face = vadj->face;
+            break;
         }
         G_ASSERT(next_adjacent_faces != initial_adjacent_face,
                 "Infinite loop");
