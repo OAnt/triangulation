@@ -13,7 +13,8 @@
  * Structure containing topological information about a face.
  */
 struct face_private_st{
-    struct face_st neighbors;/** Neighboring faces of a face */
+    struct face_st neighbors;/** Neighboring faces of a face. */
+    struct face_st edges; /** Indices of edges in the vertex adjacency list. */
 };
 
 /** 
@@ -31,6 +32,7 @@ struct vertex_adjacent_face_st{
     size_t face; /** Face adjacent to the vertex. */
     size_t opposite_vertex; /** Second vertex of the edge. */
     size_t next_adjacent_faces; /** Index of the next in list. */
+    size_t prev_adjacent_faces; /** Index of the previous in list. */
 };
 
 struct mesh_collector_st{
@@ -84,7 +86,7 @@ enum error_code_e mesh_init(
         goto fail_no_points;
     if(array_new(struct vertex_st, 0, &mesh->private->vertices) != ec_no_error)
         goto fail_no_vec;
-    if(array_new(struct face_st, 0, &mesh->private->faces) != ec_no_error)
+    if(array_new(struct face_private_st, 0, &mesh->private->faces) != ec_no_error)
         goto fail_no_neighbors;
     if(array_new(struct vertex_adjacent_face_st,
                 0, &mesh->private->vertex_adjacent_faces) != ec_no_error)
@@ -109,6 +111,7 @@ fail_no_priv:
 }
 
 #define mesh_face_private(mesh, face_index) (mesh)->private->faces[(face_index)]
+#define _mesh_face_edges(mesh, face_index) mesh_face_private(mesh, face_index).edges.f
 #define __mesh_face_neighbors(mesh, face_index) mesh_face_private(mesh, face_index).neighbors
 #define _mesh_face_neighbors(mesh, face_index) __mesh_face_neighbors(mesh, face_index).f
 
@@ -151,9 +154,17 @@ enum error_code_e mesh_vertex_add_adjacent_face(
     priv->vertex_adjacent_faces[adj_index].face = face_index;
     priv->vertex_adjacent_faces[adj_index].opposite_vertex = 
         opposite_vertex_index;
-    priv->vertex_adjacent_faces[adj_index].next_adjacent_faces = 
-        priv->vertices[vertex_index].adjacent_faces;
+    // This is the new head of the list
+    priv->vertex_adjacent_faces[adj_index].prev_adjacent_faces = INVALID_INDEX;
+    size_t last_head = priv->vertices[vertex_index].adjacent_faces;
+    priv->vertex_adjacent_faces[adj_index].next_adjacent_faces = last_head;
+    // The list is not empty, setting the new item as prev in what was the head
+    if(last_head != INVALID_INDEX){
+        priv->vertex_adjacent_faces[last_head].prev_adjacent_faces = adj_index;
+    }
     priv->vertices[vertex_index].adjacent_faces = adj_index;
+    // Registering adj_index as an edge of the face at face_index
+    _mesh_face_edges(mesh, face_index)[vertex_offset] = adj_index;
     return ec_no_error;
 }
 
@@ -353,46 +364,40 @@ void mesh_face_remove_from_neigbhors(
 void mesh_face_remove_from_vertex_adjacent_faces(
         mesh_st * mesh,
         size_t face_index,
-        size_t vertex_index)
+        int32_t vertex_offset)
 {
     struct mesh_collector_st * col = &mesh->private->col;
-    if(vertex_index == INVALID_INDEX)
-        return;
     struct mesh_private_st * priv = mesh->private;
     G_ASSERT(face_index < array_length(mesh->faces),
             "Face is out of bounds");
-    G_ASSERT(vertex_index < array_length(priv->vertices),
+    G_ASSERT(vertex_offset < FACE_SIZE,
             "Vertex is out of bounds");
-    size_t next_adjacent_faces = 
-        priv->vertices[vertex_index].adjacent_faces;
-#ifndef NDEBUG
-    size_t initial_adjacent_face = next_adjacent_faces;
-#endif
-    size_t * previous_adj_index = 
-        &priv->vertices[vertex_index].adjacent_faces;
-    while(next_adjacent_faces != INVALID_INDEX){
-        struct vertex_adjacent_face_st * vadj = 
-            priv->vertex_adjacent_faces + next_adjacent_faces;
-        // this list element is the one to be removed, bypassing it
-        if(vadj->face == face_index){
-            *previous_adj_index = vadj->next_adjacent_faces;
-            // inserting the adjacent face to list of available ones
-            vadj->next_adjacent_faces = col->removed_adjacent_faces;
-            col->removed_adjacent_faces = next_adjacent_faces;
-            // resetting the values
-            vadj->face = INVALID_INDEX;
-            vadj->opposite_vertex = INVALID_INDEX;
-            break;
-        }
-        // next element in list
-        next_adjacent_faces = vadj->next_adjacent_faces;
-        G_ASSERT(next_adjacent_faces != initial_adjacent_face,
-                "Infinite loop");
-        // keeping link to previous link element, to replace
-        // its next element if it happens to be the one to remove
-        previous_adj_index = &vadj->next_adjacent_faces;
+    size_t next_adjacent_faces = _mesh_face_edges(mesh, face_index)[vertex_offset];
+    if(next_adjacent_faces == INVALID_INDEX) return;
+    struct vertex_adjacent_face_st * vadj = 
+        priv->vertex_adjacent_faces + next_adjacent_faces;
+    G_ASSERT(vadj->face == face_index, "Edge is not in face");
+    // Removing the vertex adjacency from its liked list.
+    if(vadj->next_adjacent_faces != INVALID_INDEX){
+        priv->vertex_adjacent_faces[vadj->next_adjacent_faces].prev_adjacent_faces =
+            vadj->prev_adjacent_faces;
     }
-    
+    if(vadj->prev_adjacent_faces != INVALID_INDEX){
+        priv->vertex_adjacent_faces[vadj->prev_adjacent_faces].next_adjacent_faces =
+            vadj->next_adjacent_faces;
+    // This is the head, it is being removed, the vertex needs to point correctly
+    }else{
+        priv->vertices[mesh->faces[face_index].f[vertex_offset]].adjacent_faces =
+            vadj->next_adjacent_faces;
+    }
+    // inserting the adjacent face to list of available ones
+    vadj->next_adjacent_faces = col->removed_adjacent_faces;
+    col->removed_adjacent_faces = next_adjacent_faces;
+    // resetting the values
+    vadj->face = INVALID_INDEX;
+    vadj->opposite_vertex = INVALID_INDEX;
+    vadj->prev_adjacent_faces = INVALID_INDEX;
+    _mesh_face_edges(mesh, face_index)[vertex_offset] = INVALID_INDEX;
 }
 
 void mesh_face_remove_topology(
@@ -406,8 +411,7 @@ void mesh_face_remove_topology(
                 _mesh_face_neighbors(mesh, face_index)[i]);
         // Removing face from its ith vertex adjacent faces list
         mesh_face_remove_from_vertex_adjacent_faces(
-                mesh, face_index,
-                mesh->faces[face_index].f[i]);
+                mesh, face_index, i);
     }
 }
 
@@ -535,7 +539,7 @@ enum error_code_e mesh_replace_face(
     }
     struct face_st old_face = mesh->faces[index];
     err = _mesh_remove_face(mesh, index);
-    mesh_face_remove_topology(mesh, index);
+    /*mesh_face_remove_topology(mesh, index);*/
     mesh->faces[index] = face;
     __mesh_face_neighbors(mesh, index) = invalid_face;
     err = mesh_face_add_topology(
