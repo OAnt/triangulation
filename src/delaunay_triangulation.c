@@ -276,7 +276,7 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     mesh_vertex_is_in_face((mesh)->mesh, (index))
 #define delaunay_mesh_st indexed_mesh_st
 #define delaunay_mesh_faces(mesh_) (mesh_)->mesh->faces
-#define delaunay_mesh_neighbor(mesh_, index) (mesh_)->mesh->neighbors[(index)]
+#define delaunay_mesh_neighbor(mesh_, index) mesh_get_neighbors((mesh_)->mesh, (index))
 #define delaunay_mesh_vertices(mesh_) (mesh_)->mesh->points
 
 #else
@@ -293,7 +293,8 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
     mesh_vertex_is_in_face((mesh), (index))
 #define delaunay_mesh_st mesh_st
 #define delaunay_mesh_faces(mesh) (mesh)->faces
-#define delaunay_mesh_neighbor(mesh, index) (mesh)->neighbors[(index)]
+#define delaunay_mesh_neighbor(mesh, index) mesh_get_neighbors((mesh), (index))
+/*#define delaunay_mesh_neighbor(mesh, index) (mesh)->neighbors[(index)]*/
 #define delaunay_mesh_vertices(mesh) (mesh)->points
 
 #endif

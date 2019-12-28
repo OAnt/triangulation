@@ -55,7 +55,7 @@ START_TEST(test_mesh_add_face_fails){
                 &mesh, still_another_face, &index) == ec_no_error);
     ck_assert(index == 2);
     ck_assert(array_length(mesh.faces) == 3);
-    ck_assert(array_length(mesh.neighbors) == 3);
+    /*ck_assert(array_length(mesh.neighbors) == 3);*/
     ck_assert(mesh_cleanup(&mesh) == ec_no_error);
 }
 END_TEST
@@ -95,7 +95,8 @@ START_TEST(test_stl_export_stlb)
     struct mesh_st mesh = create_cube_mesh();
     int s = sizeof(neighbors) / sizeof(struct face_st);
     for(int i = 0; i < s; i++){
-        ck_assert_mem_eq(mesh.neighbors + i, neighbors + i,
+        struct face_st neighbor = mesh_get_neighbors(&mesh, i);
+        ck_assert_mem_eq(&neighbor, neighbors + i,
                 sizeof(struct face_st));
     }
     ck_assert(mesh_export_stlb(&mesh, "build/cube.stl") == ec_no_error);
@@ -122,9 +123,11 @@ START_TEST(test_mesh_replace_face)
     ck_assert(mesh_replace_face(
                 &mesh, replacement_face, 0) == ec_no_error);
     struct face_st other_neighbors = {{INVALID_INDEX, INVALID_INDEX, 0}};
-    ck_assert_mem_eq(mesh.neighbors + 1, &other_neighbors, sizeof(struct face_st));
+    struct face_st neighbor = mesh_get_neighbors(&mesh, 1);
+    ck_assert_mem_eq(&neighbor, &other_neighbors, sizeof(struct face_st));
     struct face_st replacement_neighbors = {{1, INVALID_INDEX, INVALID_INDEX}};
-    ck_assert_mem_eq(mesh.neighbors, &replacement_neighbors, sizeof(struct face_st));
+    struct face_st neighbor2 = mesh_get_neighbors(&mesh, 0);
+    ck_assert_mem_eq(&neighbor2, &replacement_neighbors, sizeof(struct face_st));
     ck_assert_mem_eq(mesh.faces, &replacement_face, sizeof(struct face_st));
     mesh_cleanup(&mesh);
 }
@@ -134,8 +137,12 @@ void validate_mesh(struct mesh_st mesh){
     struct mesh_st unchanged_mesh = create_cube_mesh();
     ck_assert_mem_eq(mesh.faces, unchanged_mesh.faces ,
             array_length(unchanged_mesh.faces) * sizeof(struct face_st)); 
-    ck_assert_mem_eq(mesh.neighbors, unchanged_mesh.neighbors ,
-            array_length(unchanged_mesh.neighbors) * sizeof(struct face_st)); 
+    for(size_t f = 0; f < array_length(mesh.faces); f++){
+        struct face_st neighbor = mesh_get_neighbors(&mesh, f);
+        struct face_st uneighbor = mesh_get_neighbors(&unchanged_mesh, f);
+        ck_assert_mem_eq(&neighbor, &uneighbor,
+                sizeof(struct face_st)); 
+    }
     mesh_cleanup(&unchanged_mesh);
 }
 
@@ -183,7 +190,7 @@ START_TEST(test_pop_face)
     mesh_pop_face(&mesh, &popped);
     ck_assert_mem_eq(&popped, cube_faces + 11, sizeof(struct face_st));
     ck_assert_int_eq(array_length(mesh.faces), 11);
-    ck_assert_int_eq(array_length(mesh.neighbors), 11);
+    /*ck_assert_int_eq(array_length(mesh.neighbors), 11);*/
     for(int32_t i = 0; i < 11; i++){
         ck_assert_int_eq(mesh_pop_face(&mesh, &popped), ec_no_error);
     }
@@ -196,7 +203,7 @@ START_TEST(test_remove_face)
     struct mesh_st mesh = create_cube_mesh();
     mesh_remove_face(&mesh, 0);
     ck_assert_int_eq(array_length(mesh.faces), 11);
-    ck_assert_int_eq(array_length(mesh.neighbors), 11);
+    /*ck_assert_int_eq(array_length(mesh.neighbors), 11);*/
     for(int32_t i = 0; i < 11; i++){
         ck_assert_int_eq(mesh_remove_face(&mesh, 0), ec_no_error);
     }

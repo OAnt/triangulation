@@ -24,7 +24,7 @@ void validate_triangle_is_delaunay_conformant(
         mesh->points[face->f[2]],
     }};
     for(int32_t i = 0; i < FACE_SIZE; i++){
-        size_t ngb_index = mesh->neighbors[face_index].f[i];
+        size_t ngb_index = mesh_get_neighbors(mesh, face_index).f[i];
         if(ngb_index == INVALID_INDEX) continue;
         struct face_st * neighbor = &mesh->faces[ngb_index];
         for(int32_t j = 0; j < FACE_SIZE; j++){

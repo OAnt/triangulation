@@ -24,8 +24,6 @@ struct mesh_private_st;
 struct mesh_st {
     struct face_st * faces; /** faces of the mesh */
     struct vector_st * points; /** Points supporting the vertices of the mesh */
-    struct face_st * neighbors; /** neighboring faces for a given
-                                  face index */
     struct mesh_private_st * private; /** mesh private member. Contains
                                         information about topology that must
                                         not be tempered with */
@@ -127,6 +125,18 @@ enum error_code_e mesh_swap_edge(
         _IN struct mesh_st * mesh,
         _IN size_t face_index_0,
         _IN size_t face_index_1);
+
+
+/**
+ * Get the list of faces adjacent to face_index, assumes the mesh is 2-manifold and that
+ * face_index is in the mesh.
+ * param mesh Mesh the face belongs to.
+ * param face_index Index of the face for which to retrieve neighbors.
+ * return The list of neighboring faces.
+ */
+struct face_st mesh_get_neighbors(
+        struct mesh_st * mesh,
+        size_t face_index);
 
 /**
  * Adds a vertex to the mesh.

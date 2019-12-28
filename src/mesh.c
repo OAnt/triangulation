@@ -9,6 +9,13 @@
 #include <private/array.h>
 #include <private/mesh.h>
 
+/*
+ * Structure containing topological information about a face.
+ */
+struct face_private_st{
+    struct face_st neighbors;/** Neighboring faces of a face */
+};
+
 /** 
  * Structure containing topological information about a vertex. 
  */
@@ -34,8 +41,9 @@ struct mesh_collector_st{
 /** Contains private date the user should not care about */
 struct mesh_private_st {
     struct vertex_st * vertices; /** vertices of the mesh */
-    /** Lists of faces neighboring vertices */
+    /** Lists of faces neighboring vertices ~ edges*/
     struct vertex_adjacent_face_st * vertex_adjacent_faces; 
+    struct face_private_st * faces;/** Private information about faces */
     struct mesh_collector_st col; /** Collects removed feature so they
                                     can be reused */
 };
@@ -48,10 +56,10 @@ enum error_code_e mesh_cleanup(
     // Deleting dynamically allocated arrays
     array_delete(&mesh->private->vertex_adjacent_faces);
     array_delete(&mesh->private->vertices);
+    array_delete(&mesh->private->faces);
     array_delete(&mesh->points);
     free(mesh->private);
     array_delete(&mesh->faces);
-    array_delete(&mesh->neighbors);
     // Setting everything to zero for good measure
     memset(mesh, 0, sizeof(struct mesh_st));
     return ec_no_error;
@@ -76,7 +84,7 @@ enum error_code_e mesh_init(
         goto fail_no_points;
     if(array_new(struct vertex_st, 0, &mesh->private->vertices) != ec_no_error)
         goto fail_no_vec;
-    if(array_new(struct face_st, 0, &mesh->neighbors) != ec_no_error)
+    if(array_new(struct face_st, 0, &mesh->private->faces) != ec_no_error)
         goto fail_no_neighbors;
     if(array_new(struct vertex_adjacent_face_st,
                 0, &mesh->private->vertex_adjacent_faces) != ec_no_error)
@@ -98,6 +106,19 @@ fail_no_faces:
     // Nothing was allocated yet
 fail_no_priv:
     return ec_memory_error;
+}
+
+#define mesh_face_private(mesh, face_index) (mesh)->private->faces[(face_index)]
+#define __mesh_face_neighbors(mesh, face_index) mesh_face_private(mesh, face_index).neighbors
+#define _mesh_face_neighbors(mesh, face_index) __mesh_face_neighbors(mesh, face_index).f
+
+struct face_st mesh_get_neighbors(
+        struct mesh_st * mesh,
+        size_t face_index)
+{
+    G_ASSERT(face_index < array_length(mesh->private->faces), 
+            "Face out of bounds");
+    return __mesh_face_neighbors(mesh, face_index);
 }
 
 enum error_code_e mesh_vertex_add_adjacent_face(
@@ -180,7 +201,7 @@ enum error_code_e mesh_face_add_adajcent_face(
     G_ASSERT(neighbor_face < array_length(mesh->faces),
             "Neighbor is out of bounds");
     // Neighbor found, setting it accordingly
-    mesh->neighbors[face_index].f[opposite_vertex_offset] = 
+    _mesh_face_neighbors(mesh, face_index)[opposite_vertex_offset] = 
         neighbor_face;
     // Iterating over the neighbors vertices to find where
     // is face_index in the list of neighboring faces
@@ -195,11 +216,11 @@ enum error_code_e mesh_face_add_adajcent_face(
     // Trying to add a neighbor to a face that already have one
     // at the same place, this is creating a 3-manifold edge,
     // this is not supported, preventing it
-    if(mesh->neighbors[neighbor_face].f[neighbor_face_offset] !=
+    if(_mesh_face_neighbors(mesh, neighbor_face)[neighbor_face_offset] !=
             INVALID_INDEX){
         return ec_topology_error;
     }else{
-        mesh->neighbors[neighbor_face].f[neighbor_face_offset] =
+        _mesh_face_neighbors(mesh, neighbor_face)[neighbor_face_offset] =
             face_index;
     }
     return ec_no_error;
@@ -253,13 +274,13 @@ static inline enum error_code_e _mesh_add_or_replace_face(
     // there is a collector and it contains a removed face, using it
     if((err = array_resize(&mesh->faces, n_faces + 1)) != ec_no_error)
         goto fail_no_face;
-    if((err = array_resize(&mesh->neighbors, n_faces + 1)) != 
+    if((err = array_resize(&mesh->private->faces, n_faces + 1)) != 
             ec_no_error)
         goto fail_no_neighbors;
     face_index = n_faces;
     // appending the face and returns its index
     mesh->faces[face_index] = face;
-    mesh->neighbors[face_index] = invalid_face;
+    __mesh_face_neighbors(mesh, face_index) = invalid_face;
     struct mesh_private_st * priv = mesh->private;
     size_t n_adj = array_length(priv->vertex_adjacent_faces);
     err = mesh_face_add_topology(mesh, face_index);
@@ -270,7 +291,7 @@ fail_no_adj:
     array_resize(&priv->vertex_adjacent_faces, n_adj);
     // If something fails and face was not allocated
     // (reused from collector) this does nothing
-    array_resize(&mesh->neighbors, n_faces);
+    array_resize(&mesh->private->faces, n_faces);
 fail_no_neighbors:
     // If something fails and face was not allocated
     // (reused from collector) this does nothing
@@ -323,8 +344,8 @@ void mesh_face_remove_from_neigbhors(
     G_ASSERT(neighbor_index < array_length(mesh->faces),
             "Neighbor is out of bounds");
     for(int32_t i = 0; i < FACE_SIZE; i++){
-        if(mesh->neighbors[neighbor_index].f[i] == face_index){
-            mesh->neighbors[neighbor_index].f[i] = INVALID_INDEX;
+        if(_mesh_face_neighbors(mesh, neighbor_index)[i] == face_index){
+            _mesh_face_neighbors(mesh, neighbor_index)[i] = INVALID_INDEX;
         }
     }
 }
@@ -382,7 +403,7 @@ void mesh_face_remove_topology(
         // Removing face from its ith neighbors
         mesh_face_remove_from_neigbhors(
                 mesh, face_index, 
-                mesh->neighbors[face_index].f[i]);
+                _mesh_face_neighbors(mesh, face_index)[i]);
         // Removing face from its ith vertex adjacent faces list
         mesh_face_remove_from_vertex_adjacent_faces(
                 mesh, face_index,
@@ -406,10 +427,7 @@ enum error_code_e _mesh_remove_face(
     mesh_face_remove_topology(mesh, face_index);
     // Removing the face's neighbors, no linked list needed,
     // neighbors index follows face index
-    mesh->neighbors[face_index] = invalid_face;
-    // Removing the face (marking it as re-usable)
-    // erasing the vertices + two INVALID_INDEX marks invalid face
-    mesh->neighbors[face_index] = invalid_face;
+    __mesh_face_neighbors(mesh, face_index) = invalid_face;
     return ec_no_error;
 }
 
@@ -425,7 +443,7 @@ enum error_code_e mesh_pop_face(
     // entitled not to leave unused element in it
     _mesh_remove_face(mesh, n_faces - 1);
     array_resize(&mesh->faces, n_faces - 1);
-    array_resize(&mesh->neighbors, n_faces - 1);
+    array_resize(&mesh->private->faces, n_faces - 1);
     return ec_no_error;
 }
 
@@ -451,7 +469,7 @@ enum error_code_e mesh_remove_face(
     if( face_index + 1 == n_faces) return ec_no_error;
     mesh_face_remove_topology(mesh, face_index);
     mesh->faces[face_index] = old_face;
-    mesh->neighbors[face_index] = invalid_face;
+    __mesh_face_neighbors(mesh, face_index) = invalid_face;
     enum error_code_e err = mesh_face_add_topology(
             mesh, face_index);
     G_ASSERT(err != ec_topology_error,
@@ -469,10 +487,10 @@ enum error_code_e mesh_swap_edge(
         return ec_out_of_bound_error;
     int32_t edge_offset_0 = -1, edge_offset_1 = -1;
     for(int32_t i = 0; i < FACE_SIZE; i++){
-        if(mesh->neighbors[face_index_0].f[i] == face_index_1){
+        if(_mesh_face_neighbors(mesh, face_index_0)[i] == face_index_1){
             edge_offset_0 = i;
         }
-        if(mesh->neighbors[face_index_1].f[i] == face_index_0){
+        if(_mesh_face_neighbors(mesh, face_index_1)[i] == face_index_0){
             edge_offset_1 = i;
         }
     }
@@ -493,9 +511,9 @@ enum error_code_e mesh_swap_edge(
         mesh->faces[face_index_0].f[new_edge_offset_0],
     }};
     mesh->faces[face_index_0] = new_face_0;
-    mesh->neighbors[face_index_0] = invalid_face;
+    __mesh_face_neighbors(mesh, face_index_0) = invalid_face;
     mesh->faces[face_index_1] = new_face_1;
-    mesh->neighbors[face_index_1] = invalid_face;
+    __mesh_face_neighbors(mesh, face_index_1) = invalid_face;
     enum error_code_e err = ec_no_error;
     err = mesh_face_add_topology(mesh, face_index_0);
     G_ASSERT(err != ec_topology_error,
@@ -519,7 +537,7 @@ enum error_code_e mesh_replace_face(
     err = _mesh_remove_face(mesh, index);
     mesh_face_remove_topology(mesh, index);
     mesh->faces[index] = face;
-    mesh->neighbors[index] = invalid_face;
+    __mesh_face_neighbors(mesh, index) = invalid_face;
     err = mesh_face_add_topology(
                     mesh, index);
     if(err != ec_no_error && err != ec_memory_error)
@@ -529,7 +547,7 @@ enum error_code_e mesh_replace_face(
         // some vertex_face_adjacency objects may not have been collected
         mesh_face_remove_topology(mesh, index);
         mesh->faces[index] = old_face;
-        mesh->neighbors[index] = invalid_face;
+        __mesh_face_neighbors(mesh, index) = invalid_face;
         enum error_code_e err1 = mesh_face_add_topology(mesh, index);
         (void)err1;
         G_ASSERT(err1 != ec_topology_error,
