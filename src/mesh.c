@@ -701,9 +701,9 @@ void winding_number_modify(
             /**winding_number);*/
 }
 
-static struct vector_st x = {{1.0, 0.0, 0.0}};
-static struct vector_st y = {{0.0, 1.0, 0.0}};
-static struct vector_st z = {{0.0, 0.0, 1.0}};
+static struct vector_st x = VEC3(1.0, 0.0, 0.0);
+static struct vector_st y = VEC3(0.0, 1.0, 0.0);
+static struct vector_st z = VEC3(0.0, 0.0, 1.0);
 
 // computes the normal of a polygon assuming it is planar
 // if the polygon is degenerate (cannot compute normal),

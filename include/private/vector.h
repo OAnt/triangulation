@@ -9,8 +9,16 @@
  * Structure representing a 3D vector.
  */
 struct vector_st {
-    double v[3]; /** x, y and z values. */
+    union {
+        double v[3]; /** x, y and z values. */
+        struct {
+            double x, y, z;
+        };
+    };
 };
+
+#define VEC3(x, y, z) {{{(x), (y), (z)}}}
+#define VEC2(x, y) VEC3(x, y, 0)
 
 /** 
  * Structure representing a 3D box.
@@ -19,6 +27,9 @@ struct box_st{
     struct vector_st min; /** Bottom left point. */
     struct vector_st max; /** Top right point. */
 };
+
+#define BOX2(x1, y1, x2, y2) {VEC2(x1, y1), VEC2(x2, y2)}
+#define BOX3(x1, y1, z1, x2, y2, z2) {VEC3(x1, y1, z1), VEC3(x2, y2, z2)}
 
 #define box_size_along(box, axis) (box).max.v[(axis)] - (box).min.v[(axis)]
 

@@ -60,8 +60,8 @@ enum error_code_e indexed_mesh_insert_into_spatial_hash(
             "Face is out of bounds");
     G_ASSERT(mesh->handles[face_index] == INVALID_INDEX,
             "Face is already inserted");
-    struct vector_st min = {{DBL_MAX, DBL_MAX, DBL_MAX}};
-    struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
+    struct vector_st min = VEC3(DBL_MAX, DBL_MAX, DBL_MAX);
+    struct vector_st max = VEC3(-DBL_MAX, -DBL_MAX, -DBL_MAX);
     indexed_mesh_face_increment_bounds(mesh, face_index, &min, &max);
     struct box_st box = {min, max};
 #ifdef DELAUNAY_USE_SPATIAL_INDEX
@@ -98,8 +98,8 @@ enum error_code_e indexed_mesh_init_in_place_faces_as_boundaries(
             pp, &indexed_mesh->x_index, &indexed_mesh->y_index);
     indexed_mesh->mesh = mesh; 
     size_t n_faces = array_length(mesh->faces);
-    struct vector_st min = {{DBL_MAX, DBL_MAX, DBL_MAX}};
-    struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
+    struct vector_st min = VEC3(DBL_MAX, DBL_MAX, DBL_MAX);
+    struct vector_st max = VEC3(-DBL_MAX, -DBL_MAX, -DBL_MAX);
     for(size_t f = 0; f < n_faces; f++){
         indexed_mesh_face_increment_bounds(indexed_mesh, f, &min, &max);
     }
@@ -239,18 +239,18 @@ enum error_code_e indexed_mesh_find_first_enclosing_triangular_face(
         mesh, &point, pp, ppol_out, face_index};
 #ifdef DELAUNAY_USE_SPATIAL_INDEX
     struct box_st box = {
-        {{point.v[mesh->x_index], point.v[mesh->y_index], 0.0}},
-        {{point.v[mesh->x_index], point.v[mesh->y_index], 0.0}}};
+        VEC3(point.v[mesh->x_index], point.v[mesh->y_index], 0.0),
+        VEC3(point.v[mesh->x_index], point.v[mesh->y_index], 0.0)};
     spatial_index_get(
             mesh->spi,
 #else
-    struct vector_st delta = {{EPSILON, EPSILON, EPSILON}};
+    struct vector_st delta = VEC3(EPSILON, EPSILON, EPSILON);
     struct vector_st min, max;
     vector_subtraction(&point, &delta, &min);
     vector_addition(&point, &delta, &max);
     struct box_st box = {
-        {{min.v[mesh->x_index], min.v[mesh->y_index], 0.0}},
-        {{max.v[mesh->x_index], max.v[mesh->y_index], 0.0}}};
+        VEC3(min.v[mesh->x_index], min.v[mesh->y_index], 0.0),
+        VEC3(max.v[mesh->x_index], max.v[mesh->y_index], 0.0)};
     spatial_hash_get(
             mesh->sph,
 #endif
@@ -610,8 +610,8 @@ struct triangle_st compute_triangulation_super_triangle(
     G_ASSERT(pp == pp_xy || pp == pp_yz || pp == pp_zx, "Unknown projection plane");
     size_t n_points = array_length(mesh->points);
     // Initializing super triangle
-    struct vector_st min = {{DBL_MAX, DBL_MAX, DBL_MAX}};
-    struct vector_st max = {{-DBL_MAX, -DBL_MAX, -DBL_MAX}};
+    struct vector_st min = VEC3(DBL_MAX, DBL_MAX, DBL_MAX);
+    struct vector_st max = VEC3(-DBL_MAX, -DBL_MAX, -DBL_MAX);
     for(size_t v = 0; v < n_points; v++){
         for(int32_t i = 0; i < 3; i++){
             if(mesh->points[v].v[i] > max.v[i])
@@ -620,9 +620,9 @@ struct triangle_st compute_triangulation_super_triangle(
                 min.v[i] = mesh->points[v].v[i];
         }
     }
-    struct vector_st sizes = {
-        {max.v[0] - min.v[0], max.v[1] - min.v[1], max.v[2] - min.v[2]}
-    };
+    struct vector_st sizes = VEC3(
+        max.v[0] - min.v[0], max.v[1] - min.v[1], max.v[2] - min.v[2]
+    );
     struct triangle_st infinite_vertices = {{min, min, min}};
     double safe_offset = 1.0;
     if(pp == pp_xy){

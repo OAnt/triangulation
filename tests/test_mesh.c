@@ -3,7 +3,7 @@
 #include <private/array.h>
 
 struct vector_st vertices[] = {
-    {{1.0, 0.0, 0.0}}, {{0.0, 1.0, 0.0}}, {{0.0, 0.0, 1.0}}};
+    VEC3(1.0, 0.0, 0.0), VEC3(0.0, 1.0, 0.0), VEC3(0.0, 0.0, 1.0)};
 
 START_TEST(test_mesh_add_features){
     struct mesh_st mesh;
@@ -37,10 +37,10 @@ START_TEST(test_mesh_add_face_fails){
     }
     ck_assert(mesh_add_face(&mesh, face, &index) == ec_no_error);
     ck_assert(index == 0);
-    struct vector_st another_vertex = {{1.0, 1.0, 1.0}};
+    struct vector_st another_vertex = VEC3(1.0, 1.0, 1.0);
     ck_assert(mesh_add_vertex(
                 &mesh, another_vertex, &index) == ec_no_error);
-    struct vector_st yet_another_vertex = {{-1.0, -1.0, -1.0}};
+    struct vector_st yet_another_vertex = VEC3(-1.0, -1.0, -1.0);
     ck_assert(mesh_add_vertex(
                 &mesh, yet_another_vertex, &index) == ec_no_error);
     struct face_st another_face = {{1, 3, 2}};
@@ -61,8 +61,8 @@ START_TEST(test_mesh_add_face_fails){
 END_TEST
 
 struct vector_st cube_vertices[] = {
-    {{0, 0, 0}}, {{1, 0, 0}}, {{1, 1, 0}}, {{0, 1, 0}},
-    {{0, 0, 1}}, {{1, 0, 1}}, {{1, 1, 1}}, {{0, 1, 1}}
+    VEC3(0, 0, 0), VEC3(1, 0, 0), VEC3(1, 1, 0), VEC3(0, 1, 0),
+    VEC3(0, 0, 1), VEC3(1, 0, 1), VEC3(1, 1, 1), VEC3(0, 1, 1)
 };
 struct face_st cube_faces[] = {
     {{0, 1, 2}}, {{2, 3, 0}}, {{0, 5, 1}}, {{0, 4, 5}},
@@ -169,15 +169,15 @@ START_TEST(test_mesh_enclosing_triangular_face)
 {
     struct mesh_st mesh = create_cube_mesh();
     size_t face_index;
-    struct vector_st point = {{0.1, 0.9, 0.0}};
+    struct vector_st point = VEC3(0.1, 0.9, 0.0);
     ck_assert_int_eq(unindexed_mesh_find_first_enclosing_triangular_face(
                 &mesh, point, pp_xy, &face_index), ec_no_error);
     ck_assert_uint_eq(face_index, 1);
-    struct vector_st another_point = {{0.9, 0.9, 0.0}};
+    struct vector_st another_point = VEC3(0.9, 0.9, 0.0);
     ck_assert_int_eq(unindexed_mesh_find_first_enclosing_triangular_face(
                 &mesh, another_point, pp_xy, &face_index), ec_no_error);
     ck_assert_uint_eq(face_index, 0);
-    struct vector_st yet_another_point = {{100.0, 40.0, 0.0}};
+    struct vector_st yet_another_point = VEC3(100.0, 40.0, 0.0);
     ck_assert_int_eq(unindexed_mesh_find_first_enclosing_triangular_face(
                 &mesh, yet_another_point, pp_xy, &face_index), ec_error);
     mesh_cleanup(&mesh);
@@ -215,11 +215,11 @@ START_TEST(test_point_in_polygon)
 {
     size_t polygon[] = {0, 1, 2, 3};
     struct vector_st vertices[] = {
-        {{0.0, 0.0, 0.0}}, {{1.0, 0.0, 0.0}},
-        {{1.0, 1.0, 0.0}}, {{0.0, 1.0, 0.0}}
+        VEC3(0.0, 0.0, 0.0), VEC3(1.0, 0.0, 0.0),
+        VEC3(1.0, 1.0, 0.0), VEC3(0.0, 1.0, 0.0)
     };
-    struct vector_st in_point = {{0.5, 0.5, 0.0}};
-    struct vector_st out_point = {{1.5, 0.5, 0.0}};
+    struct vector_st in_point = VEC3(0.5, 0.5, 0.0);
+    struct vector_st out_point = VEC3(1.5, 0.5, 0.0);
     ck_assert(polygon_point_position(polygon, 4, vertices, &in_point) == ppol_in);
     ck_assert(polygon_point_position(polygon, 4, vertices, &out_point) == ppol_out);
 }
@@ -229,12 +229,12 @@ START_TEST(test_point_in_non_convex_polygon)
 {
     size_t polygon[] = {0, 1, 2, 3, 4, 5};
     struct vector_st vertices[] = {
-        {{0.0, 0.0, 0.0}}, {{1.0, 0.0, 0.0}},
-        {{1.5, 0.0, 0.9}}, {{2.0, 0.0, 0.0}},
-        {{2.5, 0.0, 1.0}}, {{0.0, 0.0, 1.0}}
+        VEC3(0.0, 0.0, 0.0), VEC3(1.0, 0.0, 0.0),
+        VEC3(1.5, 0.0, 0.9), VEC3(2.0, 0.0, 0.0),
+        VEC3(2.5, 0.0, 1.0), VEC3(0.0, 0.0, 1.0)
     };
-    struct vector_st in_point = {{0.5, 0.0, 0.5}};
-    struct vector_st out_point = {{3.5, 0.0, 0.5}};
+    struct vector_st in_point = VEC3(0.5, 0.0, 0.5);
+    struct vector_st out_point = VEC3(3.5, 0.0, 0.5);
     ck_assert(polygon_point_position(polygon, 6, vertices, &in_point) == ppol_in);
     ck_assert(projected_polygon_point_position(polygon, 6, vertices, &in_point, pp_zx) == ppol_in);
     ck_assert(polygon_point_position(polygon, 6, vertices, &out_point) == ppol_out);
@@ -246,10 +246,10 @@ START_TEST(test_point_in_polygon_2)
 {
     size_t polygon[] = {0, 1, 2};
     struct vector_st vertices[] = {
-        {{-209.20614087917198, -209.17138216978469, 0.0}}, {{209.23109276184397, 0.047234650723279759, 0.0}},
-        {{9.6638643926306926, 0.56884694405312042, 0.0}}
+        VEC3(-209.20614087917198, -209.17138216978469, 0.0), VEC3(209.23109276184397, 0.047234650723279759, 0.0),
+        VEC3(9.6638643926306926, 0.56884694405312042, 0.0)
     };
-    struct vector_st out_point = {{1.4261942782561268, 0.047234650723279759, 0.0}};
+    struct vector_st out_point = VEC3(1.4261942782561268, 0.047234650723279759, 0.0);
     ck_assert(projected_polygon_point_position(polygon, 3, vertices, &out_point, pp_xy) == ppol_out);
 }
 END_TEST

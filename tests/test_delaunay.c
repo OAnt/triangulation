@@ -64,11 +64,11 @@ struct mesh_st _generate_pointcloud_2d(double range, size_t n_vertices, unsigned
     mesh_init(&mesh);
     /*unsigned int state = time(NULL);*/
     for(int32_t i = 0; i < n_vertices; i++){
-        struct vector_st v = {{
+        struct vector_st v = VEC3(
             ((double)rand_r(&state)/(double)(RAND_MAX)) * range,
             ((double)rand_r(&state)/(double)(RAND_MAX)) * range,
             0.0
-        }};
+        );
         mesh_add_vertex(&mesh, vector_distribution_f(v), NULL);
     }
     return mesh;
@@ -124,8 +124,8 @@ END_TEST
 
 #define N_BOUNDARIES 4
 struct vector_st boundary_vertices[N_BOUNDARIES] = {
-    {{0.0, 0.0, 0.0}}, {{10.0, 0.0, 0.0}},
-    {{0.0, 10.0, 0.0}}, {{10.0, 10.0, 0.0}}
+    VEC3(0.0, 0.0, 0.0), VEC3(10.0, 0.0, 0.0),
+    VEC3(0.0, 10.0, 0.0), VEC3(10.0, 10.0, 0.0)
 };
 
 START_TEST(test_triangulation_on_limits)
@@ -197,13 +197,13 @@ START_TEST(test_triangulation_on_invalid_mesh)
 {
     struct mesh_st mesh;
     mesh_init(&mesh);
-    struct vector_st v0 = {{0.0, 0.0, 0.0}};
+    struct vector_st v0 = VEC3(0.0, 0.0, 0.0);
     mesh_add_vertex(&mesh, v0, NULL);
-    struct vector_st v1 = {{1.0, 0.0, 0.0}};
+    struct vector_st v1 = VEC3(1.0, 0.0, 0.0);
     mesh_add_vertex(&mesh, v1, NULL);
     ck_assert_int_eq(mesh_delaunay_triangulation(&mesh, pp_xy),
             ec_topology_error);
-    struct vector_st v2 = {{1.0, 1.0, 0.0}};
+    struct vector_st v2 = VEC3(1.0, 1.0, 0.0);
     mesh_add_vertex(&mesh, v2, NULL);
     struct face_st f = {{0, 1, 2}};
     mesh_add_face(&mesh, f, NULL);
@@ -217,7 +217,7 @@ END_TEST
 struct vector_st vector_distribution_non_uniform(struct vector_st v){
     static double cst = 12.0;
     /*static double cst = 1.0;*/
-    struct vector_st nv = {{pow(v.v[0], cst), pow(v.v[1], cst)}};
+    struct vector_st nv = VEC2(pow(v.v[0], cst), pow(v.v[1], cst));
     return nv;
 }
 

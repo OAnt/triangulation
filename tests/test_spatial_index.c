@@ -8,11 +8,11 @@ extern uint32_t spatial_index_compute_level(
         struct box_st,
         struct box_st);
 
-static struct box_st bounds = {{{1.0, 2.0, 0.0}}, {{11, 10, 0.0}}};
-static struct box_st bigger = {{{0.0, 0.0, 0.0}}, {{20.0, 20.0, 0.0}}};
-static struct box_st smaller = {{{1.1, 2.6, 0.0}}, {{3.4, 4.5, 0.0}}};
-struct box_st bounds2 = {{{0.0, 0.0, 0.0}}, {{8.0, 8.0, 0.0}}};
-struct box_st smaller2 = {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 0.0}}};
+static struct box_st bounds = BOX3(1.0, 2.0, 0.0, 11, 10, 0.0);
+static struct box_st bigger = BOX3(0.0, 0.0, 0.0, 20.0, 20.0, 0.0);
+static struct box_st smaller = BOX3(1.1, 2.6, 0.0, 3.4, 4.5, 0.0);
+struct box_st bounds2 = BOX3(0.0, 0.0, 0.0, 8.0, 8.0, 0.0);
+struct box_st smaller2 = BOX3(0.0, 0.0, 0.0, 1.0, 1.0, 0.0);
 
 START_TEST(test_compute_level_bigger)
 {
@@ -272,13 +272,13 @@ START_TEST(test_get_limit_points)
     spatial_index_get(spi, bottom_left_corner, get_callback, NULL);
     ck_assert_int_eq(n_indices, 1);
     struct box_st bottom_right_corner = {
-        {{smaller2.max.v[0], smaller2.min.v[1], 0.0}},
-        {{smaller2.max.v[0], smaller2.min.v[1], 0.0}}};
+        VEC3(smaller2.max.v[0], smaller2.min.v[1], 0.0),
+        VEC3(smaller2.max.v[0], smaller2.min.v[1], 0.0)};
     spatial_index_get(spi, bottom_right_corner, get_callback, NULL);
     ck_assert_int_eq(n_indices, 2);
     struct box_st top_left_corner = {
-        {{smaller2.min.v[0], smaller2.max.v[1], 0.0}},
-        {{smaller2.min.v[0], smaller2.max.v[1], 0.0}}};
+        VEC3(smaller2.min.v[0], smaller2.max.v[1], 0.0),
+        VEC3(smaller2.min.v[0], smaller2.max.v[1], 0.0)};
     spatial_index_get(spi, top_left_corner, get_callback, NULL);
     ck_assert_int_eq(n_indices, 3);
     struct box_st top_right_corner = {smaller2.max, smaller2.max};

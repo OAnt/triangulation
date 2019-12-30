@@ -294,7 +294,7 @@ void spatial_index_get(
         uint32_t l = n_levels - 1 - i;
         if(!spi->levels[l]) continue;
         uint64_t factor = get_factor(l);
-        struct vector_st delta = {{EPSILON/factor, EPSILON/factor, EPSILON/factor}};
+        struct vector_st delta = VEC3(EPSILON/factor, EPSILON/factor, EPSILON/factor);
         struct box_st _box;
         vector_subtraction(&box.min, &delta, &_box.min);
         vector_addition(&box.max, &delta, &_box.max);

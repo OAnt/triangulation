@@ -32,7 +32,7 @@ enum error_code_e _mesh_export_stlb_face(
         FILE * file)
 {
     // Writing a dummy normal I don't know them
-    struct vector_st dummy_normal = {{0.0, 0.0, 0.0}};
+    struct vector_st dummy_normal = VEC3(0.0, 0.0, 0.0);
     if(vector_write(&dummy_normal, file) != 1)
         return ec_io_error;
     // Write face vertices one by one
