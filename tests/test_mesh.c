@@ -234,11 +234,11 @@ START_TEST(test_mesh_edge_intersection)
     array_resize(&edges, 0);
     mesh_iterate_over_projected_intersecting_edges(
             &ladder, 1, 2, 0, 1, edge_intersection_callback, &edges);
-    ck_assert_int_eq(array_length(edges), 0);
+    ck_assert_int_eq(array_length(edges), 1);
     array_resize(&edges, 0);
     mesh_iterate_over_projected_intersecting_edges(
             &ladder, 0, 6, 0, 1, edge_intersection_callback, &edges);
-    ck_assert_int_eq(array_length(edges), 0);
+    ck_assert_int_eq(array_length(edges), 3);
     array_delete(&edges);
     mesh_cleanup(&ladder);
 }
