@@ -30,6 +30,16 @@ struct mesh_st {
 };
 
 /**
+ * Structure specifying an edge between two faces. 
+ */
+struct edge_spec_st{
+    size_t face_index_0; /** First face. */
+    size_t face_index_1; /** Second face. */
+    int32_t vertex_offset_0; /** First edge vertex is a vertex of face 0 at this offset */
+    int32_t vertex_offset_1; /** Second edge vertex is a vertex of face 1 at this offset */
+};
+
+/**
  * Initialize a mesh, call this function before using
  * param mesh pointer to the mesh to initialize
  * return ec_no_error upon success. ec_memory_error if an error
@@ -126,6 +136,37 @@ enum error_code_e mesh_swap_edge(
         _IN size_t face_index_0,
         _IN size_t face_index_1);
 
+/**
+ * Prototype for an edge iteration callback
+ * param edge Specification of an edge that is being iterated upon.
+ * param data Caller supplied pointer (not modified).
+ * return true if the caller wishes to stop the iteration false otherwise.
+ */
+typedef bool (*mesh_edge_iteration_callback_f)(
+        struct edge_spec_st edge,
+        void * data);
+
+/**
+ * Iterates over the edges of 2D mesh that intersects an eventual edge formed by
+ * vertices v_0 and v_1. This function assumes that there are no holes between
+ * v_0, v_1. The boundary edges of the mesh must form a convex polygon.
+ * param mesh Mesh to look for intersection into.
+ * param v_0 First vertex of the eventual edge.
+ * param v_1 Second vertex of the eventual edge.
+ * param x First axis for projection.
+ * param y Second axis for projection.
+ * param callback Caller issued callback, called upon finding an intersection.
+ * param data Caller issued pointer, forwarded to callback (not modified).
+ * return nothing.
+ */
+void mesh_iterate_over_projected_intersecting_edges(
+        const struct mesh_st * mesh,
+        size_t v_0,
+        size_t v_1,
+        int32_t x,
+        int32_t y,
+        mesh_edge_iteration_callback_f callback,
+        void * data);
 
 /**
  * Get the list of faces adjacent to face_index, assumes the mesh is 2-manifold and that

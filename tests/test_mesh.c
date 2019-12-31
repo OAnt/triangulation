@@ -73,21 +73,30 @@ struct face_st neighbors[] = {
     {{2, 4, 1}}, {{6, 10, 0}}, {{3, 4, 0}}, {{10, 8, 2}}
 };
 
-struct mesh_st create_cube_mesh(void)
+struct mesh_st create_mesh(
+        struct vector_st * vecs,
+        size_t n_vecs,
+        struct face_st * faces,
+        size_t n_faces)
 {
     struct mesh_st mesh;
     ck_assert(mesh_init(&mesh) == ec_no_error);
-    for(size_t i = 0; i < 8; i++){
+    for(size_t i = 0; i < n_vecs; i++){
         ck_assert(
-                mesh_add_vertex(&mesh, cube_vertices[i], NULL) ==
+                mesh_add_vertex(&mesh, vecs[i], NULL) ==
                 ec_no_error);
     }
-    for(size_t i = 0; i < 12; i++){
+    for(size_t i = 0; i < n_faces; i++){
         ck_assert(
-                mesh_add_face(&mesh, cube_faces[i], NULL) ==
+                mesh_add_face(&mesh, faces[i], NULL) ==
                 ec_no_error);
     }
     return mesh;
+}
+
+struct mesh_st create_cube_mesh(void)
+{
+    return create_mesh(cube_vertices, 8, cube_faces, 12);
 }
 
 START_TEST(test_stl_export_stlb)
@@ -182,6 +191,58 @@ START_TEST(test_mesh_enclosing_triangular_face)
                 &mesh, yet_another_point, pp_xy, &face_index), ec_error);
     mesh_cleanup(&mesh);
 }
+END_TEST
+
+struct vector_st ladder_vertices[] = {
+    VEC2(0, 0), VEC2(1, 0), VEC2(0, 1), VEC2(1, 1),
+    VEC2(0, 2), VEC2(1, 2), VEC2(0, 3), VEC2(1, 3),
+};
+
+struct face_st ladder_faces[] = {
+    {{0, 1, 2}}, {{1, 3, 2}}, {{2, 3, 5}},
+    {{2, 5, 4}}, {{4, 5, 6}}, {{5, 7, 6}}
+};
+
+struct mesh_st create_ladder_mesh(void){
+    return create_mesh(ladder_vertices, 8, ladder_faces, 6);
+}
+
+bool edge_intersection_callback(struct edge_spec_st edge, void * data){
+    struct edge_spec_st ** edges = (struct edge_spec_st **)data;
+    size_t n_edges = array_length(*edges);
+    array_resize(edges, n_edges + 1);
+    (*edges)[n_edges] = edge;
+    return false;
+}
+
+START_TEST(test_mesh_edge_intersection)
+{
+    struct mesh_st ladder = create_ladder_mesh();
+    struct edge_spec_st * edges;
+    array_new(struct edge_spec_st, 0, &edges);
+    mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 0, 7, 0, 1, edge_intersection_callback, &edges);
+    ck_assert_int_eq(array_length(edges), 5);
+    array_resize(&edges, 0);
+    mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 4, 1, 0, 1, edge_intersection_callback, &edges);
+    ck_assert_int_eq(array_length(edges), 2);
+    array_resize(&edges, 0);
+    mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 4, 3, 0, 1, edge_intersection_callback, &edges);
+    ck_assert_int_eq(array_length(edges), 1);
+    array_resize(&edges, 0);
+    mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 1, 2, 0, 1, edge_intersection_callback, &edges);
+    ck_assert_int_eq(array_length(edges), 0);
+    array_resize(&edges, 0);
+    mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 0, 6, 0, 1, edge_intersection_callback, &edges);
+    ck_assert_int_eq(array_length(edges), 0);
+    array_delete(&edges);
+    mesh_cleanup(&ladder);
+}
+END_TEST
 
 START_TEST(test_pop_face)
 {
@@ -197,6 +258,7 @@ START_TEST(test_pop_face)
     ck_assert_int_eq(mesh_pop_face(&mesh, &popped), ec_out_of_bound_error);
     mesh_cleanup(&mesh);
 }
+END_TEST
 
 START_TEST(test_remove_face)
 {
@@ -265,12 +327,18 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tc, test_remove_face);
     tcase_add_test(tc, test_mesh_replace_no_border_effects);
     tcase_add_test(tc, test_mesh_replace_no_border_effects2);
-    tcase_add_test(tc, test_mesh_enclosing_triangular_face);
     tcase_add_test(tc, test_stl_export_stlb);
-    tcase_add_test(tc, test_point_in_polygon);
-    tcase_add_test(tc, test_point_in_polygon_2);
-    tcase_add_test(tc, test_point_in_non_convex_polygon);
     suite_add_tcase(s, tc);
+    TCase * tp = tcase_create(
+            "Polygon");
+    tcase_add_test(tp, test_point_in_polygon);
+    tcase_add_test(tp, test_point_in_polygon_2);
+    tcase_add_test(tp, test_point_in_non_convex_polygon);
+    suite_add_tcase(s, tp);
+    TCase * tq = tcase_create("Queries");
+    tcase_add_test(tq, test_mesh_enclosing_triangular_face);
+    tcase_add_test(tq, test_mesh_edge_intersection);
+    suite_add_tcase(s, tq);
     return s;
 }
 

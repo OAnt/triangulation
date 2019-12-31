@@ -127,7 +127,7 @@ struct face_st mesh_get_neighbors(
 enum error_code_e mesh_vertex_add_adjacent_face(
         struct mesh_st * mesh,
         size_t face_index,
-        size_t vertex_offset)
+        int32_t vertex_offset)
 {
     G_ASSERT(face_index < array_length(mesh->faces),
             "Face is out of bounds");
@@ -259,7 +259,7 @@ enum error_code_e mesh_face_add_topology(
         size_t face_index)
 {
     enum error_code_e err = ec_no_error;
-    for(size_t i = 0; i < FACE_SIZE; i++){
+    for(int32_t i = 0; i < FACE_SIZE; i++){
         err = mesh_face_add_adajcent_face(
                 mesh, face_index, i);
         if(err != ec_no_error) return err;
@@ -880,5 +880,157 @@ enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
         }
     }
     return ec_error;
+}
+
+static inline void edge_spec_rotate(
+        struct edge_spec_st * edge)
+{
+    edge->face_index_0 = edge->face_index_1;
+    edge->vertex_offset_0 = edge->vertex_offset_1;
+    edge->face_index_1 = INVALID_INDEX;
+    edge->vertex_offset_1 = -1;
+}
+
+static inline int32_t mesh_face_find_offset(
+        const struct mesh_st * mesh,
+        size_t face,
+        size_t vertex)
+{
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        if(mesh->faces[face].f[i] == vertex) return i;
+    }
+    G_ASSERT(false, "Vertex is not a part of face");
+    return -1;
+}
+
+static inline struct edge_spec_st edge_spec_find_neighbor(
+        const struct mesh_st * mesh,
+        struct edge_spec_st edge)
+{
+    edge.face_index_1 = _mesh_face_neighbors(mesh, edge.face_index_0)[edge.vertex_offset_0];
+    // face_index_0 does not have any neighbors, it is a border or a stop condition.
+    edge.vertex_offset_1 = -1;
+    if(edge.face_index_1 == INVALID_INDEX) return edge;
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        if(_mesh_face_neighbors(mesh, edge.face_index_1)[i] == edge.face_index_0){
+            edge.vertex_offset_1 = i;
+            break;
+        }
+    }
+    return edge;
+}
+
+// The edge intersects one of the face's edge, looking for the other one.
+struct edge_spec_st mesh_edge_find_next(
+        const struct mesh_st * mesh,
+        double p_0[2],
+        double p_1[2],
+        size_t entry_face,
+        int32_t entry_offset,
+        int32_t x,
+        int32_t y)
+{
+    G_ASSERT(entry_face < array_length(mesh->faces) &&
+            entry_offset >= 0 && entry_offset < FACE_SIZE,
+            "Wrong entry face");
+    struct edge_spec_st intersected_edge;
+    intersected_edge.face_index_0 = entry_face;
+    // This function assumes there is an intersection between [p_0, p_1] and the edge
+    // define by [entry_offset, (entry_offset + 1) % FACE_SIZE], the other intersection
+    // is therefore [(entry_offset + 1) % FACE_SIZE, (entry_offset + 2) % FACE_SIZE] or
+    // [(entry_offset + 2) % FACE_SIZE, entry_offset]
+    size_t entry_vertex = mesh->faces[entry_face].f[entry_offset];
+    double p_entry[2] = {mesh->points[entry_vertex].v[x], mesh->points[entry_vertex].v[y]};
+    int32_t previous_offset = (entry_offset + 2) % FACE_SIZE;
+    size_t previous_vertex = mesh->faces[entry_face].f[previous_offset];
+    double p_previous[2] = {mesh->points[previous_vertex].v[x],
+        mesh->points[previous_vertex].v[y]};
+    double previous_orient;
+    double entry_orient;
+    // >= 0 because previous vertex may be p_1
+    // TODO handle collinear edges
+    if((previous_orient = orient2d(p_previous, p_1, p_0)) >= 0 &&
+            (entry_orient = orient2d(p_entry, p_0, p_1)) > 0){
+        intersected_edge.vertex_offset_0 = previous_offset;
+        return edge_spec_find_neighbor(mesh, intersected_edge);
+    }
+    int32_t next_offset = (entry_offset + 1) % FACE_SIZE;
+    size_t next_vertex = mesh->faces[entry_face].f[next_offset];
+    double p_next[2] = {mesh->points[next_vertex].v[x], mesh->points[next_vertex].v[y]};
+    double next_orient;
+    if((next_orient = orient2d(p_next, p_1, p_0)) > 0 && previous_orient <= 0){
+        intersected_edge.vertex_offset_0 = next_offset;
+        return edge_spec_find_neighbor(mesh, intersected_edge);
+    }
+    G_ASSERT(false, "No intersection");
+    intersected_edge.vertex_offset_0 = -1;
+    intersected_edge.vertex_offset_1 = -1;
+    intersected_edge.face_index_1 = INVALID_INDEX;
+    return intersected_edge;
+}
+
+#define CALLBACK(callback, edge, data) if((callback)((edge), (data))) return
+
+void mesh_iterate_over_projected_intersecting_edges(
+        const struct mesh_st * mesh,
+        size_t v_0,
+        size_t v_1,
+        int32_t x,
+        int32_t y,
+        mesh_edge_iteration_callback_f callback,
+        void * data)
+{
+    G_ASSERT(v_0 < array_length(mesh->points), "Vertex out of bounds");
+    G_ASSERT(v_1 < array_length(mesh->points), "Vertex out of bounds");
+    double p_0[2] = {mesh->points[v_0].v[x], mesh->points[v_0].v[y]};
+    double p_1[2] = {mesh->points[v_1].v[x], mesh->points[v_1].v[y]};
+    // finding the starting point
+    size_t next_adjacent_face = mesh->private->vertices[v_0].adjacent_faces;
+    struct edge_spec_st edge;
+    edge.face_index_0 = INVALID_INDEX;
+    edge.vertex_offset_0 = -1;
+    while(next_adjacent_face != INVALID_INDEX){
+        struct vertex_adjacent_face_st * vadj = 
+            &mesh->private->vertex_adjacent_faces[next_adjacent_face];
+        edge.face_index_0 = vadj->face;
+        int32_t offset = mesh_face_find_offset(mesh, edge.face_index_0, v_0);
+        int32_t next_offset = (offset + 1) % FACE_SIZE;
+        size_t v_2 = mesh->faces[edge.face_index_0].f[next_offset];
+        size_t v_3 = mesh->faces[edge.face_index_0].f[(offset + 2) % FACE_SIZE];
+        double p_2[2] = {mesh->points[v_2].v[x], mesh->points[v_2].v[y]};
+        double p_3[2] = {mesh->points[v_3].v[x], mesh->points[v_3].v[y]};
+        // [p_0, p_1] intersects the edge opposite to v_0 if it is between the two adjacent edges
+        // checking that p_0 and p_1 are on different sides is not enough, this is true for
+        // ~ half the edges in the star around v_0
+        // unless the mesh is not 2-manifold there is no overlap and by circling around v_0
+        // using edges (exactly 360 degrees). If there are border it is less.
+        if(orient2d(p_0, p_2, p_1) > 0 && orient2d(p_1, p_3, p_0) > 0){
+            edge.vertex_offset_0 = next_offset;
+            break;
+        }
+        next_adjacent_face = vadj->next_adjacent_faces;
+    }
+    // The edge is already present in the mesh (it intersected nothing).
+    if(edge.face_index_0 == INVALID_INDEX || edge.vertex_offset_0 == -1) return;
+    edge = edge_spec_find_neighbor(mesh, edge);
+    // at this point if there is no neighbor, there is an error (a hole in the mesh),
+    // If a stop condition was reached, the previous check would have caught it.
+    G_ASSERT(edge.face_index_1 != INVALID_INDEX &&
+            edge.vertex_offset_1 != -1, "Invalid topology");
+    // The starting edge is found, informing the caller.
+    CALLBACK(callback, edge, data);
+    edge_spec_rotate(&edge);
+    while(edge.face_index_0 != INVALID_INDEX && edge.vertex_offset_0 != -1){
+        edge = mesh_edge_find_next(
+                mesh, p_0, p_1, edge.face_index_0, edge.vertex_offset_0, x, y);
+        if(mesh->faces[edge.face_index_0].f[edge.vertex_offset_0] == v_1)
+            break;
+        // A hole in the mesh was encountered, this is not supported
+        G_ASSERT(edge.face_index_1 != INVALID_INDEX &&
+                edge.vertex_offset_1 != -1, "Invalid topology");
+        // the end of the edge is found, this is the stop condition
+        CALLBACK(callback, edge, data);
+        edge_spec_rotate(&edge);
+    }
 }
 
