@@ -13,6 +13,7 @@ TEST_CFLAGS:=$(CFLAGS) $(shell pkg-config --cflags check)
 TESTOUT=build/test
 TESTSRC=tests
 TESTS=$(wildcard $(TESTSRC)/*.c)
+CC=cc
 
 all: build $(SOOUT)
 
@@ -20,16 +21,16 @@ build:
 	mkdir -p $(OBJDIR) $(SODIR)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
-	cc $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 $(OBJDIR)/spatial_index.o: $(SRCDIR)/spatial_index.c
-	cc $(CFLAGS) -Wno-unused-function $(INCLUDES) -c $< -o $@
+	$(CC) $(CFLAGS) -Wno-unused-function $(INCLUDES) -c $< -o $@
 
 $(SOOUT): $(OBJECTS)
-	cc -shared $(OBJECTS) -o $@ $(EXTRA_CFLAGS)
+	$(CC) -shared $(OBJECTS) -o $@ $(EXTRA_CFLAGS)
 
 $(TESTOUT): $(TESTSRC)
-	cc $(TESTS) $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ 
+	$(CC) $(TESTS) $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ 
 
 tests_: build $(SOOUT) $(TESTOUT)
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(SODIR) $(EXTRA_BIN) ./$(TESTOUT)
