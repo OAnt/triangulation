@@ -196,15 +196,17 @@ END_TEST
 struct vector_st ladder_vertices[] = {
     VEC2(0, 0), VEC2(1, 0), VEC2(0, 1), VEC2(1, 1),
     VEC2(0, 2), VEC2(1, 2), VEC2(0, 3), VEC2(1, 3),
+    VEC2(2, 0), VEC2(1, -1), VEC2(2, -1),
 };
 
 struct face_st ladder_faces[] = {
     {{0, 1, 2}}, {{1, 3, 2}}, {{2, 3, 5}},
-    {{2, 5, 4}}, {{4, 5, 6}}, {{5, 7, 6}}
+    {{2, 5, 4}}, {{4, 5, 6}}, {{5, 7, 6}},
+    {{1, 8, 3}}, {{9, 8, 1}}, {{9, 10, 8}},
 };
 
 struct mesh_st create_ladder_mesh(void){
-    return create_mesh(ladder_vertices, 8, ladder_faces, 6);
+    return create_mesh(ladder_vertices, 11, ladder_faces, 9);
 }
 
 bool edge_intersection_callback(struct edge_spec_st edge, void * data){
@@ -215,7 +217,7 @@ bool edge_intersection_callback(struct edge_spec_st edge, void * data){
     return false;
 }
 
-START_TEST(test_mesh_edge_intersection)
+START_TEST(test_mesh_edge_intersection_generic)
 {
     struct mesh_st ladder = create_ladder_mesh();
     struct edge_spec_st * edges;
@@ -231,7 +233,17 @@ START_TEST(test_mesh_edge_intersection)
     mesh_iterate_over_projected_intersecting_edges(
             &ladder, 4, 3, 0, 1, edge_intersection_callback, &edges);
     ck_assert_int_eq(array_length(edges), 1);
-    array_resize(&edges, 0);
+    array_delete(&edges);
+    mesh_cleanup(&ladder);
+}
+END_TEST
+
+START_TEST(test_mesh_edge_intersection_collinear)
+{
+    struct mesh_st ladder = create_ladder_mesh();
+    struct edge_spec_st * edges;
+    array_new(struct edge_spec_st, 0, &edges);
+
     mesh_iterate_over_projected_intersecting_edges(
             &ladder, 1, 2, 0, 1, edge_intersection_callback, &edges);
     ck_assert_int_eq(array_length(edges), 1);
@@ -239,6 +251,19 @@ START_TEST(test_mesh_edge_intersection)
     mesh_iterate_over_projected_intersecting_edges(
             &ladder, 0, 6, 0, 1, edge_intersection_callback, &edges);
     ck_assert_int_eq(array_length(edges), 3);
+    array_delete(&edges);
+    mesh_cleanup(&ladder);
+}
+END_TEST
+
+START_TEST(test_mesh_edge_intersection_mixed)
+{
+    struct mesh_st ladder = create_ladder_mesh();
+    struct edge_spec_st * edges;
+    array_new(struct edge_spec_st, 0, &edges);
+    mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 2, 10, 0, 1, edge_intersection_callback, &edges);
+    ck_assert_int_eq(array_length(edges), 2);
     array_delete(&edges);
     mesh_cleanup(&ladder);
 }
@@ -337,7 +362,9 @@ Suite * mk_mesh_suite(void){
     suite_add_tcase(s, tp);
     TCase * tq = tcase_create("Queries");
     tcase_add_test(tq, test_mesh_enclosing_triangular_face);
-    tcase_add_test(tq, test_mesh_edge_intersection);
+    tcase_add_test(tq, test_mesh_edge_intersection_generic);
+    tcase_add_test(tq, test_mesh_edge_intersection_collinear);
+    tcase_add_test(tq, test_mesh_edge_intersection_mixed);
     suite_add_tcase(s, tq);
     return s;
 }
