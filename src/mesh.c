@@ -1004,7 +1004,6 @@ struct edge_spec_st mesh_edge_find_next(
         intersected_edge.vertex_offset_0 = next_offset;
         return _mesh_edge_find_next(it, intersected_edge);
     }
-    G_ASSERT(false, "No intersection");
     intersected_edge.vertex_offset_0 = -1;
     intersected_edge.vertex_offset_1 = -1;
     intersected_edge.face_index_1 = INVALID_INDEX;
@@ -1028,12 +1027,11 @@ struct edge_spec_st mesh_edge_find_next_from_vertex(
     while(next_adjacent_face != INVALID_INDEX){
         struct vertex_adjacent_face_st * vadj = 
             &mesh->private->vertex_adjacent_faces[next_adjacent_face];
-        edge.face_index_0 = vadj->face;
-        int32_t offset = mesh_face_find_offset(mesh, edge.face_index_0, it->next.entry_vertex);
+        int32_t offset = mesh_face_find_offset(mesh, vadj->face, it->next.entry_vertex);
         int32_t next_offset = (offset + 1) % FACE_SIZE;
         int32_t previous_offset = (offset + 2) % FACE_SIZE;
-        size_t v_2 = mesh->faces[edge.face_index_0].f[next_offset];
-        size_t v_3 = mesh->faces[edge.face_index_0].f[previous_offset];
+        size_t v_2 = mesh->faces[vadj->face].f[next_offset];
+        size_t v_3 = mesh->faces[vadj->face].f[previous_offset];
         double p_2[2] = {mesh->points[v_2].v[it->x], mesh->points[v_2].v[it->y]};
         double p_3[2] = {mesh->points[v_3].v[it->x], mesh->points[v_3].v[it->y]};
         // [p_0, p_1] intersects the edge opposite to v_0 if it is between the two adjacent edges
@@ -1046,25 +1044,26 @@ struct edge_spec_st mesh_edge_find_next_from_vertex(
         // Generic case, clean intersection between [v_0, v_1] and the edge
         if(orient_p_2 > 0 && orient_p_3 > 0){
             it->next.type = neit_face_bridge;
+            edge.face_index_0 = vadj->face;
             edge.vertex_offset_0 = next_offset;
             break;
         // [v_0, v_1] is collinear to [v_0, v_2]
         }else if(orient_p_2 == 0 && orient_p_3 > 0){
             it->next.type = neit_vertex_star;
             it->next.entry_vertex = v_2;
+            edge.face_index_0 = vadj->face;
             edge.vertex_offset_0 = offset;
             break;
         // [v_0, v_1] is collinear to [v_0, v_3]
         }else if(orient_p_2 > 0 && orient_p_3 == 0){
             it->next.type = neit_vertex_star;
             it->next.entry_vertex = v_3;
+            edge.face_index_0 = vadj->face;
             edge.vertex_offset_0 = previous_offset;
             break;
         }
         next_adjacent_face = vadj->next_adjacent_faces;
     }
-    G_ASSERT(edge.face_index_0 != INVALID_INDEX && edge.vertex_offset_0 != -1,
-            "Invalid topology, hole in the mesh");
     if(!edge_spec_is_valid(&edge)){
         it->next.type = neit_stop;
         return edge;
@@ -1077,9 +1076,9 @@ struct edge_spec_st mesh_edge_find_next_from_vertex(
     return edge;
 }
 
-#define CALLBACK(callback, edge, data) if((callback)((edge), (data))) return
+#define CALLBACK(callback, edge, data) if((callback)((edge), (data))) return ec_no_error
 
-void mesh_iterate_over_projected_intersecting_edges(
+enum error_code_e  mesh_iterate_over_projected_intersecting_edges(
         const struct mesh_st * mesh,
         size_t v_0,
         size_t v_1,
@@ -1105,6 +1104,7 @@ void mesh_iterate_over_projected_intersecting_edges(
         }else if(it.next.type == neit_face_bridge){
             edge = mesh_edge_find_next(&it);
         }
+        if(it.next.type == neit_stop) return ec_topology_error;
         if(edge_spec_is_valid(&edge)){
             CALLBACK(callback, edge, data);
         }
@@ -1112,5 +1112,6 @@ void mesh_iterate_over_projected_intersecting_edges(
         if(it.next.type == neit_vertex_star && it.next.entry_vertex == v_1)
             break;
     }
+    return ec_no_error;
 }
 

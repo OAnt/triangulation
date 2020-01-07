@@ -157,9 +157,12 @@ typedef bool (*mesh_edge_iteration_callback_f)(
  * param y Second axis for projection.
  * param callback Caller issued callback, called upon finding an intersection.
  * param data Caller issued pointer, forwarded to callback (not modified).
- * return nothing.
+ * return ec_no_error upon success, it was possible to traverse the mesh from
+ * v_0 to v_1 and intersecting edges were forwarded or the caller requested an early
+ * stop. ec_topology_error if a hole was encountered and v_1 was not reached, not
+ * all edges were forwarded to the caller.
  */
-void mesh_iterate_over_projected_intersecting_edges(
+enum error_code_e mesh_iterate_over_projected_intersecting_edges(
         const struct mesh_st * mesh,
         size_t v_0,
         size_t v_1,

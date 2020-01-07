@@ -222,16 +222,16 @@ START_TEST(test_mesh_edge_intersection_generic)
     struct mesh_st ladder = create_ladder_mesh();
     struct edge_spec_st * edges;
     array_new(struct edge_spec_st, 0, &edges);
-    mesh_iterate_over_projected_intersecting_edges(
-            &ladder, 0, 7, 0, 1, edge_intersection_callback, &edges);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 0, 7, 0, 1, edge_intersection_callback, &edges) == ec_no_error);
     ck_assert_int_eq(array_length(edges), 5);
     array_resize(&edges, 0);
-    mesh_iterate_over_projected_intersecting_edges(
-            &ladder, 4, 1, 0, 1, edge_intersection_callback, &edges);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 4, 1, 0, 1, edge_intersection_callback, &edges) == ec_no_error);
     ck_assert_int_eq(array_length(edges), 2);
     array_resize(&edges, 0);
-    mesh_iterate_over_projected_intersecting_edges(
-            &ladder, 4, 3, 0, 1, edge_intersection_callback, &edges);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 4, 3, 0, 1, edge_intersection_callback, &edges) == ec_no_error);
     ck_assert_int_eq(array_length(edges), 1);
     array_delete(&edges);
     mesh_cleanup(&ladder);
@@ -243,13 +243,12 @@ START_TEST(test_mesh_edge_intersection_collinear)
     struct mesh_st ladder = create_ladder_mesh();
     struct edge_spec_st * edges;
     array_new(struct edge_spec_st, 0, &edges);
-
-    mesh_iterate_over_projected_intersecting_edges(
-            &ladder, 1, 2, 0, 1, edge_intersection_callback, &edges);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 1, 2, 0, 1, edge_intersection_callback, &edges) == ec_no_error);
     ck_assert_int_eq(array_length(edges), 1);
     array_resize(&edges, 0);
-    mesh_iterate_over_projected_intersecting_edges(
-            &ladder, 0, 6, 0, 1, edge_intersection_callback, &edges);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 0, 6, 0, 1, edge_intersection_callback, &edges) == ec_no_error);
     ck_assert_int_eq(array_length(edges), 3);
     array_delete(&edges);
     mesh_cleanup(&ladder);
@@ -261,9 +260,26 @@ START_TEST(test_mesh_edge_intersection_mixed)
     struct mesh_st ladder = create_ladder_mesh();
     struct edge_spec_st * edges;
     array_new(struct edge_spec_st, 0, &edges);
-    mesh_iterate_over_projected_intersecting_edges(
-            &ladder, 2, 10, 0, 1, edge_intersection_callback, &edges);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 2, 10, 0, 1, edge_intersection_callback, &edges) == ec_no_error);
     ck_assert_int_eq(array_length(edges), 2);
+    array_delete(&edges);
+    mesh_cleanup(&ladder);
+}
+END_TEST
+
+START_TEST(test_mesh_edge_intersection_fails)
+{
+    struct mesh_st ladder = create_ladder_mesh();
+    struct edge_spec_st * edges;
+    array_new(struct edge_spec_st, 0, &edges);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 10, 7, 0, 1, edge_intersection_callback, &edges) == ec_topology_error);
+    ck_assert_int_eq(array_length(edges), 2);
+    array_resize(&edges, 0);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 0, 10, 0, 1, edge_intersection_callback, &edges) == ec_topology_error);
+    ck_assert_int_eq(array_length(edges), 0);
     array_delete(&edges);
     mesh_cleanup(&ladder);
 }
@@ -365,6 +381,7 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tq, test_mesh_edge_intersection_generic);
     tcase_add_test(tq, test_mesh_edge_intersection_collinear);
     tcase_add_test(tq, test_mesh_edge_intersection_mixed);
+    tcase_add_test(tq, test_mesh_edge_intersection_fails);
     suite_add_tcase(s, tq);
     return s;
 }
