@@ -1004,6 +1004,8 @@ struct edge_spec_st mesh_edge_find_next(
         intersected_edge.vertex_offset_0 = next_offset;
         return _mesh_edge_find_next(it, intersected_edge);
     }
+    // Nothing was found at that point it is very unlikely, even hole should not arrive
+    // Here, I think it is a lost vertex (not connected to any face), anyway stop.
     intersected_edge.vertex_offset_0 = -1;
     intersected_edge.vertex_offset_1 = -1;
     intersected_edge.face_index_1 = INVALID_INDEX;
@@ -1013,12 +1015,6 @@ struct edge_spec_st mesh_edge_find_next(
 
 struct edge_spec_st mesh_edge_find_next_from_vertex(
         struct edge_intersection_iterator_st * it)
-        /*const struct mesh_st * mesh,*/
-        /*double p_0[2],*/
-        /*double p_1[2],*/
-        /*size_t entry_vertex,*/
-        /*int32_t x,*/
-        /*int32_t y)*/
 {
     G_ASSERT(it->next.type == neit_vertex_star, "Not the correct handler");
     const struct mesh_st * mesh = it->mesh;
@@ -1064,11 +1060,15 @@ struct edge_spec_st mesh_edge_find_next_from_vertex(
         }
         next_adjacent_face = vadj->next_adjacent_faces;
     }
+    // No edge were found, a hole was encountered, stop there.
     if(!edge_spec_is_valid(&edge)){
         it->next.type = neit_stop;
         return edge;
     }
     edge = edge_spec_find_neighbor(mesh, edge);
+    // In the case of face bridge knowing the index of the end vertex is not
+    // enough, the position of the intersection in the adjacent face is needed.
+    // It is the starting point for mesh_find_next_edge
     if(it->next.type == neit_face_bridge){
         it->next.entry_face = edge.face_index_1;
         it->next.entry_offset = edge.vertex_offset_1;
