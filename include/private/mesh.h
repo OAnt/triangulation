@@ -91,9 +91,9 @@ enum error_code_e mesh_add_face(
  * mesh.
  */
 enum error_code_e mesh_replace_face(
-        struct mesh_st * mesh,
-        struct face_st face,
-        size_t index);
+        _IN struct mesh_st * mesh,
+        _IN struct face_st face,
+        _IN size_t index);
 
 /**
  * Removes the last face from the list and returns it.
@@ -144,9 +144,9 @@ enum error_code_e mesh_swap_edge(
  * return true if the caller wishes to stop the iteration false otherwise.
  */
 typedef bool (*mesh_edge_iteration_callback_f)(
-        struct edge_spec_st edge,
-        bool collinear,
-        void * data);
+        _IN struct edge_spec_st edge,
+        _IN bool collinear,
+        _IN void * data);
 
 /**
  * Iterates over the edges of 2D mesh that intersects an eventual edge formed by
@@ -165,13 +165,13 @@ typedef bool (*mesh_edge_iteration_callback_f)(
  * all edges were forwarded to the caller.
  */
 enum error_code_e mesh_iterate_over_projected_intersecting_edges(
-        const struct mesh_st * mesh,
-        size_t v_0,
-        size_t v_1,
-        int32_t x,
-        int32_t y,
-        mesh_edge_iteration_callback_f callback,
-        void * data);
+        _IN const struct mesh_st * mesh,
+        _IN size_t v_0,
+        _IN size_t v_1,
+        _IN int32_t x,
+        _IN int32_t y,
+        _IN mesh_edge_iteration_callback_f callback,
+        _IN void * data);
 
 /**
  * Get the list of faces adjacent to face_index, assumes the mesh is 2-manifold and that
@@ -181,8 +181,8 @@ enum error_code_e mesh_iterate_over_projected_intersecting_edges(
  * return The list of neighboring faces.
  */
 struct face_st mesh_get_neighbors(
-        struct mesh_st * mesh,
-        size_t face_index);
+        _IN const struct mesh_st * mesh,
+        _IN size_t face_index);
 
 /**
  * Adds a vertex to the mesh.
@@ -214,8 +214,8 @@ bool mesh_vertex_is_in_face(
  * return nothing.
  */
 void mesh_vertex_forget_last_n(
-        struct mesh_st * mesh,
-        size_t n);
+        _IN struct mesh_st * mesh,
+        _IN size_t n);
 
 /**
  * computes the normal of a polygon assuming it is planar

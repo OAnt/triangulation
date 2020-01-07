@@ -116,7 +116,7 @@ fail_no_priv:
 #define _mesh_face_neighbors(mesh, face_index) __mesh_face_neighbors(mesh, face_index).f
 
 struct face_st mesh_get_neighbors(
-        struct mesh_st * mesh,
+        const struct mesh_st * mesh,
         size_t face_index)
 {
     G_ASSERT(face_index < array_length(mesh->private->faces), 
