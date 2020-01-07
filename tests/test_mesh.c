@@ -1,4 +1,5 @@
 #include <check.h>
+#include <private/debug.h>
 #include <private/mesh.h>
 #include <private/array.h>
 
@@ -227,6 +228,10 @@ START_TEST(test_mesh_edge_intersection_generic)
     ck_assert_int_eq(array_length(edges), 5);
     array_resize(&edges, 0);
     ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 1, 6, 0, 1, edge_intersection_callback, &edges) == ec_no_error);
+    ck_assert_int_eq(array_length(edges), 3);
+    array_resize(&edges, 0);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
             &ladder, 4, 1, 0, 1, edge_intersection_callback, &edges) == ec_no_error);
     ck_assert_int_eq(array_length(edges), 2);
     array_resize(&edges, 0);
@@ -274,12 +279,12 @@ START_TEST(test_mesh_edge_intersection_fails)
     struct edge_spec_st * edges;
     array_new(struct edge_spec_st, 0, &edges);
     ck_assert(mesh_iterate_over_projected_intersecting_edges(
-            &ladder, 10, 7, 0, 1, edge_intersection_callback, &edges) == ec_topology_error);
-    ck_assert_int_eq(array_length(edges), 2);
-    array_resize(&edges, 0);
-    ck_assert(mesh_iterate_over_projected_intersecting_edges(
             &ladder, 0, 10, 0, 1, edge_intersection_callback, &edges) == ec_topology_error);
     ck_assert_int_eq(array_length(edges), 0);
+    array_resize(&edges, 0);
+    ck_assert(mesh_iterate_over_projected_intersecting_edges(
+            &ladder, 10, 7, 0, 1, edge_intersection_callback, &edges) == ec_topology_error);
+    ck_assert_int_eq(array_length(edges), 3);
     array_delete(&edges);
     mesh_cleanup(&ladder);
 }

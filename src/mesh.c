@@ -1104,10 +1104,10 @@ enum error_code_e  mesh_iterate_over_projected_intersecting_edges(
         }else if(it.next.type == neit_face_bridge){
             edge = mesh_edge_find_next(&it);
         }
-        if(it.next.type == neit_stop) return ec_topology_error;
         if(edge_spec_is_valid(&edge)){
             CALLBACK(callback, edge, data);
         }
+        if(it.next.type == neit_stop) return ec_topology_error;
         // the end of the edge is found, this is the stop condition
         if(it.next.type == neit_vertex_star && it.next.entry_vertex == v_1)
             break;
