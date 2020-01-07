@@ -882,13 +882,10 @@ enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
     return ec_error;
 }
 
-static inline void edge_spec_rotate(
-        struct edge_spec_st * edge)
-{
-    edge->face_index_0 = edge->face_index_1;
-    edge->vertex_offset_0 = edge->vertex_offset_1;
-    edge->face_index_1 = INVALID_INDEX;
-    edge->vertex_offset_1 = -1;
+static struct edge_spec_st invalid_edge_spec = {INVALID_INDEX, INVALID_INDEX, -1, -1};
+
+bool edge_spec_is_valid(struct edge_spec_st * edge){
+    return memcmp(edge, &invalid_edge_spec, sizeof(struct edge_spec_st)) != 0;
 }
 
 static inline int32_t mesh_face_find_offset(
@@ -920,53 +917,164 @@ static inline struct edge_spec_st edge_spec_find_neighbor(
     return edge;
 }
 
+enum next_edge_intersection_type_e{
+    neit_stop = 0,
+    neit_vertex_star = 1,
+    neit_face_bridge = 2,
+};
+
+struct next_edge_intersection_type_st{
+    enum next_edge_intersection_type_e type;
+    union {
+        size_t entry_vertex;
+        struct {
+            size_t entry_face;
+            int32_t entry_offset;
+        };
+    };
+};
+
+struct edge_intersection_iterator_st{
+    const struct mesh_st * mesh;
+    double p_0[2];
+    double p_1[2];
+    int32_t x;
+    int32_t y;
+    struct next_edge_intersection_type_st next; 
+};
+
+static inline struct edge_spec_st _mesh_edge_find_next(
+        struct edge_intersection_iterator_st * it,
+        struct edge_spec_st edge)
+{
+    edge = edge_spec_find_neighbor(it->mesh, edge);
+    if(edge.face_index_1 != INVALID_INDEX && edge.vertex_offset_1 != -1){
+        it->next.type = neit_face_bridge;
+        it->next.entry_face = edge.face_index_1;
+        it->next.entry_offset = edge.vertex_offset_1;
+    }else{
+        it->next.type = neit_stop;
+    }
+    return edge;
+}
+
 // The edge intersects one of the face's edge, looking for the other one.
 struct edge_spec_st mesh_edge_find_next(
-        const struct mesh_st * mesh,
-        double p_0[2],
-        double p_1[2],
-        size_t entry_face,
-        int32_t entry_offset,
-        int32_t x,
-        int32_t y)
+        struct edge_intersection_iterator_st * it)
 {
-    G_ASSERT(entry_face < array_length(mesh->faces) &&
-            entry_offset >= 0 && entry_offset < FACE_SIZE,
+    G_ASSERT(it->next.type == neit_face_bridge, "Wrong iterator");
+    const struct mesh_st * mesh = it->mesh;
+    G_ASSERT(it->next.entry_face < array_length(mesh->faces) &&
+            it->next.entry_offset >= 0 && it->next.entry_offset < FACE_SIZE,
             "Wrong entry face");
     struct edge_spec_st intersected_edge;
-    intersected_edge.face_index_0 = entry_face;
+    intersected_edge.face_index_0 = it->next.entry_face;
     // This function assumes there is an intersection between [p_0, p_1] and the edge
     // define by [entry_offset, (entry_offset + 1) % FACE_SIZE], the other intersection
     // is therefore [(entry_offset + 1) % FACE_SIZE, (entry_offset + 2) % FACE_SIZE] or
     // [(entry_offset + 2) % FACE_SIZE, entry_offset]
-    size_t entry_vertex = mesh->faces[entry_face].f[entry_offset];
-    double p_entry[2] = {mesh->points[entry_vertex].v[x], mesh->points[entry_vertex].v[y]};
-    int32_t previous_offset = (entry_offset + 2) % FACE_SIZE;
-    size_t previous_vertex = mesh->faces[entry_face].f[previous_offset];
-    double p_previous[2] = {mesh->points[previous_vertex].v[x],
-        mesh->points[previous_vertex].v[y]};
-    double previous_orient;
-    double entry_orient;
-    // >= 0 because previous vertex may be p_1
-    // TODO handle collinear edges
-    if((previous_orient = orient2d(p_previous, p_1, p_0)) >= 0 &&
-            (entry_orient = orient2d(p_entry, p_0, p_1)) > 0){
-        intersected_edge.vertex_offset_0 = previous_offset;
-        return edge_spec_find_neighbor(mesh, intersected_edge);
+    int32_t previous_offset = (it->next.entry_offset + 2) % FACE_SIZE;
+    size_t previous_vertex = mesh->faces[it->next.entry_face].f[previous_offset];
+    double p_previous[2] = {mesh->points[previous_vertex].v[it->x],
+        mesh->points[previous_vertex].v[it->y]};
+    double previous_orient = orient2d(p_previous, it->p_1, it->p_0);
+    if(previous_orient == 0){
+        it->next.type = neit_vertex_star;
+        it->next.entry_vertex = previous_vertex;
+        return invalid_edge_spec;
     }
-    int32_t next_offset = (entry_offset + 1) % FACE_SIZE;
-    size_t next_vertex = mesh->faces[entry_face].f[next_offset];
-    double p_next[2] = {mesh->points[next_vertex].v[x], mesh->points[next_vertex].v[y]};
+    size_t entry_vertex = mesh->faces[it->next.entry_face].f[it->next.entry_offset];
+    double p_entry[2] = {
+        mesh->points[entry_vertex].v[it->x], mesh->points[entry_vertex].v[it->y]};
+    // Now it assumed that if the previous intersection found a vertex and not and edge.
+    // This function is not even called in the first place. Therefore [p_0, p_1] does not
+    // intersects neither entry_offset nor entry_offset + 1. Nothing is known about
+    // entry_offset + 2 (previous_offset)
+    // >= 0 because previous vertex may be p_1
+    if(previous_orient > 0 && orient2d(p_entry, it->p_0, it->p_1) > 0){
+        intersected_edge.vertex_offset_0 = previous_offset;
+        return _mesh_edge_find_next(it, intersected_edge);
+    }
+    int32_t next_offset = (it->next.entry_offset + 1) % FACE_SIZE;
+    size_t next_vertex = mesh->faces[it->next.entry_face].f[next_offset];
+    double p_next[2] = {
+        mesh->points[next_vertex].v[it->x], mesh->points[next_vertex].v[it->y]};
     double next_orient;
-    if((next_orient = orient2d(p_next, p_1, p_0)) > 0 && previous_orient <= 0){
+    if((next_orient = orient2d(p_next, it->p_1, it->p_0)) > 0 && previous_orient < 0){
         intersected_edge.vertex_offset_0 = next_offset;
-        return edge_spec_find_neighbor(mesh, intersected_edge);
+        return _mesh_edge_find_next(it, intersected_edge);
     }
     G_ASSERT(false, "No intersection");
     intersected_edge.vertex_offset_0 = -1;
     intersected_edge.vertex_offset_1 = -1;
     intersected_edge.face_index_1 = INVALID_INDEX;
+    it->next.type = neit_stop;
     return intersected_edge;
+}
+
+struct edge_spec_st mesh_edge_find_next_from_vertex(
+        struct edge_intersection_iterator_st * it)
+        /*const struct mesh_st * mesh,*/
+        /*double p_0[2],*/
+        /*double p_1[2],*/
+        /*size_t entry_vertex,*/
+        /*int32_t x,*/
+        /*int32_t y)*/
+{
+    G_ASSERT(it->next.type == neit_vertex_star, "Not the correct handler");
+    const struct mesh_st * mesh = it->mesh;
+    size_t next_adjacent_face = mesh->private->vertices[it->next.entry_vertex].adjacent_faces;
+    struct edge_spec_st edge = invalid_edge_spec;
+    while(next_adjacent_face != INVALID_INDEX){
+        struct vertex_adjacent_face_st * vadj = 
+            &mesh->private->vertex_adjacent_faces[next_adjacent_face];
+        edge.face_index_0 = vadj->face;
+        int32_t offset = mesh_face_find_offset(mesh, edge.face_index_0, it->next.entry_vertex);
+        int32_t next_offset = (offset + 1) % FACE_SIZE;
+        int32_t previous_offset = (offset + 2) % FACE_SIZE;
+        size_t v_2 = mesh->faces[edge.face_index_0].f[next_offset];
+        size_t v_3 = mesh->faces[edge.face_index_0].f[previous_offset];
+        double p_2[2] = {mesh->points[v_2].v[it->x], mesh->points[v_2].v[it->y]};
+        double p_3[2] = {mesh->points[v_3].v[it->x], mesh->points[v_3].v[it->y]};
+        // [p_0, p_1] intersects the edge opposite to v_0 if it is between the two adjacent edges
+        // checking that p_0 and p_1 are on different sides is not enough, this is true for
+        // ~ half the edges in the star around v_0
+        // unless the mesh is not 2-manifold there is no overlap and by circling around v_0
+        // using edges (exactly 360 degrees). If there are border it is less.
+        double orient_p_2 = orient2d(it->p_0, p_2, it->p_1);
+        double orient_p_3 = orient2d(it->p_1, p_3, it->p_0);
+        // Generic case, clean intersection between [v_0, v_1] and the edge
+        if(orient_p_2 > 0 && orient_p_3 > 0){
+            it->next.type = neit_face_bridge;
+            edge.vertex_offset_0 = next_offset;
+            break;
+        // [v_0, v_1] is collinear to [v_0, v_2]
+        }else if(orient_p_2 == 0 && orient_p_3 > 0){
+            it->next.type = neit_vertex_star;
+            it->next.entry_vertex = v_2;
+            edge.vertex_offset_0 = offset;
+            break;
+        // [v_0, v_1] is collinear to [v_0, v_3]
+        }else if(orient_p_2 > 0 && orient_p_3 == 0){
+            it->next.type = neit_vertex_star;
+            it->next.entry_vertex = v_3;
+            edge.vertex_offset_0 = previous_offset;
+            break;
+        }
+        next_adjacent_face = vadj->next_adjacent_faces;
+    }
+    G_ASSERT(edge.face_index_0 != INVALID_INDEX && edge.vertex_offset_0 != -1,
+            "Invalid topology, hole in the mesh");
+    if(!edge_spec_is_valid(&edge)){
+        it->next.type = neit_stop;
+        return edge;
+    }
+    edge = edge_spec_find_neighbor(mesh, edge);
+    if(it->next.type == neit_face_bridge){
+        it->next.entry_face = edge.face_index_1;
+        it->next.entry_offset = edge.vertex_offset_1;
+    }
+    return edge;
 }
 
 #define CALLBACK(callback, edge, data) if((callback)((edge), (data))) return
@@ -982,55 +1090,27 @@ void mesh_iterate_over_projected_intersecting_edges(
 {
     G_ASSERT(v_0 < array_length(mesh->points), "Vertex out of bounds");
     G_ASSERT(v_1 < array_length(mesh->points), "Vertex out of bounds");
-    double p_0[2] = {mesh->points[v_0].v[x], mesh->points[v_0].v[y]};
-    double p_1[2] = {mesh->points[v_1].v[x], mesh->points[v_1].v[y]};
-    // finding the starting point
-    size_t next_adjacent_face = mesh->private->vertices[v_0].adjacent_faces;
-    struct edge_spec_st edge;
-    edge.face_index_0 = INVALID_INDEX;
-    edge.vertex_offset_0 = -1;
-    while(next_adjacent_face != INVALID_INDEX){
-        struct vertex_adjacent_face_st * vadj = 
-            &mesh->private->vertex_adjacent_faces[next_adjacent_face];
-        edge.face_index_0 = vadj->face;
-        int32_t offset = mesh_face_find_offset(mesh, edge.face_index_0, v_0);
-        int32_t next_offset = (offset + 1) % FACE_SIZE;
-        size_t v_2 = mesh->faces[edge.face_index_0].f[next_offset];
-        size_t v_3 = mesh->faces[edge.face_index_0].f[(offset + 2) % FACE_SIZE];
-        double p_2[2] = {mesh->points[v_2].v[x], mesh->points[v_2].v[y]};
-        double p_3[2] = {mesh->points[v_3].v[x], mesh->points[v_3].v[y]};
-        // [p_0, p_1] intersects the edge opposite to v_0 if it is between the two adjacent edges
-        // checking that p_0 and p_1 are on different sides is not enough, this is true for
-        // ~ half the edges in the star around v_0
-        // unless the mesh is not 2-manifold there is no overlap and by circling around v_0
-        // using edges (exactly 360 degrees). If there are border it is less.
-        if(orient2d(p_0, p_2, p_1) > 0 && orient2d(p_1, p_3, p_0) > 0){
-            edge.vertex_offset_0 = next_offset;
-            break;
+    struct edge_intersection_iterator_st it = {
+        mesh,
+        {mesh->points[v_0].v[x], mesh->points[v_0].v[y]},
+        {mesh->points[v_1].v[x], mesh->points[v_1].v[y]},
+        x,
+        y,
+        {neit_vertex_star, {v_0}},
+    };
+    while(it.next.type != neit_stop){
+        struct edge_spec_st edge;
+        if(it.next.type == neit_vertex_star){
+            edge = mesh_edge_find_next_from_vertex(&it); 
+        }else if(it.next.type == neit_face_bridge){
+            edge = mesh_edge_find_next(&it);
         }
-        next_adjacent_face = vadj->next_adjacent_faces;
-    }
-    // The edge is already present in the mesh (it intersected nothing).
-    if(edge.face_index_0 == INVALID_INDEX || edge.vertex_offset_0 == -1) return;
-    edge = edge_spec_find_neighbor(mesh, edge);
-    // at this point if there is no neighbor, there is an error (a hole in the mesh),
-    // If a stop condition was reached, the previous check would have caught it.
-    G_ASSERT(edge.face_index_1 != INVALID_INDEX &&
-            edge.vertex_offset_1 != -1, "Invalid topology");
-    // The starting edge is found, informing the caller.
-    CALLBACK(callback, edge, data);
-    edge_spec_rotate(&edge);
-    while(edge.face_index_0 != INVALID_INDEX && edge.vertex_offset_0 != -1){
-        edge = mesh_edge_find_next(
-                mesh, p_0, p_1, edge.face_index_0, edge.vertex_offset_0, x, y);
-        if(mesh->faces[edge.face_index_0].f[edge.vertex_offset_0] == v_1)
-            break;
-        // A hole in the mesh was encountered, this is not supported
-        G_ASSERT(edge.face_index_1 != INVALID_INDEX &&
-                edge.vertex_offset_1 != -1, "Invalid topology");
+        if(edge_spec_is_valid(&edge)){
+            CALLBACK(callback, edge, data);
+        }
         // the end of the edge is found, this is the stop condition
-        CALLBACK(callback, edge, data);
-        edge_spec_rotate(&edge);
+        if(it.next.type == neit_vertex_star && it.next.entry_vertex == v_1)
+            break;
     }
 }
 
