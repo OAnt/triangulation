@@ -1076,7 +1076,8 @@ struct edge_spec_st mesh_edge_find_next_from_vertex(
     return edge;
 }
 
-#define CALLBACK(callback, edge, data) if((callback)((edge), (data))) return ec_no_error
+#define CALLBACK(callback, edge, collinear, data) \
+    if((callback)((edge), (collinear), (data))) return ec_no_error
 
 enum error_code_e  mesh_iterate_over_projected_intersecting_edges(
         const struct mesh_st * mesh,
@@ -1099,13 +1100,16 @@ enum error_code_e  mesh_iterate_over_projected_intersecting_edges(
     };
     while(it.next.type != neit_stop){
         struct edge_spec_st edge;
+        bool collinear = false;
         if(it.next.type == neit_vertex_star){
             edge = mesh_edge_find_next_from_vertex(&it); 
+            // two consecutive vertex star, the edge is collinear
+            collinear = it.next.type == neit_vertex_star;
         }else if(it.next.type == neit_face_bridge){
             edge = mesh_edge_find_next(&it);
         }
         if(edge_spec_is_valid(&edge)){
-            CALLBACK(callback, edge, data);
+            CALLBACK(callback, edge, collinear, data);
         }
         if(it.next.type == neit_stop) return ec_topology_error;
         // the end of the edge is found, this is the stop condition

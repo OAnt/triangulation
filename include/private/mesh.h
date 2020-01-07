@@ -139,11 +139,13 @@ enum error_code_e mesh_swap_edge(
 /**
  * Prototype for an edge iteration callback
  * param edge Specification of an edge that is being iterated upon.
+ * param collinear Whether edge is collinear to the input.
  * param data Caller supplied pointer (not modified).
  * return true if the caller wishes to stop the iteration false otherwise.
  */
 typedef bool (*mesh_edge_iteration_callback_f)(
         struct edge_spec_st edge,
+        bool collinear,
         void * data);
 
 /**
