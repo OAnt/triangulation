@@ -112,13 +112,3 @@ void vector_cross_product(
     (*out) = tmp;
 }
 
-bool box_intersection_2D(
-        const struct box_st * a,
-        const struct box_st * b)
-{
-    return !(b->min.v[0] > a->max.v[0] ||
-            b->max.v[0] < a->min.v[0] ||
-            b->min.v[1] > a->max.v[1] ||
-            b->max.v[1] < a->min.v[1]);
-}
-
