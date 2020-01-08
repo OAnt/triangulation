@@ -614,6 +614,7 @@ enum intersection_type_e{
     it_no = 2, /** Edge is not intersected. */
 };
 
+// winding number algorithm adapted from http://geomalgorithms.com/a03-_inclusion.html
 /** 
  * Determines the type of intersection if there is one.
  * param point Infinite horizontal ray is going through point.
@@ -645,11 +646,13 @@ enum intersection_type_e  edge_determine_intersection_type(
     }
 }
 
+// winding number algorithm adapted from http://geomalgorithms.com/a03-_inclusion.html
 #define point_is_left_of(p, s0, s1, x, y) \
     _vector_position_relative_to_segment(p, s0, s1, x, y) == pt_left
 #define point_is_right_of(p, s0, s1, x, y) \
     _vector_position_relative_to_segment(p, s0, s1, x, y) == pt_right
 
+// winding number algorithm adapted from http://geomalgorithms.com/a03-_inclusion.html
 /**
  * Increments or decrements the winding number
  * according to the relative position of point
@@ -775,6 +778,7 @@ enum error_code_e planar_polygon_best_projection(
     return ec_no_error;
 }
 
+// winding number algorithm adapted from http://geomalgorithms.com/a03-_inclusion.html
 static inline enum point_polygon_position_e _polygon_point_position(
         _IN size_t * polygon,
         _IN size_t n_vertices,
@@ -888,7 +892,8 @@ enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
 
 // taken from 
 // https://stackoverflow.com/questions/471962/how-do-i-efficiently-determine-if-a-polygon-is-convex-non-convex-or-complex 
-// response by Rory Daulton
+// response by Rory Daulton (https://stackoverflow.com/users/6246044/rory-daulton) edited by
+// cs95 (https://stackoverflow.com/users/4909087/cs95)
 bool polygon_is_convex(
         size_t * polygon,
         size_t n_vertices,
