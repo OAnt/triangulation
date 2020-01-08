@@ -13,6 +13,14 @@
 #include <private/triangle.h>
 #include <public/common.h>
 
+/*
+ * Delaunay triangulation algorithm are adapted from:
+ * A fast algorithm for generating constrained delaunay triangulations
+ * S.W.Sloan
+ * Department of Civil Engineering and Surveying, University of Newcastle, Shortland, NSW 2308, Australia
+ * Computers & Structures Volume 47, Issue 3, 3 May 1993, Pages 441-450
+ */
+
 /*#define UNINDEXED_DELAUNAY*/
 #ifndef UNINDEXED_DELAUNAY
 #define INDEXED_DELAUNAY
