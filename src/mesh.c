@@ -886,6 +886,9 @@ enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
     atan2((vertices)[(vertex)].v[(y)] - vertices[(previous_vertex)].v[(y)], \
             vertices[(vertex)].v[(x)] - vertices[(previous_vertex)].v[(x)])
 
+// taken from 
+// https://stackoverflow.com/questions/471962/how-do-i-efficiently-determine-if-a-polygon-is-convex-non-convex-or-complex 
+// response by Rory Daulton
 bool polygon_is_convex(
         size_t * polygon,
         size_t n_vertices,
