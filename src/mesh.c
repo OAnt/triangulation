@@ -882,6 +882,69 @@ enum error_code_e unindexed_mesh_find_first_enclosing_triangular_face(
     return ec_error;
 }
 
+#define DIRECTION(vertices, vertex, previous_vertex, x, y) \
+    atan2((vertices)[(vertex)].v[(y)] - vertices[(previous_vertex)].v[(y)], \
+            vertices[(vertex)].v[(x)] - vertices[(previous_vertex)].v[(x)])
+
+bool polygon_is_convex(
+        size_t * polygon,
+        size_t n_vertices,
+        struct vector_st * vertices,
+        int32_t x,
+        int32_t y)
+{
+    if(n_vertices < 3) return false;
+    size_t previous_vertex = polygon[n_vertices - 2];
+    size_t vertex = polygon[n_vertices - 1];
+    double direction = DIRECTION(vertices, vertex, previous_vertex, x, y);
+    double angle_sum = 0.0;
+    int32_t orientation = 0;
+    for(size_t i = 0; i < n_vertices; i++){
+        previous_vertex = vertex;
+        vertex = polygon[i];
+        if(vertices[vertex].v[x] == vertices[previous_vertex].v[x] &&
+                vertices[vertex].v[y] == vertices[previous_vertex].v[y])
+            return false;
+        double previous_direction = direction;
+        direction = DIRECTION(vertices, vertex, previous_vertex, x, y);
+        double angle = direction - previous_direction;
+        if(angle <= - M_PI)
+            angle += 2*M_PI;
+        else if(angle > M_PI)
+            angle -= 2*M_PI;
+        if(i == 0){
+            if(angle == 0.0) return false;
+            orientation = SIGN(angle);
+        }else{
+            if(orientation != SIGN(angle)) return false;
+        }
+        angle_sum += angle;
+    }
+    return fabs(round(angle_sum / (2*M_PI))) == 1;
+}
+
+#define polygon_ith_point(polygon, vertices, i) (vertices)[(polygon)[(i)]]
+#define polygon_ith_point_projected(polygon, vertices, i, x, y) \
+        {polygon_ith_point(polygon, vertices, i).v[x], \
+        polygon_ith_point(polygon, vertices, i).v[y]}
+
+bool quadrilateral_polygon_is_convex_and_oriented(
+        size_t * polygon,
+        struct vector_st * vertices,
+        int32_t x,
+        int32_t y)
+{
+    double vertex_0[2] = polygon_ith_point_projected(polygon, vertices, 0, x, y);
+    double vertex_1[2] = polygon_ith_point_projected(polygon, vertices, 1, x, y);
+    double vertex_2[2] = polygon_ith_point_projected(polygon, vertices, 2, x, y);
+    if(orient2d(vertex_0, vertex_1, vertex_2) <= 0) return false;
+    double vertex_3[2] = polygon_ith_point_projected(polygon, vertices, 3, x, y);
+    if(orient2d(vertex_0, vertex_2, vertex_3) <= 0) return false;
+    if(orient2d(vertex_1, vertex_2, vertex_3) <= 0) return false;
+    if(orient2d(vertex_1, vertex_3, vertex_0) <= 0) return false;
+    return true;
+}
+
 static struct edge_spec_st invalid_edge_spec = {INVALID_INDEX, INVALID_INDEX, -1, -1};
 
 bool edge_spec_is_valid(struct edge_spec_st * edge){

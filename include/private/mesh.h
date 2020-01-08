@@ -298,6 +298,44 @@ enum point_polygon_position_e projected_face_point_position(
         _IN int32_t x,
         _IN int32_t y);
 
+/** 
+ * Determines whether a polygon is strictly convex.
+ * This test is O(n) and non robust, it ignores floating point number
+ * imprecision.
+ * param polygon see polygon_point_position.
+ * param n_vertices number of vertices in the polygon.
+ * param vertices coordinates of the polygon vertices.
+ * param x Index of the axis that should be considered as first.
+ * param y Index of the axis that should be considered as second. System must
+ * be direct.
+ * returns whether the polygon is convex (true) or not (false).
+ */
+bool polygon_is_convex(
+        _IN size_t * polygon,
+        _IN size_t n_vertices,
+        _IN struct vector_st * vertices,
+        _IN int32_t x,
+        _IN int32_t y);
+
+/**
+ * Determines whether a polygon is strictly convex and oriented
+ * (vertices are turning in the counter clockwise order).
+ * This test does four orientation tests to determine the polygon status.
+ * It uses predicates and is less sensible to floating point number imprecision.
+ * This is a special case of the gift wrapping algorithm.
+ * param polygon see polygon_point_position. It is assumed to have four vertices.
+ * param vertices coordinates of the polygon vertices.
+ * param x Index of the axis that should be considered as first.
+ * param y Index of the axis that should be considered as second. System must
+ * be direct.
+ * returns whether the polygon is convex and oriented (true) or not (false).
+ */
+bool quadrilateral_polygon_is_convex_and_oriented(
+        size_t * polygon,
+        struct vector_st * vertices,
+        int32_t x,
+        int32_t y);
+
 /**
  * Iterates over all the faces in the mesh to find a face
  * that contains the given point. Stops when a matching faces

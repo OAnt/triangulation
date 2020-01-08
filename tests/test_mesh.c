@@ -378,6 +378,92 @@ START_TEST(test_point_in_polygon_2)
 }
 END_TEST
 
+struct vector_st pol_vertices[] = {
+    VEC2(0.0, 0.0), VEC2(0.5, 0.5), VEC2(0.75, 1.0), VEC2(0.5, 1.75), VEC2(0.25, 1.0),
+    VEC2(0.25, 0.25),
+};
+
+size_t convex_polygon[] = {0, 1, 2, 3};
+size_t convex_polygon_non_strict[] = {0, 5, 1, 3};
+size_t convex_not_oriented_polygon[] = {3, 2, 1, 0};
+size_t auto_intersecting_polygon[] = {0, 1, 3, 2};
+size_t non_convex_polygon[] = {0, 1, 4, 3};
+size_t weird_polygon[] = {0, 0, 2, 3};
+size_t flat_polygon[] = {2, 2, 2, 3};
+size_t singular_polygon[] = {1, 1, 1, 1};
+
+START_TEST(test_polygon_is_convex)
+{
+    ck_assert(polygon_is_convex(
+                convex_polygon, 4, pol_vertices, 0, 1));
+    ck_assert(quadrilateral_polygon_is_convex_and_oriented(
+                convex_polygon, pol_vertices, 0, 1));
+}
+END_TEST
+
+START_TEST(test_strict_convexity)
+{
+    ck_assert(!quadrilateral_polygon_is_convex_and_oriented(
+                convex_polygon_non_strict, pol_vertices, 0, 1));
+    ck_assert(!polygon_is_convex(
+                convex_polygon_non_strict, 4, pol_vertices, 0, 1));
+}
+END_TEST
+
+START_TEST(test_weird_polygon_is_non_convex)
+{
+    ck_assert(!quadrilateral_polygon_is_convex_and_oriented(
+                weird_polygon, pol_vertices, 0, 1));
+    ck_assert(!polygon_is_convex(
+                weird_polygon, 4, pol_vertices, 0, 1));
+}
+END_TEST
+
+START_TEST(test_flat_polygon_is_non_convex)
+{
+    ck_assert(!quadrilateral_polygon_is_convex_and_oriented(
+                flat_polygon, pol_vertices, 0, 1));
+    ck_assert(!polygon_is_convex(
+                flat_polygon, 4, pol_vertices, 0, 1));
+}
+END_TEST
+
+START_TEST(test_singular_polygon_is_non_convex)
+{
+    ck_assert(!quadrilateral_polygon_is_convex_and_oriented(
+                singular_polygon, pol_vertices, 0, 1));
+    ck_assert(!polygon_is_convex(
+                singular_polygon, 4, pol_vertices, 0, 1));
+}
+END_TEST
+
+START_TEST(test_polygon_is_non_convex)
+{
+    ck_assert(!quadrilateral_polygon_is_convex_and_oriented(
+                non_convex_polygon, pol_vertices, 0, 1));
+    ck_assert(!polygon_is_convex(
+                non_convex_polygon, 4, pol_vertices, 0, 1));
+}
+END_TEST
+
+START_TEST(test_autointersecting_polygon_is_non_convex)
+{
+    ck_assert(!quadrilateral_polygon_is_convex_and_oriented(
+               auto_intersecting_polygon, pol_vertices, 0, 1));
+    ck_assert(!polygon_is_convex(
+                auto_intersecting_polygon, 4, pol_vertices, 0, 1));
+}
+END_TEST
+
+START_TEST(test_polygon_is_convex_and_not_oriented)
+{
+    ck_assert(polygon_is_convex(
+                convex_not_oriented_polygon, 4, pol_vertices, 0, 1));
+    ck_assert(!quadrilateral_polygon_is_convex_and_oriented(
+                convex_not_oriented_polygon, pol_vertices, 0, 1));
+}
+END_TEST
+
 Suite * mk_mesh_suite(void){
     Suite * s = suite_create("Mesh");
     TCase * tc = tcase_create(
@@ -396,6 +482,14 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tp, test_point_in_polygon);
     tcase_add_test(tp, test_point_in_polygon_2);
     tcase_add_test(tp, test_point_in_non_convex_polygon);
+    tcase_add_test(tp, test_polygon_is_convex);
+    tcase_add_test(tp, test_polygon_is_non_convex);
+    tcase_add_test(tp, test_autointersecting_polygon_is_non_convex);
+    tcase_add_test(tp, test_polygon_is_convex_and_not_oriented);
+    tcase_add_test(tp, test_strict_convexity);
+    tcase_add_test(tp, test_weird_polygon_is_non_convex);
+    tcase_add_test(tp, test_flat_polygon_is_non_convex);
+    tcase_add_test(tp, test_singular_polygon_is_non_convex);
     suite_add_tcase(s, tp);
     TCase * tq = tcase_create("Queries");
     tcase_add_test(tq, test_mesh_enclosing_triangular_face);
