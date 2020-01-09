@@ -1,6 +1,7 @@
 EXTRA_BIN:=
 EXTRA_CFLAGS="-DNDEBUG"
-INCLUDES=-I include -I dependencies/include
+DEPS=dependencies
+INCLUDES=-I include -I $(DEPS)/include
 CFLAGS=-Wall -g -fPIC -x c $(EXTRA_CFLAGS) 
 SRCDIR=src
 EXT_SRCDIR=src/ext
@@ -23,6 +24,18 @@ all: build $(SOOUT)
 
 build:
 	mkdir -p $(OBJDIR) $(EXT_OBJDIR) $(SODIR)
+
+MLIB_GIT=.xxx_mlib
+MLIB_TAG=V0.3.0
+
+_DEPS=$(PWD)/$(DEPS)
+$(MLIB_GIT):
+	git clone https://github.com/P-p-H-d/mlib.git $(MLIB_GIT)
+
+requirements: $(MLIB_GIT)
+	mkdir -p $(_DEPS)
+	cd $(MLIB_GIT); git checkout $(MLIB_TAG); make install PREFIX=$(_DEPS)
+	rm -rf $(MLIB_GIT)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
