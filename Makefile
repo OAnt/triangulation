@@ -22,7 +22,7 @@ CC=cc
 
 all: build $(SOOUT)
 
-build: requirements
+build: 
 	mkdir -p $(OBJDIR) $(EXT_OBJDIR) $(SODIR)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
