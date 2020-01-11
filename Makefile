@@ -4,10 +4,11 @@ DEPS=dependencies
 INCLUDES=-I include -I $(DEPS)/include
 CFLAGS=-Wall -g -fPIC -x c $(EXTRA_CFLAGS) 
 SRCDIR=src
+BUILDDIR=build
 EXT_SRCDIR=src/ext
-OBJDIR=build/objects
-EXT_OBJDIR=build/objects/ext
-SODIR=build/lib
+OBJDIR=$(BUILDDIR)/objects
+EXT_OBJDIR=$(BUILDDIR)/objects/ext
+SODIR=$(BUILDDIR)/lib
 SOOUT=$(SODIR)/libxxx.so
 SOURCES=$(wildcard $(SRCDIR)/*.c)
 OBJECTS=$(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
@@ -15,14 +16,14 @@ EXT_SOURCES=$(wildcard $(EXT_SRCDIR)/*.c)
 EXT_OBJECTS=$(patsubst $(EXT_SRCDIR)/%.c, $(EXT_OBJDIR)/%.o, $(EXT_SOURCES))
 TEST_LD_FLAGS:=-L$(SODIR) -lxxx $(shell pkg-config --libs check) -lm
 TEST_CFLAGS:=$(CFLAGS) $(shell pkg-config --cflags check)
-TESTOUT=build/test
+TESTOUT=$(BUILDDIR)/test
 TESTSRC=tests
 TESTS=$(wildcard $(TESTSRC)/*.c)
 CC=cc
 
-all: build $(SOOUT)
+all: $(BUILDDIR) $(SOOUT)
 
-build: 
+$(BUILDDIR): 
 	mkdir -p $(OBJDIR) $(EXT_OBJDIR) $(SODIR)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
@@ -41,11 +42,11 @@ $(TESTOUT): $(TESTSRC)
 	$(CC) $(TESTS) $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ 
 
 .PHONY: tests
-tests: build $(SOOUT) $(TESTOUT)
+tests: $(BUILDDIR) $(SOOUT) $(TESTOUT)
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(SODIR) $(EXTRA_BIN) ./$(TESTOUT)
 
 clean:
-	rm -rf build
+	rm -rf $(BUILDDIR)
 
 MLIB_GIT=.xxx_mlib
 MLIB_TAG=V0.3.0
