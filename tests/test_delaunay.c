@@ -97,7 +97,7 @@ START_TEST(test_triangulation_is_clean)
     struct mesh_st mesh = generate_pointcloud_2d(10);
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
     ck_assert_int_lt(array_length(mesh.faces), 10000);
-    export_triangulation(&mesh);
+    /*export_triangulation(&mesh);*/
     ck_assert_int_eq(err, ec_no_error);
     ck_assert_int_eq(array_length(mesh.points), N_VERTEX);
     validate_mesh_is_delaunay_conformant(&mesh);
@@ -110,7 +110,7 @@ START_TEST(test_triangulation_on_duplicated)
     struct mesh_st mesh = generate_pointcloud_2d(10);
     mesh.points[9] = mesh.points[4];
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
-    export_triangulation(&mesh);
+    /*export_triangulation(&mesh);*/
     ck_assert_int_eq(err, ec_no_error);
     for(size_t f = 0; f < array_length(mesh.faces); f++){
         for(int32_t i = 0;  i < FACE_SIZE; i++){
@@ -158,7 +158,7 @@ START_TEST(test_triangulation_on_limits)
     mesh_add_face(&mesh, bg_1, NULL);
     enum error_code_e err = mesh_delaunay_triangulation_user_defined_boundaries(
             &mesh, pp_xy);
-    export_triangulation(&mesh);
+    /*export_triangulation(&mesh);*/
     ck_assert_int_eq(err, ec_no_error);
     int32_t vertex_5_found = 0;
     for(size_t f = 0; f < array_length(mesh.faces); f++){
@@ -185,7 +185,7 @@ START_TEST(test_triangulation_with_vertex_on_edge)
                 &mesh.points[i]);
     }
     enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
-    export_triangulation(&mesh);
+    /*export_triangulation(&mesh);*/
     ck_assert_int_eq(err, ec_no_error);
     ck_assert_int_eq(array_length(mesh.points), N_VERTEX);
     validate_mesh_is_delaunay_conformant(&mesh);
@@ -236,9 +236,9 @@ START_TEST(test_delaunay_triangulation_performance)
         clock_t clk_start = clock();
         enum error_code_e err = mesh_delaunay_triangulation(&mesh, pp_xy);
         clock_t clk_end = clock();
-        if(i >= 10){
-            export_triangulation(&mesh);
-        }
+        /*if(i >= 10){*/
+            /*export_triangulation(&mesh);*/
+        /*}*/
         validate_mesh_is_delaunay_conformant(&mesh);
         ck_assert_int_eq(err, ec_no_error);
         printf("Triangulation of %ld points done in %f seconds\n",
