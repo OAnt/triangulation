@@ -38,7 +38,7 @@ $(OBJDIR)/spatial_index.o: $(SRCDIR)/spatial_index.c
 $(SOOUT): $(OBJECTS) $(EXT_OBJECTS)
 	$(CC) -shared $(OBJECTS) $(EXT_OBJECTS) -o $@ $(EXTRA_CFLAGS)
 
-$(TESTOUT): $(TESTSRC)
+$(TESTOUT): $(TESTS)
 	$(CC) $(TESTS) $(TEST_CFLAGS) $(TEST_LD_FLAGS) $(INCLUDES) -o $@ 
 
 .PHONY: tests
