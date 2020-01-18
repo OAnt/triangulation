@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_DELAUNAY_TRIANGULATION_H
 #define GEOMETRY_DELAUNAY_TRIANGULATION_H
 
-#include <private/mesh.h>
+#include <public/mesh.h>
 
 /**
  * Computes the Delaunay triangulation for a set of points in

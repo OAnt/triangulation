@@ -261,7 +261,7 @@ static inline enum error_code_e mesh_face_check(
 }
 
 enum error_code_e mesh_face_add_topology(
-        mesh_st * mesh,
+        struct mesh_st * mesh,
         size_t face_index)
 {
     enum error_code_e err = ec_no_error;
@@ -352,7 +352,7 @@ bool mesh_face_is_removed(
         (mesh), (face_index))
 
 void mesh_face_remove_from_neigbhors(
-        mesh_st * mesh,
+        struct mesh_st * mesh,
         size_t face_index,
         size_t neighbor_index)
 {
@@ -369,7 +369,7 @@ void mesh_face_remove_from_neigbhors(
 }
 
 void mesh_face_remove_from_vertex_adjacent_faces(
-        mesh_st * mesh,
+        struct mesh_st * mesh,
         size_t face_index,
         int32_t vertex_offset)
 {
@@ -408,7 +408,7 @@ void mesh_face_remove_from_vertex_adjacent_faces(
 }
 
 void mesh_face_remove_topology(
-        mesh_st * mesh,
+        struct mesh_st * mesh,
         size_t face_index)
 {
     for(int32_t i = 0; i < FACE_SIZE; i++){

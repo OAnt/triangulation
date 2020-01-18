@@ -23,4 +23,13 @@ enum error_code_e {
     ec_topology_error, /** Adding face would create a non manifold mesh */
 };
 
+/**
+ * Plane to project on for planar polygon.
+ */
+enum projection_plane_e {
+    pp_xy = 0, /** Projection plane is xy */ 
+    pp_yz = 1, /** Projection plane is yz */
+    pp_zx = 2, /** Projection plane is zx */
+};
+
 #endif

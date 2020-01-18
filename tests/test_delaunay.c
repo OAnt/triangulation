@@ -5,10 +5,10 @@
 #include <check.h>
 #include <private/array.h>
 #include <private/debug.h>
-#include <private/delaunay_triangulation.h>
 #include <private/predicates.h>
 #include <private/triangle.h>
 #include <private/vector.h>
+#include <public/delaunay_triangulation.h>
 #include <public/mesh.h>
 
 #define N_VERTEX 20
@@ -82,7 +82,7 @@ struct mesh_st generate_pointcloud_2d(double range)
 #define MAX_TRI_PATH 1024
 
 void _export_triangulation(
-        mesh_st * mesh,
+        struct mesh_st * mesh,
         const char * suffix)
 {
     char name[MAX_TRI_PATH] = {'\0'};

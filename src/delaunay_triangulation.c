@@ -5,13 +5,13 @@
 #include <string.h>
 #include <private/array.h>
 #include <private/debug.h>
-#include <private/delaunay_triangulation.h>
 #include <private/mesh.h>
 #include <private/predicates.h>
 #include <private/spatial_hash.h>
 #include <private/spatial_index.h>
 #include <private/triangle.h>
 #include <public/common.h>
+#include <public/delaunay_triangulation.h>
 
 /*
  * Delaunay triangulation algorithm are adapted from:
@@ -27,7 +27,7 @@
 #define DELAUNAY_USE_SPATIAL_INDEX
 
 struct indexed_mesh_st{
-    mesh_st * mesh;
+    struct mesh_st * mesh;
     size_t * handles;
 #ifdef DELAUNAY_USE_SPATIAL_INDEX
     struct spatial_index_st * spi;
@@ -98,7 +98,7 @@ void indexed_mesh_remove_from_spatial_hash(
 }
 
 enum error_code_e indexed_mesh_init_in_place_faces_as_boundaries(
-        mesh_st * mesh,
+        struct mesh_st * mesh,
         enum projection_plane_e pp,
         struct indexed_mesh_st * indexed_mesh)
 {
