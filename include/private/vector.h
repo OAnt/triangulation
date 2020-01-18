@@ -4,21 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <private/common.h>
-
-/**
- * Structure representing a 3D vector.
- */
-struct vector_st {
-    union {
-        double v[3]; /** x, y and z values. */
-        struct {
-            double x, y, z;
-        };
-    };
-};
-
-#define VEC3(x, y, z) {{{(x), (y), (z)}}}
-#define VEC2(x, y) VEC3(x, y, 0)
+#include <public/vector.h>
 
 /** 
  * Structure representing a 3D box.
