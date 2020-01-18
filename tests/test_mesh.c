@@ -175,6 +175,30 @@ START_TEST(test_mesh_replace_no_border_effects2)
 }
 END_TEST
 
+START_TEST(test_mesh_swap_edges)
+{
+    struct mesh_st mesh = create_cube_mesh();
+    mesh_swap_edge(&mesh, 0, 1);
+    struct face_st ngb_0 = mesh_get_neighbors(&mesh, 0);
+    struct face_st ngb_1= mesh_get_neighbors(&mesh, 1);
+    ck_assert((10 == ngb_1.f[0]) || (10 == ngb_1.f[1]) || (10 == ngb_1.f[2]));
+    ck_assert((2 == ngb_1.f[0]) || (2 == ngb_1.f[1]) || (2 == ngb_1.f[2]));
+    ck_assert((6 != ngb_1.f[0]) && (6 != ngb_1.f[1]) && (6 != ngb_1.f[2]));
+    ck_assert((4 != ngb_1.f[0]) && (4 != ngb_1.f[1]) && (4 != ngb_1.f[2]));
+    ck_assert((6 == ngb_0.f[0]) || (6 == ngb_0.f[1]) || (6 == ngb_0.f[2]));
+    ck_assert((4 == ngb_0.f[0]) || (4 == ngb_0.f[1]) || (4 == ngb_0.f[2]));
+    ck_assert((10 != ngb_0.f[0]) && (10 != ngb_0.f[1]) && (10 != ngb_0.f[2]));
+    ck_assert((2 != ngb_0.f[0]) && (2 != ngb_0.f[1]) && (2 != ngb_0.f[2]));
+    struct face_st face_1 = mesh.faces[1];
+    mesh_remove_face(&mesh, 1);
+    size_t index;
+    mesh_add_face(&mesh, face_1, &index);
+    struct face_st ngb_1_2 = mesh_get_neighbors(&mesh, index);
+    ck_assert_mem_eq(&ngb_1, &ngb_1_2, sizeof(struct face_st));
+    mesh_cleanup(&mesh);
+}
+END_TEST
+
 START_TEST(test_mesh_enclosing_triangular_face)
 {
     struct mesh_st mesh = create_cube_mesh();
@@ -473,6 +497,7 @@ Suite * mk_mesh_suite(void){
     tcase_add_test(tc, test_mesh_replace_face);
     tcase_add_test(tc, test_pop_face);
     tcase_add_test(tc, test_remove_face);
+    tcase_add_test(tc, test_mesh_swap_edges);
     tcase_add_test(tc, test_mesh_replace_no_border_effects);
     tcase_add_test(tc, test_mesh_replace_no_border_effects2);
     tcase_add_test(tc, test_stl_export_stlb);

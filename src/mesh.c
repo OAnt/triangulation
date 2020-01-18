@@ -32,6 +32,9 @@ struct vertex_adjacent_face_st{
     size_t opposite_vertex; /** Second vertex of the edge. */
     size_t next_adjacent_faces; /** Index of the next in list. */
     size_t prev_adjacent_faces; /** Index of the previous in list. */
+#ifndef NODEBUG
+    size_t vertex;
+#endif
 };
 
 struct mesh_collector_st{
@@ -110,7 +113,8 @@ fail_no_priv:
 }
 
 #define mesh_face_private(mesh, face_index) (mesh)->private->faces[(face_index)]
-#define _mesh_face_half_edges(mesh, face_index) mesh_face_private(mesh, face_index).half_edges.f
+#define __mesh_face_half_edges(mesh, face_index) mesh_face_private(mesh, face_index).half_edges
+#define _mesh_face_half_edges(mesh, face_index) __mesh_face_half_edges(mesh, face_index).f
 #define __mesh_face_neighbors(mesh, face_index) mesh_face_private(mesh, face_index).neighbors
 #define _mesh_face_neighbors(mesh, face_index) __mesh_face_neighbors(mesh, face_index).f
 
@@ -153,6 +157,9 @@ enum error_code_e mesh_vertex_add_adjacent_face(
     priv->vertex_adjacent_faces[adj_index].face = face_index;
     priv->vertex_adjacent_faces[adj_index].opposite_vertex = 
         opposite_vertex_index;
+#ifndef NODEBUG
+    priv->vertex_adjacent_faces[adj_index].vertex = vertex_index;
+#endif
     // This is the new head of the list
     priv->vertex_adjacent_faces[adj_index].prev_adjacent_faces = INVALID_INDEX;
     size_t last_head = priv->vertices[vertex_index].adjacent_faces;
@@ -481,6 +488,22 @@ enum error_code_e mesh_remove_face(
     return err;
 }
 
+static inline void mesh_switch_neighbor(
+        struct mesh_st * mesh,
+        size_t face_index,
+        size_t old_ngb,
+        size_t new_nbg)
+{
+    if(face_index == INVALID_INDEX) return;
+    for(int32_t i = 0; i < FACE_SIZE; i++){
+        if(_mesh_face_neighbors(mesh, face_index)[i] == old_ngb){
+            _mesh_face_neighbors(mesh, face_index)[i] = new_nbg;
+        }
+    }
+}
+
+#define mesh_adjacent_face(mesh, index) (mesh)->private->vertex_adjacent_faces[(index)]
+
 enum error_code_e mesh_swap_edge(
         struct mesh_st * mesh,
         size_t face_index_0,
@@ -500,32 +523,71 @@ enum error_code_e mesh_swap_edge(
     }
     // faces are not adjacent
     if(edge_offset_0 == -1 || edge_offset_1 == -1) return ec_error;
-    mesh_face_remove_topology(mesh, face_index_0);
-    mesh_face_remove_topology(mesh, face_index_1);
-    int32_t new_edge_offset_0 = (edge_offset_0 + 2) % FACE_SIZE;
-    int32_t new_edge_offset_1 = (edge_offset_1 + 2) % FACE_SIZE;
+    int32_t new_edge_offset_0_2 = (edge_offset_0 + 2) % FACE_SIZE;
+    int32_t new_edge_offset_0_1 = (edge_offset_0 + 1) % FACE_SIZE;
+    int32_t new_edge_offset_1_2 = (edge_offset_1 + 2) % FACE_SIZE;
+    int32_t new_edge_offset_1_1 = (edge_offset_1 + 1) % FACE_SIZE;
     struct face_st new_face_0 = {{
         mesh->faces[face_index_0].f[edge_offset_0],
-        mesh->faces[face_index_1].f[new_edge_offset_1],
-        mesh->faces[face_index_0].f[new_edge_offset_0],
+        mesh->faces[face_index_1].f[new_edge_offset_1_2],
+        mesh->faces[face_index_0].f[new_edge_offset_0_2],
     }};
+    struct face_st new_nbg_0 = {{
+        _mesh_face_neighbors(mesh, face_index_1)[new_edge_offset_1_1],
+        face_index_1,
+        _mesh_face_neighbors(mesh, face_index_0)[new_edge_offset_0_2],
+    }};
+    mesh_switch_neighbor(mesh, new_nbg_0.f[0], face_index_1, face_index_0);
+    struct face_st new_adj_0 = {{
+        _mesh_face_half_edges(mesh, face_index_1)[new_edge_offset_1_1],
+        INVALID_INDEX,
+        _mesh_face_half_edges(mesh, face_index_0)[new_edge_offset_0_2],
+    }};
+    mesh->private->vertex_adjacent_faces[new_adj_0.f[0]].face = face_index_0;
+    G_ASSERT(mesh_adjacent_face(mesh, new_adj_0.f[0]).vertex == new_face_0.f[0],
+            "Wrong vertex");                                                  
+    G_ASSERT(mesh_adjacent_face(mesh, new_adj_0.f[2]).vertex == new_face_0.f[2],
+            "Wrong vertex");
     struct face_st new_face_1 = {{
-        mesh->faces[face_index_1].f[new_edge_offset_1],
+        mesh->faces[face_index_1].f[new_edge_offset_1_2],
         mesh->faces[face_index_1].f[edge_offset_1],
-        mesh->faces[face_index_0].f[new_edge_offset_0],
+        mesh->faces[face_index_0].f[new_edge_offset_0_2],
     }};
+    struct face_st new_nbg_1 = {{
+        _mesh_face_neighbors(mesh, face_index_1)[new_edge_offset_1_2],
+        _mesh_face_neighbors(mesh, face_index_0)[new_edge_offset_0_1],
+        face_index_0
+    }};
+    mesh_switch_neighbor(mesh, new_nbg_1.f[1], face_index_0, face_index_1);
+    struct face_st new_adj_1 = {{
+        _mesh_face_half_edges(mesh, face_index_1)[new_edge_offset_1_2],
+        _mesh_face_half_edges(mesh, face_index_0)[new_edge_offset_0_1],
+        INVALID_INDEX,
+    }};
+    mesh->private->vertex_adjacent_faces[new_adj_1.f[1]].face = face_index_1;
+    G_ASSERT(mesh_adjacent_face(mesh, new_adj_1.f[0]).vertex == new_face_1.f[0],
+            "Wrong vertex");                                                  
+    G_ASSERT(mesh_adjacent_face(mesh, new_adj_1.f[1]).vertex == new_face_1.f[1],
+            "Wrong vertex");                                                  
+#ifndef NODEBUG
+    size_t adj_index_0 = _mesh_face_half_edges(mesh, face_index_0)[edge_offset_0];
+    size_t adj_index_1 = _mesh_face_half_edges(mesh, face_index_1)[edge_offset_1];
+#endif
+    mesh_face_remove_from_vertex_adjacent_faces(mesh, face_index_0, edge_offset_0);
+    mesh_face_remove_from_vertex_adjacent_faces(mesh, face_index_1, edge_offset_1);
     mesh->faces[face_index_0] = new_face_0;
-    __mesh_face_neighbors(mesh, face_index_0) = invalid_face;
+    __mesh_face_neighbors(mesh, face_index_0) = new_nbg_0;
+    __mesh_face_half_edges(mesh, face_index_0) = new_adj_0;
     mesh->faces[face_index_1] = new_face_1;
-    __mesh_face_neighbors(mesh, face_index_1) = invalid_face;
-    enum error_code_e err = ec_no_error;
-    err = mesh_face_add_topology(mesh, face_index_0);
-    G_ASSERT(err != ec_topology_error,
-            "Swapping the edge between to valid edges should not alter the topological soundness of the mesh");
-    err = mesh_face_add_topology(mesh, face_index_1);
-    G_ASSERT(err != ec_topology_error,
-            "Swapping the edge between to valid edges should not alter the topological soundness of the mesh");
-    return err;
+    __mesh_face_neighbors(mesh, face_index_1) = new_nbg_1;
+    __mesh_face_half_edges(mesh, face_index_1) = new_adj_1;
+    mesh_vertex_add_adjacent_face(mesh, face_index_1, 2);
+    G_ASSERT(_mesh_face_half_edges(mesh, face_index_1)[2] == adj_index_1,
+            "An allocation was done");
+    mesh_vertex_add_adjacent_face(mesh, face_index_0, 1);
+    G_ASSERT(_mesh_face_half_edges(mesh, face_index_0)[1] == adj_index_0,
+            "An allocation was done");
+    return ec_no_error;
 }
 
 enum error_code_e mesh_replace_face(
