@@ -1,5 +1,5 @@
 EXTRA_BIN:=
-EXTRA_CFLAGS="-DNDEBUG"
+EXTRA_CFLAGS=-DNDEBUG -O3
 DEPS=dependencies
 INCLUDES=-I include -I $(DEPS)/include
 CFLAGS=-Wall -g -fPIC -x c $(EXTRA_CFLAGS) 
