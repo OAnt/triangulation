@@ -32,7 +32,7 @@ struct vertex_adjacent_face_st{
     size_t opposite_vertex; /** Second vertex of the edge. */
     size_t next_adjacent_faces; /** Index of the next in list. */
     size_t prev_adjacent_faces; /** Index of the previous in list. */
-#ifndef NODEBUG
+#ifndef NDEBUG
     size_t vertex;
 #endif
 };
@@ -157,7 +157,7 @@ enum error_code_e mesh_vertex_add_adjacent_face(
     priv->vertex_adjacent_faces[adj_index].face = face_index;
     priv->vertex_adjacent_faces[adj_index].opposite_vertex = 
         opposite_vertex_index;
-#ifndef NODEBUG
+#ifndef NDEBUG
     priv->vertex_adjacent_faces[adj_index].vertex = vertex_index;
 #endif
     // This is the new head of the list
@@ -569,7 +569,7 @@ enum error_code_e mesh_swap_edge(
             "Wrong vertex");                                                  
     G_ASSERT(mesh_adjacent_face(mesh, new_adj_1.f[1]).vertex == new_face_1.f[1],
             "Wrong vertex");                                                  
-#ifndef NODEBUG
+#ifndef NDEBUG
     size_t adj_index_0 = _mesh_face_half_edges(mesh, face_index_0)[edge_offset_0];
     size_t adj_index_1 = _mesh_face_half_edges(mesh, face_index_1)[edge_offset_1];
 #endif
