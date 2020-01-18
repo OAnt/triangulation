@@ -80,6 +80,26 @@ uint32_t spatial_index_compute_level(
             "Invalid index size");
     G_ASSERT(x_size && y_size,
             "Invalid box size");
+    double x_cnt = x_max_cell_size / x_size;
+    uint32_t x_min_lvl;
+    if(x_cnt < 1.0) x_min_lvl =  0;
+    else{
+        double x_lvl = log(x_cnt)/log(2);
+        x_min_lvl = floor(x_lvl);
+    }
+    double y_cnt = y_max_cell_size / y_size;
+    uint32_t y_min_lvl;
+    if(y_cnt < 1.0) y_min_lvl = 0;
+    else{
+        double y_lvl = log(y_cnt)/log(2);
+        y_min_lvl = floor(y_lvl);
+    }
+    uint32_t min_lvl = MIN(x_min_lvl, y_min_lvl);
+    if(min_lvl >= HIGHEST_LEVEL){
+        return HIGHEST_LEVEL;
+    }else{
+        return min_lvl;
+    }
     uint32_t level = 0;
     uint64_t previous_n_cells = UINT64_MAX;
     while(level < HIGHEST_LEVEL){
