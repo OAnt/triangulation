@@ -49,7 +49,8 @@ tests: $(BUILDDIR) $(SOOUT) $(TESTOUT)
 
 .PHONY: samples
 samples: samples/rnd_delaunay_triangulation.c $(BUILDDIR) $(SOOUT)
-	$(CC) samples/rnd_delaunay_triangulation.c -L$(SODIR) -lxxx $(CFLAGS) -I include -o samples/rnd_delaunay_triangulation
+	$(CC) samples/rnd_delaunay_triangulation.c -L$(SODIR) -lxxx -lm $(CFLAGS) -I include -o samples/rnd_delaunay_triangulation
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(SODIR) $(EXTRA_BIN) ./samples/rnd_delaunay_triangulation
 
 
 clean:
