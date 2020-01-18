@@ -4,8 +4,7 @@
 #include <public/delaunay_triangulation.h>
 
 struct vector_st vector_distribution_non_uniform(struct vector_st v){
-    static double cst = 12.0;
-    /*static double cst = 1.0;*/
+    static double cst = 1.0;
     struct vector_st nv = VEC2(pow(v.v[0], cst), pow(v.v[1], cst));
     return nv;
 }
