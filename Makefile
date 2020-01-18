@@ -19,6 +19,8 @@ TEST_CFLAGS:=$(CFLAGS) $(shell pkg-config --cflags check)
 TESTOUT=$(BUILDDIR)/test
 TESTSRC=tests
 TESTS=$(wildcard $(TESTSRC)/*.c)
+SAMPLES_SRC=samples
+SAMPLES=$(wildcard $(SAMPLES_SRC)/*.c)
 CC=cc
 
 all: $(BUILDDIR) $(SOOUT)
@@ -44,6 +46,11 @@ $(TESTOUT): $(TESTS)
 .PHONY: tests
 tests: $(BUILDDIR) $(SOOUT) $(TESTOUT)
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(SODIR) $(EXTRA_BIN) ./$(TESTOUT)
+
+.PHONY: samples
+samples: samples/rnd_delaunay_triangulation.c $(BUILDDIR) $(SOOUT)
+	$(CC) samples/rnd_delaunay_triangulation.c -L$(SODIR) -lxxx $(CFLAGS) -I include -o samples/rnd_delaunay_triangulation
+
 
 clean:
 	rm -rf $(BUILDDIR)
